@@ -1,14 +1,18 @@
 import { Suspense } from "react";
-
-import { ScholarNav } from "@/components/scholar-nav";
+import { ScholarSidebar } from "@/components/scholar-sidebar";
 import { ScholarGate } from "@/lib/role-gate";
+import {
+  SidebarInset,
+  SidebarProvider,
+  SidebarTrigger,
+} from "@/components/ui/sidebar";
+import { Separator } from "@/components/ui/separator";
 
 function ScholarNavFallback() {
   return (
-    <header className="flex items-center justify-between border-b border-zinc-200 px-6 py-3 dark:border-zinc-800">
-      <span className="font-semibold">ZUVA</span>
-      <div className="h-9 w-20 rounded border border-zinc-300 dark:border-zinc-700" />
-    </header>
+    <div className="flex h-16 items-center border-b px-4">
+      <div className="h-6 w-32 animate-pulse rounded bg-zinc-200 dark:bg-zinc-800" />
+    </div>
   );
 }
 
@@ -18,11 +22,29 @@ export default function ScholarLayout({
   children: React.ReactNode;
 }) {
   return (
-    <div className="min-h-screen">
-      <Suspense fallback={<ScholarNavFallback />}>
-        <ScholarNav />
+    <SidebarProvider>
+      <Suspense fallback={null}>
+        <ScholarSidebar />
       </Suspense>
-      <ScholarGate>{children}</ScholarGate>
-    </div>
+      <SidebarInset>
+        <header className="flex h-16 shrink-0 items-center gap-2 border-b px-4 transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-12">
+          <div className="flex items-center gap-2">
+            <SidebarTrigger className="-ml-1" />
+            <Separator
+              orientation="vertical"
+              className="mr-2 data-vertical:h-4 data-vertical:self-auto"
+            />
+            <span className="font-medium text-sm text-zinc-900 dark:text-zinc-100">
+              Scholar Hub
+            </span>
+          </div>
+        </header>
+        <main className="flex-1 p-6">
+          <Suspense fallback={<ScholarNavFallback />}>
+            <ScholarGate>{children}</ScholarGate>
+          </Suspense>
+        </main>
+      </SidebarInset>
+    </SidebarProvider>
   );
 }

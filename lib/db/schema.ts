@@ -222,7 +222,9 @@ export const booking = sqliteTable(
     ...timestamps,
   },
   (t) => [
-    uniqueIndex("booking_slot_idx").on(t.slotId),
+    uniqueIndex("booking_slot_confirmed_idx")
+      .on(t.slotId)
+      .where(sql`status = 'confirmed'`),
     index("booking_scholar_idx").on(t.scholarId),
   ],
 );
