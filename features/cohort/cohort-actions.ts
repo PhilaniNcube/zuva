@@ -93,6 +93,14 @@ export async function enrollScholar(
     country: country || null,
   });
 
+  const { sendScholarEnrolledEmail } = await import("@/lib/email");
+  await sendScholarEnrolledEmail({
+    to: email,
+    scholarName: name,
+    tempPassword,
+    userId,
+  });
+
   refresh();
   return { ok: true, data: { tempPassword } };
 }

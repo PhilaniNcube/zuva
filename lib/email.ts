@@ -132,3 +132,70 @@ export async function sendPasswordResetEmail({
   }
 }
 
+/**
+ * Send an welcome & enrolment email to a newly enrolled scholar with their credentials.
+ * Logs to emailLog. Degrades gracefully when RESEND_API_KEY is not set.
+ */
+export async function sendScholarEnrolledEmail({
+  to,
+  scholarName,
+  tempPassword,
+  userId,
+}: {
+  to: string;
+  scholarName: string;
+  tempPassword?: string;
+  userId?: string;
+}): Promise<void> {
+  const resend = getResend();
+  if (!resend) {
+    console.warn("Resend not configured — skipping scholar enrolment email to", to);
+    return;
+  }
+
+  try {
+    await resend.emails.send({
+      from: FROM,
+      to,
+      subject: "Welcome to ZUVA Scholar Hub",
+      html: `
+        <div style="font-family: sans-serif; max-width: 480px; margin: 0 auto;">
+          <h2 style="color: #18181b;">Welcome to ZUVA Scholar Hub, ${scholarName}!</h2>
+          <p style="color: #3f3f46;">
+            You have been enrolled in the ZUVA postgraduate scholar coaching programme.
+          </p>
+          ${
+            tempPassword
+              ? `<div style="background: #f4f4f5; padding: 16px; border-radius: 8px; margin: 20px 0;">
+                  <p style="margin: 0 0 8px 0; color: #71717a; font-size: 14px;">Your temporary password:</p>
+                  <code style="font-size: 16px; font-weight: bold; color: #18181b;">${tempPassword}</code>
+                </div>`
+              : ""
+          }
+          <p style="margin: 24px 0;">
+            <a href="${process.env.BETTER_AUTH_URL ?? "http://localhost:3000"}/login"
+               style="background: #18181b; color: #fafafa; padding: 12px 24px;
+                      border-radius: 8px; text-decoration: none; font-weight: 500; display: inline-block;">
+              Sign In to Scholar Hub
+            </a>
+          </p>
+        </div>
+      `,
+    });
+
+    await db.insert(emailLog).values({
+      userId: userId ?? null,
+      type: "scholar_enrolled",
+      status: "sent",
+    });
+  } catch (err) {
+    console.error("Failed to send scholar enrolment email:", err);
+    await db.insert(emailLog).values({
+      userId: userId ?? null,
+      type: "scholar_enrolled",
+      status: "failed",
+    });
+  }
+}
+
+
