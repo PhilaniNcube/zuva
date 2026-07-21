@@ -9,6 +9,7 @@
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
     "db:push": "drizzle-kit push",
+    "db:push:prod": "tsx scripts/db-push-prod.ts",
     "db:generate": "drizzle-kit generate",
     "db:seed": "tsx scripts/seed.ts",
     "test": "vitest",

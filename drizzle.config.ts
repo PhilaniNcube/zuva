@@ -1,10 +1,15 @@
 import { defineConfig } from "drizzle-kit";
 
-// Load .env.local for CLI usage (drizzle-kit does not auto-load it).
+// Load env file for CLI usage (drizzle-kit does not auto-load it).
+const envFile = process.env.ENV_FILE || ".env.local";
 try {
-  process.loadEnvFile(".env.local");
+  process.loadEnvFile(envFile);
 } catch {
-  // .env.local is optional; fall back to real environment variables.
+  try {
+    process.loadEnvFile(".env.local");
+  } catch {
+    // env files are optional; fall back to real environment variables.
+  }
 }
 
 export default defineConfig({
