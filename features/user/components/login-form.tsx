@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useActionState } from "react";
 import { z } from "zod";
@@ -81,7 +82,15 @@ export function LoginForm() {
         />
       </Field>
       <Field>
-        <FieldLabel>Password</FieldLabel>
+        <div className="flex items-center justify-between">
+          <FieldLabel>Password</FieldLabel>
+          <Link
+            href="/forgot-password"
+            className="text-xs text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100"
+          >
+            Forgot password?
+          </Link>
+        </div>
         <Input
           name="password"
           type="password"

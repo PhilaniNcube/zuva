@@ -73,3 +73,62 @@ export async function sendCertificateEmail({
     });
   }
 }
+
+/**
+ * Send a password reset link to the user. Logs to emailLog.
+ * Degrades gracefully when RESEND_API_KEY is not set.
+ */
+export async function sendPasswordResetEmail({
+  to,
+  resetUrl,
+}: {
+  to: string;
+  resetUrl: string;
+}): Promise<void> {
+  const resend = getResend();
+  if (!resend) {
+    console.warn("Resend not configured — skipping password reset email to", to);
+    console.info("Password Reset Link (Dev):", resetUrl);
+    return;
+  }
+
+  try {
+    await resend.emails.send({
+      from: FROM,
+      to,
+      subject: "Reset your ZUVA Scholar Hub password",
+      html: `
+        <div style="font-family: sans-serif; max-width: 480px; margin: 0 auto;">
+          <h2 style="color: #18181b;">Reset Your Password</h2>
+          <p style="color: #3f3f46;">
+            We received a request to reset your ZUVA Scholar Hub password. Click the button below to set a new password.
+          </p>
+          <p style="margin: 24px 0;">
+            <a href="${resetUrl}"
+               style="background: #18181b; color: #fafafa; padding: 12px 24px;
+                      border-radius: 8px; text-decoration: none; font-weight: 500; display: inline-block;">
+              Reset Password
+            </a>
+          </p>
+          <p style="color: #71717a; font-size: 14px;">
+            If you did not request a password reset, you can safely ignore this email.
+          </p>
+        </div>
+      `,
+    });
+
+    await db.insert(emailLog).values({
+      userId: null,
+      type: "password_reset",
+      status: "sent",
+    });
+  } catch (err) {
+    console.error("Failed to send password reset email:", err);
+    await db.insert(emailLog).values({
+      userId: null,
+      type: "password_reset",
+      status: "failed",
+    });
+  }
+}
+

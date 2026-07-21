@@ -20,6 +20,8 @@ export function proxy(request: NextRequest) {
 }
 
 export const config = {
-  // Everything is private except the login page, the auth API, and static assets.
-  matcher: ["/((?!login|api/auth|_next/static|_next/image|favicon.ico).*)"],
+  // Everything is private except public auth pages, the auth API, and static assets.
+  matcher: [
+    "/((?!login|forgot-password|reset-password|api/auth|_next/static|_next/image|favicon.ico).*)",
+  ],
 };

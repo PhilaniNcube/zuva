@@ -454,7 +454,7 @@ export const emailLog = sqliteTable(
     id: id(),
     userId: text("user_id").references(() => user.id, { onDelete: "set null" }),
     type: text("type", {
-      enum: ["certificate_issued", "editing_queue_alert"],
+      enum: ["certificate_issued", "editing_queue_alert", "password_reset"],
     }).notNull(),
     status: text("status", { enum: ["sent", "failed"] }).notNull(),
     sentAt: integer("sent_at", { mode: "timestamp" })
