@@ -23,10 +23,33 @@ import type { ActionResult } from "@/lib/action-result";
 
 import { publishSlot } from "../session-actions";
 
-const schema = z.object({
-  startsAt: z.string().min(1, "Start time is required"),
-  endsAt: z.string().min(1, "End time is required"),
-});
+const schema = z
+  .object({
+    startsAt: z.string().min(1, "Start time is required"),
+    endsAt: z.string().min(1, "End time is required"),
+  })
+  .refine(
+    (data) => {
+      if (!data.startsAt) return true;
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      return new Date(data.startsAt) >= today;
+    },
+    {
+      message: "Start time cannot be in the past",
+      path: ["startsAt"],
+    }
+  )
+  .refine(
+    (data) => {
+      if (!data.startsAt || !data.endsAt) return true;
+      return new Date(data.endsAt) >= new Date(data.startsAt);
+    },
+    {
+      message: "End time cannot be before start time",
+      path: ["endsAt"],
+    }
+  );
 
 type FormValues = z.infer<typeof schema>;
 
@@ -48,6 +71,9 @@ export function SlotPublishForm() {
     resolver: zodResolver(schema),
     defaultValues: { startsAt: "", endsAt: "" },
   });
+
+  const startsAtValue = form.watch("startsAt");
+  const now = new Date();
 
   useEffect(() => {
     if (state?.ok) {
@@ -98,6 +124,7 @@ export function SlotPublishForm() {
                 <DatePicker
                   value={field.value}
                   onChange={field.onChange}
+                  minDate={now}
                   placeholder="Select start date & time"
                 />
               )}
@@ -114,6 +141,7 @@ export function SlotPublishForm() {
                 <DatePicker
                   value={field.value}
                   onChange={field.onChange}
+                  minDate={startsAtValue ? new Date(startsAtValue) : now}
                   placeholder="Select end date & time"
                 />
               )}

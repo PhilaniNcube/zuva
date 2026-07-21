@@ -39,9 +39,13 @@ export async function CohortDetail({ id }: { id: Promise<string> }) {
       </section>
 
       <section>
-        <h2 className="mb-3 text-lg font-semibold">
-          Scholars ({scholars.length})
-        </h2>
+        <div className="flex items-center justify-between mb-3 items-center">
+          <h2 className="text-lg font-semibold">
+            Scholars ({scholars.length})
+          </h2>
+          <ScholarEnrollForm cohortId={cohort.id} />
+        </div>
+
         {scholars.length === 0 ? (
           <p className="mb-4 text-sm text-zinc-500">
             No scholars enrolled yet.
@@ -75,7 +79,7 @@ export async function CohortDetail({ id }: { id: Promise<string> }) {
             </table>
           </div>
         )}
-        <ScholarEnrollForm cohortId={cohort.id} />
+
       </section>
     </div>
   );

@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useEffect, useState } from "react";
+import { useActionState, useEffect, useState, startTransition } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -9,6 +9,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Field, FieldLabel, FieldError } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
+import { DatePicker } from "@/components/ui/date-picker";
 import {
   Select,
   SelectContent,
@@ -16,16 +17,36 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import type { ActionResult } from "@/lib/action-result";
 
 import { updateCohort } from "../cohort-actions";
 
-const schema = z.object({
-  name: z.string().trim().min(3, "Cohort name is required").max(100),
-  startsAt: z.string().min(1, "Start date is required"),
-  endsAt: z.string().optional(),
-  status: z.enum(["draft", "active", "completed"]),
-});
+const schema = z
+  .object({
+    name: z.string().trim().min(3, "Cohort name is required").max(100),
+    startsAt: z.string().min(1, "Start date is required"),
+    endsAt: z.string().optional().or(z.literal("")),
+    status: z.enum(["draft", "active", "completed"]),
+  })
+  .refine(
+    (data) => {
+      if (!data.startsAt || !data.endsAt) return true;
+      return new Date(data.endsAt) >= new Date(data.startsAt);
+    },
+    {
+      message: "End date cannot be before start date",
+      path: ["endsAt"],
+    }
+  );
 
 type FormValues = z.infer<typeof schema>;
 
@@ -60,6 +81,8 @@ export function CohortEditForm({
     defaultValues: initial,
   });
 
+  const startsAtValue = form.watch("startsAt");
+
   useEffect(() => {
     if (state?.ok) {
       toast.success("Cohort updated");
@@ -74,78 +97,123 @@ export function CohortEditForm({
     formData.set("startsAt", data.startsAt);
     formData.set("endsAt", data.endsAt ?? "");
     formData.set("status", data.status);
-    formAction(formData);
-  }
-
-  if (!open) {
-    return (
-      <Button variant="outline" onClick={() => setOpen(true)}>
-        Edit cohort
-      </Button>
-    );
+    startTransition(() => {
+      formAction(formData);
+    });
   }
 
   return (
-    <form
-      onSubmit={form.handleSubmit(onSubmit)}
-      className="flex flex-wrap items-end gap-3 rounded-lg border border-zinc-200 p-4 dark:border-zinc-800"
-    >
-      <Field className="flex-1">
-        <FieldLabel>Name</FieldLabel>
-        <Input {...form.register("name")} />
-        <FieldError errors={[form.formState.errors.name]} />
-      </Field>
-      <Field>
-        <FieldLabel>Starts</FieldLabel>
-        <Input {...form.register("startsAt")} type="date" />
-        <FieldError errors={[form.formState.errors.startsAt]} />
-      </Field>
-      <Field>
-        <FieldLabel>Ends</FieldLabel>
-        <Input {...form.register("endsAt")} type="date" />
-        <FieldError errors={[form.formState.errors.endsAt]} />
-      </Field>
-      <Field>
-        <FieldLabel>Status</FieldLabel>
-        <Controller
-          control={form.control}
-          name="status"
-          render={({ field }) => {
-            const statusItems = [
-              { value: "draft", label: "Draft" },
-              { value: "active", label: "Active" },
-              { value: "completed", label: "Completed" },
-            ];
-            return (
-              <Select
-                value={field.value}
-                onValueChange={field.onChange}
-                items={statusItems}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {statusItems.map((item) => (
-                    <SelectItem key={item.value} value={item.value}>
-                      {item.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            );
-          }}
-        />
-        <FieldError errors={[form.formState.errors.status]} />
-      </Field>
-      <div className="flex gap-2">
-        <Button type="submit" disabled={isPending}>
-          {isPending ? "Saving…" : "Save"}
-        </Button>
-        <Button variant="outline" onClick={() => setOpen(false)}>
-          Cancel
-        </Button>
-      </div>
-    </form>
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger
+        render={
+          <Button >
+            Edit cohort
+          </Button>
+        }
+      />
+      <DialogContent className="sm:max-w-lg">
+        <DialogHeader>
+          <DialogTitle>Edit cohort</DialogTitle>
+          <DialogDescription>
+            Update cohort details, dates, and status.
+          </DialogDescription>
+        </DialogHeader>
+
+        <form
+          onSubmit={form.handleSubmit(onSubmit)}
+          className="flex flex-col gap-4 py-2"
+        >
+          <Field>
+            <FieldLabel>Name</FieldLabel>
+            <Input {...form.register("name")} />
+            <FieldError errors={[form.formState.errors.name]} />
+          </Field>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <Field>
+              <FieldLabel>Starts</FieldLabel>
+              <Controller
+                control={form.control}
+                name="startsAt"
+                render={({ field }) => (
+                  <DatePicker
+                    value={field.value}
+                    onChange={field.onChange}
+                    showTime={false}
+                    placeholder="Select start date"
+                  />
+                )}
+              />
+              <FieldError errors={[form.formState.errors.startsAt]} />
+            </Field>
+
+            <Field>
+              <FieldLabel>Ends (optional)</FieldLabel>
+              <Controller
+                control={form.control}
+                name="endsAt"
+                render={({ field }) => (
+                  <DatePicker
+                    value={field.value}
+                    onChange={field.onChange}
+                    showTime={false}
+                    minDate={startsAtValue ? new Date(startsAtValue) : undefined}
+                    placeholder="Select end date"
+                  />
+                )}
+              />
+              <FieldError errors={[form.formState.errors.endsAt]} />
+            </Field>
+          </div>
+
+          <Field>
+            <FieldLabel>Status</FieldLabel>
+            <Controller
+              control={form.control}
+              name="status"
+              render={({ field }) => {
+                const statusItems = [
+                  { value: "draft", label: "Draft" },
+                  { value: "active", label: "Active" },
+                  { value: "completed", label: "Completed" },
+                ];
+                return (
+                  <Select
+                    value={field.value}
+                    onValueChange={field.onChange}
+                    items={statusItems}
+                  >
+                    <SelectTrigger className="w-full">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {statusItems.map((item) => (
+                        <SelectItem key={item.value} value={item.value}>
+                          {item.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                );
+              }}
+            />
+            <FieldError errors={[form.formState.errors.status]} />
+          </Field>
+
+          <DialogFooter className="mt-2">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setOpen(false)}
+            >
+              Cancel
+            </Button>
+            <Button type="submit" disabled={isPending}>
+              {isPending ? "Saving…" : "Save"}
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
   );
 }

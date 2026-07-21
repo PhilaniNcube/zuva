@@ -19,6 +19,8 @@ export interface DatePickerProps {
   onChange: (value: string) => void;
   placeholder?: string;
   disabled?: boolean;
+  minDate?: Date;
+  showTime?: boolean;
   className?: string;
 }
 
@@ -29,11 +31,20 @@ function formatToDateTimeLocal(date: Date, timeStr: string): string {
   return `${year}-${month}-${day}T${timeStr}`;
 }
 
+function formatToDateOnly(date: Date): string {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
 export function DatePicker({
   value,
   onChange,
-  placeholder = "Pick date & time",
+  placeholder,
   disabled = false,
+  minDate,
+  showTime = true,
   className,
 }: DatePickerProps) {
   const date = value ? new Date(value) : undefined;
@@ -41,17 +52,30 @@ export function DatePicker({
 
   const timeValue = isValidDate ? format(date, "HH:mm") : "09:00";
 
+  const defaultPlaceholder = showTime ? "Pick date & time" : "Pick a date";
+  const displayPlaceholder = placeholder ?? defaultPlaceholder;
+
+  const startOfMinDate = React.useMemo(() => {
+    if (!minDate || isNaN(minDate.getTime())) return undefined;
+    return new Date(minDate.getFullYear(), minDate.getMonth(), minDate.getDate());
+  }, [minDate]);
+
   const handleDateSelect = (selectedDate: Date | undefined) => {
     if (!selectedDate) {
       onChange("");
       return;
     }
-    onChange(formatToDateTimeLocal(selectedDate, timeValue));
+
+    if (showTime) {
+      onChange(formatToDateTimeLocal(selectedDate, timeValue));
+    } else {
+      onChange(formatToDateOnly(selectedDate));
+    }
   };
 
   const handleTimeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newTime = e.target.value;
-    const baseDate = isValidDate ? date : new Date();
+    const baseDate = isValidDate ? date : (startOfMinDate ?? new Date());
     onChange(formatToDateTimeLocal(baseDate, newTime));
   };
 
@@ -72,9 +96,11 @@ export function DatePicker({
       >
         <CalendarIcon className="mr-2 size-4 shrink-0 opacity-70" />
         {isValidDate ? (
-          <span>{format(date, "PPP 'at' p")}</span>
+          <span>
+            {showTime ? format(date, "PPP 'at' p") : format(date, "PPP")}
+          </span>
         ) : (
-          <span>{placeholder}</span>
+          <span>{displayPlaceholder}</span>
         )}
       </PopoverTrigger>
       <PopoverContent className="w-auto p-3 flex flex-col gap-3" align="start">
@@ -82,19 +108,22 @@ export function DatePicker({
           mode="single"
           selected={isValidDate ? date : undefined}
           onSelect={handleDateSelect}
+          disabled={startOfMinDate ? { before: startOfMinDate } : undefined}
         />
-        <div className="flex items-center justify-between border-t border-border pt-3 px-1 gap-2">
-          <div className="flex items-center gap-1.5 text-xs text-muted-foreground font-medium">
-            <ClockIcon className="size-3.5" />
-            <span>Time</span>
+        {showTime && (
+          <div className="flex items-center justify-between border-t border-border pt-3 px-1 gap-2">
+            <div className="flex items-center gap-1.5 text-xs text-muted-foreground font-medium">
+              <ClockIcon className="size-3.5" />
+              <span>Time</span>
+            </div>
+            <Input
+              type="time"
+              value={timeValue}
+              onChange={handleTimeChange}
+              className="w-[120px] h-8 text-sm"
+            />
           </div>
-          <Input
-            type="time"
-            value={timeValue}
-            onChange={handleTimeChange}
-            className="w-[120px] h-8 text-sm"
-          />
-        </div>
+        )}
       </PopoverContent>
     </Popover>
   );

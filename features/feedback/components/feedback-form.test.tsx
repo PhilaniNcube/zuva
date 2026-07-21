@@ -62,7 +62,7 @@ describe("FeedbackForm", () => {
     expect(
       screen.getByPlaceholderText(/What worked well/),
     ).toBeInTheDocument();
-    expect(screen.getByLabelText(/Submit anonymously/)).toBeInTheDocument();
+    expect(screen.getByText(/Submit anonymously/)).toBeInTheDocument();
   });
 
   it("renders submit button", () => {

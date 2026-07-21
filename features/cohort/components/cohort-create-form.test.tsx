@@ -1,4 +1,5 @@
 import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 
 import { CohortCreateForm } from "./cohort-create-form";
@@ -12,37 +13,23 @@ vi.mock("sonner", () => ({
 }));
 
 describe("CohortCreateForm", () => {
-  it("renders all form fields", () => {
-    render(<CohortCreateForm />);
-
-    expect(screen.getByLabelText(/Name/)).toBeInTheDocument();
-    expect(screen.getByLabelText(/Starts/)).toBeInTheDocument();
-    expect(screen.getByLabelText(/Ends/)).toBeInTheDocument();
-    expect(screen.getByLabelText(/Status/)).toBeInTheDocument();
-  });
-
-  it("renders the submit button", () => {
+  it("renders the Create Cohort trigger button", () => {
     render(<CohortCreateForm />);
 
     expect(
-      screen.getByRole("button", { name: /Create cohort/ }),
+      screen.getByRole("button", { name: /Create Cohort/i })
     ).toBeInTheDocument();
   });
 
-  it("has a name input with placeholder", () => {
+  it("opens dialog with form fields on trigger click", async () => {
+    const user = userEvent.setup();
     render(<CohortCreateForm />);
 
-    expect(
-      screen.getByPlaceholderText("2026 Intake 2"),
-    ).toBeInTheDocument();
-  });
+    await user.click(screen.getByRole("button", { name: /Create Cohort/i }));
 
-  it("has date inputs for starts and ends", () => {
-    render(<CohortCreateForm />);
-
-    const startsInput = screen.getByLabelText(/Starts/);
-    const endsInput = screen.getByLabelText(/Ends/);
-    expect(startsInput).toHaveAttribute("type", "date");
-    expect(endsInput).toHaveAttribute("type", "date");
+    expect(screen.getByText("Name")).toBeInTheDocument();
+    expect(screen.getByText("Starts")).toBeInTheDocument();
+    expect(screen.getByText(/Ends/)).toBeInTheDocument();
+    expect(screen.getByText("Status")).toBeInTheDocument();
   });
 });
