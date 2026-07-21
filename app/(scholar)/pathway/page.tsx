@@ -1,18 +1,40 @@
+import { Suspense } from "react";
+import type { Metadata } from "next";
+
+export const metadata: Metadata = { title: "My Learning Pathway" };
+
+import {
+  CertificateStatus,
+  CertificateStatusSkeleton,
+} from "@/features/certificate/components/certificate-status";
+import {
+  PathwayChecklist,
+  PathwayChecklistSkeleton,
+} from "@/features/pathway/components/pathway-checklist";
+import { getScholarProfile } from "@/features/user/user-queries";
 import { requireRole } from "@/lib/rbac";
-import { SignOutButton } from "@/features/user/components/sign-out-button";
 
 export default async function PathwayPage() {
   const { user } = await requireRole("scholar");
+  const profile = await getScholarProfile(user.id);
+
   return (
-    <main className="flex min-h-screen flex-col gap-4 p-8">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-semibold">My Learning Pathway</h1>
-        <SignOutButton />
-      </div>
-      <p className="text-sm text-zinc-500">
-        Signed in as {user.name} ({user.email}) — role: scholar
-      </p>
-      <p className="text-zinc-400">Pathway checklist coming in step ⑤.</p>
-    </main>
+    <div className="flex flex-col gap-6 p-8">
+      <h1 className="text-2xl font-semibold">My Learning Pathway</h1>
+
+      <Suspense fallback={<CertificateStatusSkeleton />}>
+        <CertificateStatus scholarId={user.id} />
+      </Suspense>
+
+      {profile?.cohortId ? (
+        <Suspense fallback={<PathwayChecklistSkeleton />}>
+          <PathwayChecklist scholarId={user.id} cohortId={profile.cohortId} />
+        </Suspense>
+      ) : (
+        <p className="text-sm text-zinc-500">
+          You are not enrolled in a cohort yet.
+        </p>
+      )}
+    </div>
   );
 }

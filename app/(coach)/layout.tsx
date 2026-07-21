@@ -1,10 +1,9 @@
-import { requireRole } from "@/lib/rbac";
+import { CoachGate } from "@/lib/role-gate";
 
-export default async function CoachLayout({
+export default function CoachLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  await requireRole("coach");
-  return <>{children}</>;
+  return <CoachGate>{children}</CoachGate>;
 }

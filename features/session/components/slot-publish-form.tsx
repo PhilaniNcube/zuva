@@ -1,62 +1,77 @@
 "use client";
 
-import { useRef, useState, useTransition } from "react";
+import { useActionState, useEffect } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
+import { toast } from "sonner";
+
+import { Button } from "@/components/ui/button";
+import { Field, FieldLabel, FieldError } from "@/components/ui/field";
+import { Input } from "@/components/ui/input";
+import type { ActionResult } from "@/lib/action-result";
 
 import { publishSlot } from "../session-actions";
 
-export function SlotPublishForm() {
-  const formRef = useRef<HTMLFormElement>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [pending, startTransition] = useTransition();
+const schema = z.object({
+  startsAt: z.string().min(1, "Start time is required"),
+  endsAt: z.string().min(1, "End time is required"),
+});
 
-  function onSubmit(formData: FormData) {
-    // datetime-local values are interpreted in the coach's browser timezone,
-    // then sent to the server as UTC ISO strings.
-    const startsAt = new Date(String(formData.get("startsAt"))).toISOString();
-    const endsAt = new Date(String(formData.get("endsAt"))).toISOString();
-    startTransition(async () => {
-      setError(null);
-      const result = await publishSlot({ startsAt, endsAt });
-      if (!result.ok) {
-        setError(result.error);
-        return;
-      }
-      formRef.current?.reset();
-    });
+type FormValues = z.infer<typeof schema>;
+
+async function action(
+  _prev: ActionResult | null,
+  formData: FormData,
+): Promise<ActionResult> {
+  return publishSlot({
+    startsAt: formData.get("startsAt") as string,
+    endsAt: formData.get("endsAt") as string,
+  });
+}
+
+export function SlotPublishForm() {
+  const [state, formAction, isPending] = useActionState(action, null);
+
+  const form = useForm<FormValues>({
+    resolver: zodResolver(schema),
+    defaultValues: { startsAt: "", endsAt: "" },
+  });
+
+  useEffect(() => {
+    if (state?.ok) {
+      toast.success("Slot published");
+      form.reset();
+    }
+    if (state && !state.ok) toast.error(state.error);
+  }, [state, form]);
+
+  function onSubmit(data: FormValues) {
+    // datetime-local values are in the browser's timezone — convert to UTC ISO.
+    const formData = new FormData();
+    formData.set("startsAt", new Date(data.startsAt).toISOString());
+    formData.set("endsAt", new Date(data.endsAt).toISOString());
+    formAction(formData);
   }
 
   return (
     <form
-      ref={formRef}
-      action={onSubmit}
+      onSubmit={form.handleSubmit(onSubmit)}
       className="flex flex-wrap items-end gap-3 rounded-lg border border-zinc-200 p-4 dark:border-zinc-800"
     >
-      <label className="flex flex-col gap-1 text-sm font-medium">
-        Start
-        <input
-          name="startsAt"
-          type="datetime-local"
-          required
-          className="rounded border border-zinc-300 px-3 py-2 dark:border-zinc-700 dark:bg-zinc-900"
-        />
-      </label>
-      <label className="flex flex-col gap-1 text-sm font-medium">
-        End
-        <input
-          name="endsAt"
-          type="datetime-local"
-          required
-          className="rounded border border-zinc-300 px-3 py-2 dark:border-zinc-700 dark:bg-zinc-900"
-        />
-      </label>
-      <button
-        type="submit"
-        disabled={pending}
-        className="rounded bg-zinc-900 px-4 py-2 text-sm font-medium text-white disabled:opacity-50 dark:bg-zinc-100 dark:text-zinc-900"
-      >
-        {pending ? "Publishing…" : "Publish slot"}
-      </button>
-      {error ? <p className="w-full text-sm text-red-600">{error}</p> : null}
+      <Field>
+        <FieldLabel>Start</FieldLabel>
+        <Input {...form.register("startsAt")} type="datetime-local" />
+        <FieldError errors={[form.formState.errors.startsAt]} />
+      </Field>
+      <Field>
+        <FieldLabel>End</FieldLabel>
+        <Input {...form.register("endsAt")} type="datetime-local" />
+        <FieldError errors={[form.formState.errors.endsAt]} />
+      </Field>
+      <Button type="submit" disabled={isPending}>
+        {isPending ? "Publishing…" : "Publish slot"}
+      </Button>
     </form>
   );
 }

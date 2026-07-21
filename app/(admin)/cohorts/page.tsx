@@ -1,4 +1,7 @@
 import { Suspense } from "react";
+import type { Metadata } from "next";
+
+export const metadata: Metadata = { title: "Cohorts" };
 
 import { CohortCreateForm } from "@/features/cohort/components/cohort-create-form";
 import {

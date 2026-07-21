@@ -1,5 +1,12 @@
 import { Suspense } from "react";
+import type { Metadata } from "next";
 
+export const metadata: Metadata = { title: "Sessions" };
+
+import {
+  FeedbackPrompt,
+  FeedbackPromptSkeleton,
+} from "@/features/feedback/components/feedback-prompt";
 import {
   BookingBrowser,
   BookingBrowserSkeleton,
@@ -28,6 +35,10 @@ export default async function SessionsPage() {
           coaching bookings.
         </p>
       </div>
+
+      <Suspense fallback={<FeedbackPromptSkeleton />}>
+        <FeedbackPrompt scholarId={user.id} />
+      </Suspense>
 
       {profile?.cohortId ? (
         <section className="flex flex-col gap-3">

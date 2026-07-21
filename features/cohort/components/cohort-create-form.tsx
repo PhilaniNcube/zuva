@@ -1,83 +1,127 @@
 "use client";
 
-import { useRef, useState, useTransition } from "react";
+import { useActionState, useEffect } from "react";
+import { Controller, useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
+import { toast } from "sonner";
+
+import { Button } from "@/components/ui/button";
+import { Field, FieldLabel, FieldError } from "@/components/ui/field";
+import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import type { ActionResult } from "@/lib/action-result";
 
 import { createCohort } from "../cohort-actions";
 
-export function CohortCreateForm() {
-  const formRef = useRef<HTMLFormElement>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [pending, startTransition] = useTransition();
+const schema = z.object({
+  name: z.string().trim().min(3, "Cohort name is required").max(100),
+  startsAt: z.string().min(1, "Start date is required"),
+  endsAt: z.string().optional(),
+  status: z.enum(["draft", "active", "completed"]),
+});
 
-  function onSubmit(formData: FormData) {
-    startTransition(async () => {
-      setError(null);
-      const result = await createCohort({
-        name: formData.get("name"),
-        startsAt: formData.get("startsAt"),
-        endsAt: formData.get("endsAt"),
-        status: formData.get("status"),
-      });
-      if (!result.ok) {
-        setError(result.error);
-        return;
-      }
-      formRef.current?.reset();
-    });
+type FormValues = z.infer<typeof schema>;
+
+async function action(
+  _prev: ActionResult | null,
+  formData: FormData,
+): Promise<ActionResult> {
+  return createCohort({
+    name: formData.get("name"),
+    startsAt: formData.get("startsAt"),
+    endsAt: formData.get("endsAt"),
+    status: formData.get("status"),
+  });
+}
+
+export function CohortCreateForm() {
+  const [state, formAction, isPending] = useActionState(action, null);
+
+  const form = useForm<FormValues>({
+    resolver: zodResolver(schema),
+    defaultValues: { name: "", startsAt: "", endsAt: "", status: "draft" },
+  });
+
+  useEffect(() => {
+    if (state?.ok) {
+      toast.success("Cohort created");
+      form.reset();
+    }
+    if (state && !state.ok) toast.error(state.error);
+  }, [state, form]);
+
+  function onSubmit(data: FormValues) {
+    const formData = new FormData();
+    formData.set("name", data.name);
+    formData.set("startsAt", data.startsAt);
+    formData.set("endsAt", data.endsAt ?? "");
+    formData.set("status", data.status);
+    formAction(formData);
   }
 
   return (
     <form
-      ref={formRef}
-      action={onSubmit}
+      onSubmit={form.handleSubmit(onSubmit)}
       className="flex flex-wrap items-end gap-3 rounded-lg border border-zinc-200 p-4 dark:border-zinc-800"
     >
-      <label className="flex flex-col gap-1 text-sm font-medium">
-        Name
-        <input
-          name="name"
-          required
-          placeholder="2026 Intake 2"
-          className="rounded border border-zinc-300 px-3 py-2 dark:border-zinc-700 dark:bg-zinc-900"
-        />
-      </label>
-      <label className="flex flex-col gap-1 text-sm font-medium">
-        Starts
-        <input
-          name="startsAt"
-          type="date"
-          required
-          className="rounded border border-zinc-300 px-3 py-2 dark:border-zinc-700 dark:bg-zinc-900"
-        />
-      </label>
-      <label className="flex flex-col gap-1 text-sm font-medium">
-        Ends <span className="font-normal text-zinc-500">(optional)</span>
-        <input
-          name="endsAt"
-          type="date"
-          className="rounded border border-zinc-300 px-3 py-2 dark:border-zinc-700 dark:bg-zinc-900"
-        />
-      </label>
-      <label className="flex flex-col gap-1 text-sm font-medium">
-        Status
-        <select
+      <Field className="flex-1">
+        <FieldLabel>Name</FieldLabel>
+        <Input {...form.register("name")} placeholder="2026 Intake 2" />
+        <FieldError errors={[form.formState.errors.name]} />
+      </Field>
+      <Field>
+        <FieldLabel>Starts</FieldLabel>
+        <Input {...form.register("startsAt")} type="date" />
+        <FieldError errors={[form.formState.errors.startsAt]} />
+      </Field>
+      <Field>
+        <FieldLabel>Ends (optional)</FieldLabel>
+        <Input {...form.register("endsAt")} type="date" />
+        <FieldError errors={[form.formState.errors.endsAt]} />
+      </Field>
+      <Field>
+        <FieldLabel>Status</FieldLabel>
+        <Controller
+          control={form.control}
           name="status"
-          defaultValue="draft"
-          className="rounded border border-zinc-300 px-3 py-2 dark:border-zinc-700 dark:bg-zinc-900"
-        >
-          <option value="draft">Draft</option>
-          <option value="active">Active</option>
-          <option value="completed">Completed</option>
-        </select>
-      </label>
-      <button
-        type="submit"
-        disabled={pending}
-        className="rounded bg-zinc-900 px-4 py-2 text-sm font-medium text-white disabled:opacity-50 dark:bg-zinc-100 dark:text-zinc-900"
-      >
-        {pending ? "Creating…" : "Create cohort"}
-      </button>
-      {error ? <p className="w-full text-sm text-red-600">{error}</p> : null}
+          render={({ field }) => {
+            const statusItems = [
+              { value: "draft", label: "Draft" },
+              { value: "active", label: "Active" },
+              { value: "completed", label: "Completed" },
+            ];
+            return (
+              <Select
+                value={field.value}
+                onValueChange={field.onChange}
+                items={statusItems}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {statusItems.map((item) => (
+                    <SelectItem key={item.value} value={item.value}>
+                      {item.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            );
+          }}
+        />
+        <FieldError errors={[form.formState.errors.status]} />
+      </Field>
+      <Button type="submit" disabled={isPending}>
+        {isPending ? "Creating…" : "Create cohort"}
+      </Button>
     </form>
   );
 }

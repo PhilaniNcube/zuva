@@ -1,9 +1,45 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState, useTransition } from "react";
+import { useActionState, useEffect, useState } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
+import { toast } from "sonner";
+
+import { Button } from "@/components/ui/button";
+import { Field, FieldLabel, FieldError, FieldDescription } from "@/components/ui/field";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import type { ActionResult } from "@/lib/action-result";
 
 import { completeOnboarding } from "@/features/user/user-actions";
+
+const schema = z.object({
+  country: z.string().trim().min(2, "Country is required").max(100),
+  whatsappNumber: z
+    .string()
+    .trim()
+    .max(30)
+    .optional()
+    .or(z.literal("")),
+  bio: z.string().trim().min(10, "Bio is required").max(2000),
+  mtpText: z.string().trim().min(5, "MTP is required").max(500),
+});
+
+type FormValues = z.infer<typeof schema>;
+
+async function action(
+  _prev: ActionResult | null,
+  formData: FormData,
+): Promise<ActionResult> {
+  return completeOnboarding({
+    country: formData.get("country"),
+    whatsappNumber: formData.get("whatsappNumber"),
+    bio: formData.get("bio"),
+    mtpText: formData.get("mtpText"),
+  });
+}
 
 type InitialValues = {
   country: string;
@@ -17,25 +53,29 @@ const STEPS = ["Welcome", "How the hub works", "Your profile"] as const;
 export function OnboardingWizard({ initial }: { initial: InitialValues }) {
   const router = useRouter();
   const [step, setStep] = useState(0);
-  const [error, setError] = useState<string | null>(null);
-  const [pending, startTransition] = useTransition();
+  const [state, formAction, isPending] = useActionState(action, null);
 
-  function onSubmit(formData: FormData) {
-    startTransition(async () => {
-      setError(null);
-      const result = await completeOnboarding({
-        country: formData.get("country"),
-        whatsappNumber: formData.get("whatsappNumber"),
-        bio: formData.get("bio"),
-        mtpText: formData.get("mtpText"),
-      });
-      if (!result.ok) {
-        setError(result.error);
-        return;
-      }
+  const form = useForm<FormValues>({
+    resolver: zodResolver(schema),
+    defaultValues: initial,
+  });
+
+  useEffect(() => {
+    if (state?.ok) {
+      toast.success("Onboarding complete!");
       router.push("/pathway");
       router.refresh();
-    });
+    }
+    if (state && !state.ok) toast.error(state.error);
+  }, [state, router]);
+
+  function onSubmit(data: FormValues) {
+    const formData = new FormData();
+    formData.set("country", data.country);
+    formData.set("whatsappNumber", data.whatsappNumber ?? "");
+    formData.set("bio", data.bio);
+    formData.set("mtpText", data.mtpText);
+    formAction(formData);
   }
 
   return (
@@ -100,94 +140,71 @@ export function OnboardingWizard({ initial }: { initial: InitialValues }) {
       )}
 
       {step === 2 && (
-        <form action={onSubmit} className="flex flex-col gap-4">
+        <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col gap-4">
           <h1 className="text-2xl font-semibold">Your profile</h1>
-          <label className="flex flex-col gap-1 text-sm font-medium">
-            Country
-            <input
-              name="country"
-              required
-              defaultValue={initial.country}
-              placeholder="e.g. Zimbabwe"
-              className="rounded border border-zinc-300 px-3 py-2 dark:border-zinc-700 dark:bg-zinc-900"
-            />
-          </label>
-          <label className="flex flex-col gap-1 text-sm font-medium">
-            WhatsApp number{" "}
-            <span className="font-normal text-zinc-500">
-              (optional, international format)
-            </span>
-            <input
-              name="whatsappNumber"
-              defaultValue={initial.whatsappNumber}
-              placeholder="+263…"
-              className="rounded border border-zinc-300 px-3 py-2 dark:border-zinc-700 dark:bg-zinc-900"
-            />
-          </label>
-          <label className="flex flex-col gap-1 text-sm font-medium">
-            Short bio
-            <textarea
-              name="bio"
-              required
+
+          <Field>
+            <FieldLabel>Country</FieldLabel>
+            <Input {...form.register("country")} placeholder="e.g. Zimbabwe" />
+            <FieldError errors={[form.formState.errors.country]} />
+          </Field>
+
+          <Field>
+            <FieldLabel>WhatsApp number (optional, international format)</FieldLabel>
+            <Input {...form.register("whatsappNumber")} placeholder="+263…" />
+            <FieldError errors={[form.formState.errors.whatsappNumber]} />
+          </Field>
+
+          <Field>
+            <FieldLabel>Short bio</FieldLabel>
+            <Textarea
+              {...form.register("bio")}
               rows={4}
-              defaultValue={initial.bio}
               placeholder="Your research area, background, and what you are working on…"
-              className="rounded border border-zinc-300 px-3 py-2 dark:border-zinc-700 dark:bg-zinc-900"
             />
-          </label>
-          <label className="flex flex-col gap-1 text-sm font-medium">
-            Your Massive Transformative Purpose (MTP)
-            <textarea
-              name="mtpText"
-              required
+            <FieldError errors={[form.formState.errors.bio]} />
+          </Field>
+
+          <Field>
+            <FieldLabel>Your Massive Transformative Purpose (MTP)</FieldLabel>
+            <Textarea
+              {...form.register("mtpText")}
               rows={2}
-              defaultValue={initial.mtpText}
               placeholder="The big change you want to see in the world…"
-              className="rounded border border-zinc-300 px-3 py-2 dark:border-zinc-700 dark:bg-zinc-900"
             />
-          </label>
-          <p className="text-xs text-zinc-500">
+            <FieldError errors={[form.formState.errors.mtpText]} />
+          </Field>
+
+          <FieldDescription>
             Your MTP appears on your ZUVA certificate when you complete the
             programme.
-          </p>
-          {error ? <p className="text-sm text-red-600">{error}</p> : null}
+          </FieldDescription>
+
           <div className="mt-2 flex justify-between">
-            <button
-              type="button"
+            <Button
+              variant="outline"
               onClick={() => setStep(1)}
-              disabled={pending}
-              className="rounded border border-zinc-300 px-4 py-2 text-sm disabled:opacity-40 dark:border-zinc-700"
+              disabled={isPending}
             >
               Back
-            </button>
-            <button
-              type="submit"
-              disabled={pending}
-              className="rounded bg-zinc-900 px-4 py-2 text-sm font-medium text-white disabled:opacity-50 dark:bg-zinc-100 dark:text-zinc-900"
-            >
-              {pending ? "Saving…" : "Finish and go to my pathway"}
-            </button>
+            </Button>
+            <Button type="submit" disabled={isPending}>
+              {isPending ? "Saving…" : "Finish and go to my pathway"}
+            </Button>
           </div>
         </form>
       )}
 
       {step < STEPS.length - 1 && (
         <div className="mt-8 flex justify-between">
-          <button
-            type="button"
+          <Button
+            variant="outline"
             onClick={() => setStep((s) => Math.max(0, s - 1))}
             disabled={step === 0}
-            className="rounded border border-zinc-300 px-4 py-2 text-sm disabled:opacity-40 dark:border-zinc-700"
           >
             Back
-          </button>
-          <button
-            type="button"
-            onClick={() => setStep((s) => s + 1)}
-            className="rounded bg-zinc-900 px-4 py-2 text-sm font-medium text-white dark:bg-zinc-100 dark:text-zinc-900"
-          >
-            Continue
-          </button>
+          </Button>
+          <Button onClick={() => setStep((s) => s + 1)}>Continue</Button>
         </div>
       )}
     </div>

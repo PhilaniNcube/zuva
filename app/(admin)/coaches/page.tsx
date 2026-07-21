@@ -1,4 +1,7 @@
 import { Suspense } from "react";
+import type { Metadata } from "next";
+
+export const metadata: Metadata = { title: "Coaches" };
 
 import { CoachCreateForm } from "@/features/coach/components/coach-create-form";
 import {

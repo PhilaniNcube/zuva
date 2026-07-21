@@ -1,100 +1,161 @@
 "use client";
 
-import { useRef, useState, useTransition } from "react";
+import { useActionState, useEffect, useState } from "react";
+import { Controller, useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
+import { toast } from "sonner";
+
+import { Button } from "@/components/ui/button";
+import { Field, FieldLabel, FieldError } from "@/components/ui/field";
+import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import type { ActionResult } from "@/lib/action-result";
 
 import { createCoach } from "../coach-actions";
 import { SPECIALTIES } from "../specialties";
 
+const schema = z.object({
+  name: z.string().trim().min(2, "Coach name is required").max(100),
+  email: z.string().email("A valid email is required"),
+  specialty: z.enum([
+    "academic_writing",
+    "leadership",
+    "data_decisions",
+    "one_on_one",
+  ]),
+  whatsappNumber: z
+    .string()
+    .trim()
+    .min(7, "WhatsApp number is required (international format)")
+    .max(30),
+  bio: z.string().trim().max(2000).optional().or(z.literal("")),
+});
+
+type FormValues = z.infer<typeof schema>;
+
+async function action(
+  _prev: ActionResult<{ tempPassword: string }> | null,
+  formData: FormData,
+): Promise<ActionResult<{ tempPassword: string }>> {
+  return createCoach({
+    name: formData.get("name"),
+    email: formData.get("email"),
+    specialty: formData.get("specialty"),
+    whatsappNumber: formData.get("whatsappNumber"),
+    bio: formData.get("bio"),
+  });
+}
+
 export function CoachCreateForm() {
-  const formRef = useRef<HTMLFormElement>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [state, formAction, isPending] = useActionState(action, null);
   const [created, setCreated] = useState<{
     email: string;
     tempPassword: string;
   } | null>(null);
-  const [pending, startTransition] = useTransition();
 
-  function onSubmit(formData: FormData) {
-    const email = String(formData.get("email") ?? "");
-    startTransition(async () => {
-      setError(null);
-      setCreated(null);
-      const result = await createCoach({
-        name: formData.get("name"),
-        email,
-        specialty: formData.get("specialty"),
-        whatsappNumber: formData.get("whatsappNumber"),
-        bio: formData.get("bio"),
+  const form = useForm<FormValues>({
+    resolver: zodResolver(schema),
+    defaultValues: {
+      name: "",
+      email: "",
+      specialty: "one_on_one",
+      whatsappNumber: "",
+      bio: "",
+    },
+  });
+
+  useEffect(() => {
+    if (state?.ok) {
+      toast.success("Coach added");
+      setCreated({
+        email: form.getValues("email"),
+        tempPassword: state.data.tempPassword,
       });
-      if (!result.ok) {
-        setError(result.error);
-        return;
-      }
-      setCreated({ email, tempPassword: result.data.tempPassword });
-      formRef.current?.reset();
-    });
+      form.reset();
+    }
+    if (state && !state.ok) toast.error(state.error);
+  }, [state, form]);
+
+  function onSubmit(data: FormValues) {
+    const formData = new FormData();
+    formData.set("name", data.name);
+    formData.set("email", data.email);
+    formData.set("specialty", data.specialty);
+    formData.set("whatsappNumber", data.whatsappNumber);
+    formData.set("bio", data.bio ?? "");
+    formAction(formData);
   }
 
   return (
     <div className="rounded-lg border border-zinc-200 p-4 dark:border-zinc-800">
       <h3 className="mb-3 text-sm font-semibold">Add a coach / expert</h3>
-      <form ref={formRef} action={onSubmit} className="flex flex-wrap items-end gap-3">
-        <label className="flex flex-col gap-1 text-sm font-medium">
-          Name
-          <input
-            name="name"
-            required
-            className="rounded border border-zinc-300 px-3 py-2 dark:border-zinc-700 dark:bg-zinc-900"
-          />
-        </label>
-        <label className="flex flex-col gap-1 text-sm font-medium">
-          Email
-          <input
-            name="email"
-            type="email"
-            required
-            className="rounded border border-zinc-300 px-3 py-2 dark:border-zinc-700 dark:bg-zinc-900"
-          />
-        </label>
-        <label className="flex flex-col gap-1 text-sm font-medium">
-          Specialty
-          <select
+      <form
+        onSubmit={form.handleSubmit(onSubmit)}
+        className="flex flex-wrap items-end gap-3"
+      >
+        <Field className="flex-1">
+          <FieldLabel>Name</FieldLabel>
+          <Input {...form.register("name")} />
+          <FieldError errors={[form.formState.errors.name]} />
+        </Field>
+        <Field className="flex-1">
+          <FieldLabel>Email</FieldLabel>
+          <Input {...form.register("email")} type="email" />
+          <FieldError errors={[form.formState.errors.email]} />
+        </Field>
+        <Field>
+          <FieldLabel>Specialty</FieldLabel>
+          <Controller
+            control={form.control}
             name="specialty"
-            defaultValue="one_on_one"
-            className="rounded border border-zinc-300 px-3 py-2 dark:border-zinc-700 dark:bg-zinc-900"
-          >
-            {Object.entries(SPECIALTIES).map(([value, label]) => (
-              <option key={value} value={value}>
-                {label}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label className="flex flex-col gap-1 text-sm font-medium">
-          WhatsApp number
-          <input
-            name="whatsappNumber"
-            required
-            placeholder="+233…"
-            className="rounded border border-zinc-300 px-3 py-2 dark:border-zinc-700 dark:bg-zinc-900"
+            render={({ field }) => {
+              const specialtyItems = Object.entries(SPECIALTIES).map(([value, label]) => ({
+                value,
+                label,
+              }));
+              return (
+                <Select
+                  value={field.value}
+                  onValueChange={field.onChange}
+                  items={specialtyItems}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {specialtyItems.map(({ value, label }) => (
+                      <SelectItem key={value} value={value}>
+                        {label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              );
+            }}
           />
-        </label>
-        <label className="flex flex-col gap-1 text-sm font-medium">
-          Bio <span className="font-normal text-zinc-500">(optional)</span>
-          <input
-            name="bio"
-            className="rounded border border-zinc-300 px-3 py-2 dark:border-zinc-700 dark:bg-zinc-900"
-          />
-        </label>
-        <button
-          type="submit"
-          disabled={pending}
-          className="rounded bg-zinc-900 px-4 py-2 text-sm font-medium text-white disabled:opacity-50 dark:bg-zinc-100 dark:text-zinc-900"
-        >
-          {pending ? "Adding…" : "Add coach"}
-        </button>
+          <FieldError errors={[form.formState.errors.specialty]} />
+        </Field>
+        <Field>
+          <FieldLabel>WhatsApp number</FieldLabel>
+          <Input {...form.register("whatsappNumber")} placeholder="+233…" />
+          <FieldError errors={[form.formState.errors.whatsappNumber]} />
+        </Field>
+        <Field className="flex-1">
+          <FieldLabel>Bio (optional)</FieldLabel>
+          <Input {...form.register("bio")} />
+          <FieldError errors={[form.formState.errors.bio]} />
+        </Field>
+        <Button type="submit" disabled={isPending}>
+          {isPending ? "Adding…" : "Add coach"}
+        </Button>
       </form>
-      {error ? <p className="mt-2 text-sm text-red-600">{error}</p> : null}
       {created ? (
         <p className="mt-3 rounded bg-green-50 px-3 py-2 text-sm text-green-800 dark:bg-green-900/30 dark:text-green-300">
           Account created for {created.email}. Temporary password:{" "}

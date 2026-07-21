@@ -1,8 +1,52 @@
 "use client";
 
-import { useRef, useState, useTransition } from "react";
+import { useActionState, useEffect } from "react";
+import { Controller, useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
+import { toast } from "sonner";
+
+import { Button } from "@/components/ui/button";
+import { Field, FieldLabel, FieldError } from "@/components/ui/field";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import type { ActionResult } from "@/lib/action-result";
 
 import { createCohortSession } from "../session-actions";
+
+const schema = z.object({
+  cohortId: z.string().min(1, "Cohort is required"),
+  type: z.enum(["masterclass", "orientation"]),
+  coachId: z.string().optional(),
+  title: z.string().trim().min(3, "Title is required").max(200),
+  startsAt: z.string().min(1, "Start time is required"),
+  endsAt: z.string().min(1, "End time is required"),
+  description: z.string().trim().max(2000).optional().or(z.literal("")),
+});
+
+type FormValues = z.infer<typeof schema>;
+
+async function action(
+  _prev: ActionResult | null,
+  formData: FormData,
+): Promise<ActionResult> {
+  return createCohortSession({
+    cohortId: formData.get("cohortId"),
+    type: formData.get("type"),
+    coachId: formData.get("coachId") || null,
+    title: formData.get("title"),
+    description: formData.get("description"),
+    startsAt: formData.get("startsAt") as string,
+    endsAt: formData.get("endsAt") as string,
+  });
+}
 
 export function CohortSessionForm({
   cohorts,
@@ -11,125 +55,170 @@ export function CohortSessionForm({
   cohorts: { id: string; name: string }[];
   coaches: { id: string; name: string }[];
 }) {
-  const formRef = useRef<HTMLFormElement>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [pending, startTransition] = useTransition();
+  const [state, formAction, isPending] = useActionState(action, null);
 
-  function onSubmit(formData: FormData) {
-    const startsAt = new Date(String(formData.get("startsAt"))).toISOString();
-    const endsAt = new Date(String(formData.get("endsAt"))).toISOString();
-    startTransition(async () => {
-      setError(null);
-      const result = await createCohortSession({
-        cohortId: formData.get("cohortId"),
-        type: formData.get("type"),
-        title: formData.get("title"),
-        description: formData.get("description"),
-        coachId: formData.get("coachId"),
-        startsAt,
-        endsAt,
-      });
-      if (!result.ok) {
-        setError(result.error);
-        return;
-      }
-      formRef.current?.reset();
-    });
+  const form = useForm<FormValues>({
+    resolver: zodResolver(schema),
+    defaultValues: {
+      cohortId: cohorts[0]?.id ?? "",
+      type: "masterclass",
+      coachId: "",
+      title: "",
+      startsAt: "",
+      endsAt: "",
+      description: "",
+    },
+  });
+
+  useEffect(() => {
+    if (state?.ok) {
+      toast.success("Session scheduled");
+      form.reset();
+    }
+    if (state && !state.ok) toast.error(state.error);
+  }, [state, form]);
+
+  function onSubmit(data: FormValues) {
+    const formData = new FormData();
+    formData.set("cohortId", data.cohortId);
+    formData.set("type", data.type);
+    formData.set("coachId", data.coachId ?? "");
+    formData.set("title", data.title);
+    formData.set("startsAt", new Date(data.startsAt).toISOString());
+    formData.set("endsAt", new Date(data.endsAt).toISOString());
+    formData.set("description", data.description ?? "");
+    formAction(formData);
   }
 
   return (
     <form
-      ref={formRef}
-      action={onSubmit}
+      onSubmit={form.handleSubmit(onSubmit)}
       className="flex flex-col gap-3 rounded-lg border border-zinc-200 p-4 dark:border-zinc-800"
     >
       <h3 className="text-sm font-semibold">Schedule a group session</h3>
       <div className="flex flex-wrap items-end gap-3">
-        <label className="flex flex-col gap-1 text-sm font-medium">
-          Cohort
-          <select
+        <Field>
+          <FieldLabel>Cohort</FieldLabel>
+          <Controller
+            control={form.control}
             name="cohortId"
-            required
-            className="rounded border border-zinc-300 px-3 py-2 dark:border-zinc-700 dark:bg-zinc-900"
-          >
-            {cohorts.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.name}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label className="flex flex-col gap-1 text-sm font-medium">
-          Type
-          <select
+            render={({ field }) => {
+              const cohortItems = cohorts.map((c) => ({ value: c.id, label: c.name }));
+              return (
+                <Select
+                  value={field.value}
+                  onValueChange={field.onChange}
+                  items={cohortItems}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {cohortItems.map((c) => (
+                      <SelectItem key={c.value} value={c.value}>
+                        {c.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              );
+            }}
+          />
+          <FieldError errors={[form.formState.errors.cohortId]} />
+        </Field>
+        <Field>
+          <FieldLabel>Type</FieldLabel>
+          <Controller
+            control={form.control}
             name="type"
-            defaultValue="masterclass"
-            className="rounded border border-zinc-300 px-3 py-2 dark:border-zinc-700 dark:bg-zinc-900"
-          >
-            <option value="masterclass">Masterclass</option>
-            <option value="orientation">Orientation</option>
-          </select>
-        </label>
-        <label className="flex flex-col gap-1 text-sm font-medium">
-          Coach <span className="font-normal text-zinc-500">(optional)</span>
-          <select
+            render={({ field }) => {
+              const typeItems = [
+                { value: "masterclass", label: "Masterclass" },
+                { value: "orientation", label: "Orientation" },
+              ];
+              return (
+                <Select
+                  value={field.value}
+                  onValueChange={field.onChange}
+                  items={typeItems}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {typeItems.map((t) => (
+                      <SelectItem key={t.value} value={t.value}>
+                        {t.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              );
+            }}
+          />
+          <FieldError errors={[form.formState.errors.type]} />
+        </Field>
+        <Field>
+          <FieldLabel>Coach (optional)</FieldLabel>
+          <Controller
+            control={form.control}
             name="coachId"
-            className="rounded border border-zinc-300 px-3 py-2 dark:border-zinc-700 dark:bg-zinc-900"
-          >
-            <option value="">—</option>
-            {coaches.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.name}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label className="flex flex-col gap-1 text-sm font-medium">
-          Title
-          <input
-            name="title"
-            required
+            render={({ field }) => {
+              const coachItems = [
+                { value: "", label: "—" },
+                ...coaches.map((c) => ({ value: c.id, label: c.name })),
+              ];
+              return (
+                <Select
+                  value={field.value}
+                  onValueChange={field.onChange}
+                  items={coachItems}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="—" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {coachItems.map((c) => (
+                      <SelectItem key={c.value} value={c.value}>
+                        {c.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              );
+            }}
+          />
+          <FieldError errors={[form.formState.errors.coachId]} />
+        </Field>
+        <Field className="flex-1">
+          <FieldLabel>Title</FieldLabel>
+          <Input
+            {...form.register("title")}
             placeholder="Academic Writing Masterclass II"
-            className="rounded border border-zinc-300 px-3 py-2 dark:border-zinc-700 dark:bg-zinc-900"
           />
-        </label>
-        <label className="flex flex-col gap-1 text-sm font-medium">
-          Start
-          <input
-            name="startsAt"
-            type="datetime-local"
-            required
-            className="rounded border border-zinc-300 px-3 py-2 dark:border-zinc-700 dark:bg-zinc-900"
-          />
-        </label>
-        <label className="flex flex-col gap-1 text-sm font-medium">
-          End
-          <input
-            name="endsAt"
-            type="datetime-local"
-            required
-            className="rounded border border-zinc-300 px-3 py-2 dark:border-zinc-700 dark:bg-zinc-900"
-          />
-        </label>
+          <FieldError errors={[form.formState.errors.title]} />
+        </Field>
+        <Field>
+          <FieldLabel>Start</FieldLabel>
+          <Input {...form.register("startsAt")} type="datetime-local" />
+          <FieldError errors={[form.formState.errors.startsAt]} />
+        </Field>
+        <Field>
+          <FieldLabel>End</FieldLabel>
+          <Input {...form.register("endsAt")} type="datetime-local" />
+          <FieldError errors={[form.formState.errors.endsAt]} />
+        </Field>
       </div>
-      <label className="flex flex-col gap-1 text-sm font-medium">
-        Description <span className="font-normal text-zinc-500">(optional)</span>
-        <textarea
-          name="description"
-          rows={2}
-          className="rounded border border-zinc-300 px-3 py-2 dark:border-zinc-700 dark:bg-zinc-900"
-        />
-      </label>
+      <Field>
+        <FieldLabel>Description (optional)</FieldLabel>
+        <Textarea {...form.register("description")} rows={2} />
+        <FieldError errors={[form.formState.errors.description]} />
+      </Field>
       <div>
-        <button
-          type="submit"
-          disabled={pending}
-          className="rounded bg-zinc-900 px-4 py-2 text-sm font-medium text-white disabled:opacity-50 dark:bg-zinc-100 dark:text-zinc-900"
-        >
-          {pending ? "Scheduling…" : "Schedule session"}
-        </button>
+        <Button type="submit" disabled={isPending}>
+          {isPending ? "Scheduling…" : "Schedule session"}
+        </Button>
       </div>
-      {error ? <p className="text-sm text-red-600">{error}</p> : null}
     </form>
   );
 }

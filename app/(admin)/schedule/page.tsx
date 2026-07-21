@@ -1,4 +1,7 @@
 import { Suspense } from "react";
+import type { Metadata } from "next";
+
+export const metadata: Metadata = { title: "Schedule" };
 
 import { listCohorts } from "@/features/cohort/cohort-queries";
 import { listCoaches } from "@/features/coach/coach-queries";

@@ -1,18 +1,27 @@
+import { Suspense } from "react";
+import type { Metadata } from "next";
+
+import {
+  CertificateApprovalList,
+  CertificateApprovalListSkeleton,
+} from "@/features/certificate/components/certificate-approval-list";
 import { requireRole } from "@/lib/rbac";
-import { SignOutButton } from "@/features/user/components/sign-out-button";
+
+export const metadata: Metadata = { title: "Certificate Approvals" };
 
 export default async function ApprovalsPage() {
   const { user } = await requireRole("minds");
+
   return (
-    <main className="flex min-h-screen flex-col gap-4 p-8">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-semibold">Certificate Approvals</h1>
-        <SignOutButton />
-      </div>
+    <div className="flex flex-col gap-6">
+      <h1 className="text-2xl font-semibold">Certificate Approvals</h1>
       <p className="text-sm text-zinc-500">
-        Signed in as {user.name} ({user.email}) — role: minds
+        Signed in as {user.name} ({user.email})
       </p>
-      <p className="text-zinc-400">Approval pipeline coming in step ⑥.</p>
-    </main>
+
+      <Suspense fallback={<CertificateApprovalListSkeleton />}>
+        <CertificateApprovalList />
+      </Suspense>
+    </div>
   );
 }

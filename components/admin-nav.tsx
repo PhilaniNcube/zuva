@@ -7,9 +7,11 @@ import { SignOutButton } from "@/features/user/components/sign-out-button";
 
 const LINKS = [
   { href: "/dashboard", label: "Dashboard" },
+  { href: "/editing", label: "Editing" },
   { href: "/cohorts", label: "Cohorts" },
   { href: "/coaches", label: "Coaches" },
   { href: "/schedule", label: "Schedule" },
+  { href: "/resources", label: "Resources" },
 ];
 
 export function AdminNav() {

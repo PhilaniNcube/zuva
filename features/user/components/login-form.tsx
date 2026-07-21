@@ -1,32 +1,58 @@
 "use client";
 
 import { useRouter, useSearchParams } from "next/navigation";
-import { useState } from "react";
+import { useActionState } from "react";
+import { z } from "zod";
+import { toast } from "sonner";
 
+import { Button } from "@/components/ui/button";
+import { Field, FieldLabel, FieldError } from "@/components/ui/field";
+import { Input } from "@/components/ui/input";
 import { signIn } from "@/lib/auth-client";
 import { roleHome } from "@/lib/roles";
+
+const schema = z.object({
+  email: z.string().email("Enter a valid email"),
+  password: z.string().min(1, "Password is required"),
+});
+
+type FormState = {
+  error?: string;
+  fieldErrors?: {
+    email?: string[];
+    password?: string[];
+  };
+};
 
 export function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const [error, setError] = useState<string | null>(null);
-  const [pending, setPending] = useState(false);
 
-  async function onSubmit(formData: FormData) {
-    setPending(true);
-    setError(null);
-    const { data, error } = await signIn.email({
-      email: String(formData.get("email") ?? ""),
-      password: String(formData.get("password") ?? ""),
-    });
-    if (error) {
-      setError(error.message ?? "Sign-in failed");
-      setPending(false);
-      return;
+  async function loginAction(
+    prevState: FormState,
+    formData: FormData,
+  ): Promise<FormState> {
+    const data = Object.fromEntries(formData.entries());
+    const parsed = schema.safeParse(data);
+
+    if (!parsed.success) {
+      return {
+        fieldErrors: parsed.error.flatten().fieldErrors,
+      };
     }
 
-    const role = (data?.user as { role?: string } | undefined)?.role;
-    // Honor an explicit safe redirect target, otherwise go to the role's home.
+    const { data: authData, error } = await signIn.email({
+      email: parsed.data.email,
+      password: parsed.data.password,
+    });
+
+    if (error) {
+      toast.error(error.message ?? "Sign-in failed");
+      return { error: error.message ?? "Sign-in failed" };
+    }
+
+    toast.success("Signed in");
+    const role = (authData?.user as { role?: string } | undefined)?.role;
     const next = searchParams.get("next");
     const target =
       next && next.startsWith("/") && !next.startsWith("//")
@@ -34,38 +60,42 @@ export function LoginForm() {
         : roleHome(role ?? "scholar");
     router.push(target);
     router.refresh();
+
+    return {};
   }
 
+  const [state, action, pending] = useActionState(loginAction, {});
+
   return (
-    <form action={onSubmit} className="flex w-full max-w-sm flex-col gap-4">
-      <label className="flex flex-col gap-1 text-sm font-medium">
-        Email
-        <input
+    <form action={action} className="flex w-full max-w-sm flex-col gap-4">
+      <Field>
+        <FieldLabel>Email</FieldLabel>
+        <Input
           name="email"
           type="email"
-          required
           autoComplete="email"
-          className="rounded border border-zinc-300 px-3 py-2 dark:border-zinc-700 dark:bg-zinc-900"
+          defaultValue=""
         />
-      </label>
-      <label className="flex flex-col gap-1 text-sm font-medium">
-        Password
-        <input
+        <FieldError
+          errors={state.fieldErrors?.email?.map((msg) => ({ message: msg }))}
+        />
+      </Field>
+      <Field>
+        <FieldLabel>Password</FieldLabel>
+        <Input
           name="password"
           type="password"
-          required
           autoComplete="current-password"
-          className="rounded border border-zinc-300 px-3 py-2 dark:border-zinc-700 dark:bg-zinc-900"
+          defaultValue=""
         />
-      </label>
-      {error ? <p className="text-sm text-red-600">{error}</p> : null}
-      <button
-        type="submit"
-        disabled={pending}
-        className="rounded bg-zinc-900 px-4 py-2 font-medium text-white disabled:opacity-50 dark:bg-zinc-100 dark:text-zinc-900"
-      >
+        <FieldError
+          errors={state.fieldErrors?.password?.map((msg) => ({ message: msg }))}
+        />
+      </Field>
+      <Button type="submit" disabled={pending}>
         {pending ? "Signing in…" : "Sign in"}
-      </button>
+      </Button>
     </form>
   );
 }
+
