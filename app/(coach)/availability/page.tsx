@@ -18,14 +18,16 @@ export default async function AvailabilityPage() {
   const { user } = await requireRole("coach");
   return (
     <main className="flex min-h-screen flex-col gap-8 p-8">
-      <div>
-        <h1 className="text-2xl font-semibold">My availability</h1>
-        <p className="text-sm text-zinc-500">
-          Publish 1:1 slots for scholars to book, and join your calls from
-          here.
-        </p>
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-semibold">My availability</h1>
+          <p className="text-sm text-zinc-500">
+            Publish 1:1 slots for scholars to book, and join your calls from
+            here.
+          </p>
+        </div>
+        <SlotPublishForm />
       </div>
-      <SlotPublishForm />
       <section className="flex flex-col gap-3">
         <h2 className="text-lg font-semibold">My 1:1 slots</h2>
         <Suspense fallback={<CoachSlotsSkeleton />}>

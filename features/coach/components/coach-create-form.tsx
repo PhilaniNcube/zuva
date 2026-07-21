@@ -1,14 +1,16 @@
 "use client";
 
-import { useActionState, useEffect, useState } from "react";
+import { useActionState, useEffect, useState, startTransition } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { toast } from "sonner";
+import { PlusIcon } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Field, FieldLabel, FieldError } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Select,
   SelectContent,
@@ -16,6 +18,15 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import type { ActionResult } from "@/lib/action-result";
 
 import { createCoach } from "../coach-actions";
@@ -54,6 +65,7 @@ async function action(
 }
 
 export function CoachCreateForm() {
+  const [open, setOpen] = useState(false);
   const [state, formAction, isPending] = useActionState(action, null);
   const [created, setCreated] = useState<{
     email: string;
@@ -90,79 +102,138 @@ export function CoachCreateForm() {
     formData.set("specialty", data.specialty);
     formData.set("whatsappNumber", data.whatsappNumber);
     formData.set("bio", data.bio ?? "");
-    formAction(formData);
+    startTransition(() => {
+      formAction(formData);
+    });
+  }
+
+  function handleOpenChange(newOpen: boolean) {
+    setOpen(newOpen);
+    if (!newOpen) {
+      setCreated(null);
+    }
   }
 
   return (
-    <div className="rounded-lg border border-zinc-200 p-4 dark:border-zinc-800">
-      <h3 className="mb-3 text-sm font-semibold">Add a coach / expert</h3>
-      <form
-        onSubmit={form.handleSubmit(onSubmit)}
-        className="flex flex-wrap items-end gap-3"
-      >
-        <Field className="flex-1">
-          <FieldLabel>Name</FieldLabel>
-          <Input {...form.register("name")} />
-          <FieldError errors={[form.formState.errors.name]} />
-        </Field>
-        <Field className="flex-1">
-          <FieldLabel>Email</FieldLabel>
-          <Input {...form.register("email")} type="email" />
-          <FieldError errors={[form.formState.errors.email]} />
-        </Field>
-        <Field>
-          <FieldLabel>Specialty</FieldLabel>
-          <Controller
-            control={form.control}
-            name="specialty"
-            render={({ field }) => {
-              const specialtyItems = Object.entries(SPECIALTIES).map(([value, label]) => ({
-                value,
-                label,
-              }));
-              return (
-                <Select
-                  value={field.value}
-                  onValueChange={field.onChange}
-                  items={specialtyItems}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {specialtyItems.map(({ value, label }) => (
-                      <SelectItem key={value} value={value}>
-                        {label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              );
-            }}
-          />
-          <FieldError errors={[form.formState.errors.specialty]} />
-        </Field>
-        <Field>
-          <FieldLabel>WhatsApp number</FieldLabel>
-          <Input {...form.register("whatsappNumber")} placeholder="+233…" />
-          <FieldError errors={[form.formState.errors.whatsappNumber]} />
-        </Field>
-        <Field className="flex-1">
-          <FieldLabel>Bio (optional)</FieldLabel>
-          <Input {...form.register("bio")} />
-          <FieldError errors={[form.formState.errors.bio]} />
-        </Field>
-        <Button type="submit" disabled={isPending}>
-          {isPending ? "Adding…" : "Add coach"}
-        </Button>
-      </form>
-      {created ? (
-        <p className="mt-3 rounded bg-green-50 px-3 py-2 text-sm text-green-800 dark:bg-green-900/30 dark:text-green-300">
-          Account created for {created.email}. Temporary password:{" "}
-          <code className="font-mono font-semibold">{created.tempPassword}</code>{" "}
-          — share it securely; it is only shown once.
-        </p>
-      ) : null}
-    </div>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
+      <DialogTrigger
+        render={
+          <Button>
+            <PlusIcon className="mr-1.5 size-4" />
+            Add Coach
+          </Button>
+        }
+      />
+      <DialogContent className="sm:max-w-lg">
+        <DialogHeader>
+          <DialogTitle>Add a coach / expert</DialogTitle>
+          <DialogDescription>
+            Create a coach account and assign their domain specialty.
+          </DialogDescription>
+        </DialogHeader>
+
+        {created ? (
+          <div className="flex flex-col gap-4 py-2">
+            <div className="rounded-lg bg-green-50 p-4 text-sm text-green-800 dark:bg-green-900/30 dark:text-green-300">
+              <p className="font-semibold">Account created successfully!</p>
+              <p className="mt-1">
+                Account created for <span className="font-medium">{created.email}</span>. Temporary password:{" "}
+                <code className="font-mono font-semibold bg-green-100 dark:bg-green-800/50 px-1.5 py-0.5 rounded">
+                  {created.tempPassword}
+                </code>
+              </p>
+              <p className="mt-2 text-xs opacity-90">
+                Share this password securely with the coach; it is only displayed once.
+              </p>
+            </div>
+            <DialogFooter>
+              <Button type="button" onClick={() => handleOpenChange(false)}>
+                Done
+              </Button>
+            </DialogFooter>
+          </div>
+        ) : (
+          <form
+            onSubmit={form.handleSubmit(onSubmit)}
+            className="flex flex-col gap-4 py-2"
+          >
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <Field>
+                <FieldLabel>Name</FieldLabel>
+                <Input {...form.register("name")} placeholder="Dr. Jane Doe" />
+                <FieldError errors={[form.formState.errors.name]} />
+              </Field>
+              <Field>
+                <FieldLabel>Email</FieldLabel>
+                <Input {...form.register("email")} type="email" placeholder="jane@example.com" />
+                <FieldError errors={[form.formState.errors.email]} />
+              </Field>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <Field>
+                <FieldLabel>Specialty</FieldLabel>
+                <Controller
+                  control={form.control}
+                  name="specialty"
+                  render={({ field }) => {
+                    const specialtyItems = Object.entries(SPECIALTIES).map(
+                      ([value, label]) => ({
+                        value,
+                        label,
+                      })
+                    );
+                    return (
+                      <Select
+                        value={field.value}
+                        onValueChange={field.onChange}
+                        items={specialtyItems}
+                      >
+                        <SelectTrigger className="w-full">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {specialtyItems.map(({ value, label }) => (
+                            <SelectItem key={value} value={value}>
+                              {label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    );
+                  }}
+                />
+                <FieldError errors={[form.formState.errors.specialty]} />
+              </Field>
+
+              <Field>
+                <FieldLabel>WhatsApp number</FieldLabel>
+                <Input {...form.register("whatsappNumber")} placeholder="+233…" />
+                <FieldError errors={[form.formState.errors.whatsappNumber]} />
+              </Field>
+            </div>
+
+            <Field>
+              <FieldLabel>Bio (optional)</FieldLabel>
+              <Textarea {...form.register("bio")} rows={3} placeholder="Brief background & coaching experience…" />
+              <FieldError errors={[form.formState.errors.bio]} />
+            </Field>
+
+            <DialogFooter className="mt-2">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => handleOpenChange(false)}
+              >
+                Cancel
+              </Button>
+              <Button type="submit" disabled={isPending}>
+                {isPending ? "Adding…" : "Add coach"}
+              </Button>
+            </DialogFooter>
+          </form>
+        )}
+      </DialogContent>
+    </Dialog>
   );
 }
