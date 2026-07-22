@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
-import { SignOutButton } from "@/features/user/components/sign-out-button";
+import { UserDropdown } from "@/features/user/components/user-dropdown";
 
 const LINKS = [
   { href: "/pathway", label: "Pathway" },
@@ -34,7 +34,7 @@ export function ScholarNav() {
           ))}
         </nav>
       </div>
-      <SignOutButton />
+      <UserDropdown side="bottom" align="end" />
     </header>
   );
 }

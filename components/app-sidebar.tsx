@@ -25,7 +25,7 @@ import {
   SidebarMenuItem,
   SidebarRail,
 } from "@/components/ui/sidebar";
-import { SignOutButton } from "@/features/user/components/sign-out-button";
+import { UserDropdown } from "@/features/user/components/user-dropdown";
 
 const navItems = [
   {
@@ -110,7 +110,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
 
       <SidebarFooter className="border-t border-sidebar-border p-3">
         <div className="flex items-center justify-between w-full">
-          <SignOutButton />
+          <UserDropdown side="top" align="start" />
         </div>
       </SidebarFooter>
 
