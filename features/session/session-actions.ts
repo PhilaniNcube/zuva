@@ -95,6 +95,7 @@ export async function bookSlot(slotId: string): Promise<ActionResult> {
       endsAt: availabilitySlot.endsAt,
       status: availabilitySlot.status,
       coachName: user.name,
+      coachEmail: user.email,
     })
     .from(availabilitySlot)
     .innerJoin(user, eq(user.id, availabilitySlot.coachId))
@@ -110,6 +111,7 @@ export async function bookSlot(slotId: string): Promise<ActionResult> {
     description: `ZUVA coaching session between ${scholar.name} and ${slot.coachName}.`,
     startsAt: slot.startsAt,
     endsAt: slot.endsAt,
+    attendees: [scholar.email, slot.coachEmail],
   });
 
   try {
@@ -219,11 +221,21 @@ export async function createCohortSession(
   }
   const v = parsed.data;
 
+  const attendees: string[] = [];
+  if (v.coachId) {
+    const [assignedCoach] = await db
+      .select({ email: user.email })
+      .from(user)
+      .where(eq(user.id, v.coachId));
+    if (assignedCoach?.email) attendees.push(assignedCoach.email);
+  }
+
   const meet = await createMeetEvent({
     title: `ZUVA — ${v.title}`,
     description: v.description || null,
     startsAt: v.startsAt,
     endsAt: v.endsAt,
+    attendees: attendees.length > 0 ? attendees : undefined,
   });
 
   await db.insert(programmeSession).values({

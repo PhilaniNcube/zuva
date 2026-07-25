@@ -3,6 +3,8 @@ import { LocalTime } from "@/components/local-time";
 import { listAdminSessions } from "../session-queries";
 import { CancelSessionButton } from "./slot-buttons";
 
+import { JoinCallButton } from "./join-call-button";
+
 export async function AdminSessionList() {
   const sessions = await listAdminSessions();
 
@@ -43,7 +45,10 @@ export async function AdminSessionList() {
                 <LocalTime value={s.startsAt} />
               </td>
               <td className="px-4 py-2">
-                {s.meetLink ? "✓" : <span className="text-zinc-400">pending</span>}
+                <JoinCallButton
+                  sessionId={s.id}
+                  meetLinkAvailable={!!s.meetLink}
+                />
               </td>
               <td className="px-4 py-2">
                 <span

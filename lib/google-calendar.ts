@@ -1,10 +1,10 @@
 import { google, type calendar_v3 } from "googleapis";
 
 /**
- * Google Calendar / Meet integration via the single programme account
- * (OAuth refresh token in env vars). When credentials are absent (local dev)
- * every function degrades gracefully to a no-op so the rest of the booking
- * flow still works — sessions just have no Meet link.
+ * Google Calendar & Jitsi Meet Integration
+ * Creates Google Calendar events with automatic email invitations sent to attendees,
+ * while utilizing Jitsi Meet links so anyone (Google or non-Google users) can join
+ * without needing host admission.
  */
 
 function getCalendar(): {
@@ -41,39 +41,44 @@ export async function createMeetEvent(input: {
   description?: string | null;
   startsAt: Date;
   endsAt: Date;
+  attendees?: string[];
 }): Promise<{ eventId: string; meetLink: string } | null> {
+  const roomId = crypto.randomUUID();
+  const meetLink = `https://meet.jit.si/zuva-${roomId}`;
+
   const ctx = getCalendar();
   if (!ctx) {
     console.warn(
-      "[google-calendar] credentials not configured — session will have no Meet link",
+      "[google-calendar] credentials not configured — fallback to local Jitsi link",
     );
-    return null;
+    return { eventId: roomId, meetLink };
   }
-  const res = await ctx.calendar.events.insert({
-    calendarId: ctx.calendarId,
-    conferenceDataVersion: 1,
-    requestBody: {
-      summary: input.title,
-      description: input.description ?? undefined,
-      start: { dateTime: input.startsAt.toISOString() },
-      end: { dateTime: input.endsAt.toISOString() },
-      conferenceData: {
-        createRequest: {
-          requestId: crypto.randomUUID(),
-          conferenceSolutionKey: { type: "hangoutsMeet" },
-        },
+
+  try {
+    const descText = input.description
+      ? `${input.description}\n\nJoin Video Call: ${meetLink}`
+      : `Join Video Call: ${meetLink}`;
+
+    const res = await ctx.calendar.events.insert({
+      calendarId: ctx.calendarId,
+      sendUpdates: "all", // Sends official calendar invite emails to attendees
+      requestBody: {
+        summary: input.title,
+        location: meetLink,
+        description: descText,
+        start: { dateTime: input.startsAt.toISOString() },
+        end: { dateTime: input.endsAt.toISOString() },
+        attendees: input.attendees?.map((email) => ({ email })),
       },
-    },
-  });
-  const eventId = res.data.id ?? null;
-  const meetLink =
-    res.data.hangoutLink ??
-    res.data.conferenceData?.entryPoints?.find(
-      (e) => e.entryPointType === "video",
-    )?.uri ??
-    null;
-  if (!eventId || !meetLink) return null;
-  return { eventId, meetLink };
+    });
+
+    const eventId = res.data.id ?? roomId;
+    return { eventId, meetLink };
+  } catch (err) {
+    console.error("[google-calendar] Error creating calendar event:", err);
+    // Fall back to returning the valid Jitsi link even if calendar insert fails
+    return { eventId: roomId, meetLink };
+  }
 }
 
 export async function cancelMeetEvent(eventId: string): Promise<void> {
@@ -83,6 +88,7 @@ export async function cancelMeetEvent(eventId: string): Promise<void> {
     await ctx.calendar.events.delete({
       calendarId: ctx.calendarId,
       eventId,
+      sendUpdates: "all",
     });
   } catch {
     // Already deleted or never existed — nothing to do.
