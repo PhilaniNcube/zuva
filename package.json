@@ -14,7 +14,8 @@
     "db:seed": "tsx scripts/seed.ts",
     "test": "vitest",
     "test:run": "vitest run",
-    "test:coverage": "vitest run --coverage"
+    "test:coverage": "vitest run --coverage",
+    "test:email": "tsx scripts/test-resend.ts"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1091.0",

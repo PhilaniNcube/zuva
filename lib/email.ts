@@ -11,7 +11,7 @@ function getResend(): Resend | null {
   return new Resend(apiKey);
 }
 
-const FROM = process.env.RESEND_FROM ?? "ZUVA <noreply@zuva.app>";
+const FROM = process.env.RESEND_FROM ?? process.env.EMAIL_FROM ?? "ZUVA <noreply@zuva.app>";
 
 /**
  * Send a certificate-issued email to the scholar. Logs to emailLog.
