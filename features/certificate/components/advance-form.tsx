@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useEffect, useState } from "react";
+import { startTransition, useActionState, useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -53,7 +53,9 @@ export function AdvanceForm({ certificateId }: { certificateId: string }) {
   function onSubmit(data: FormValues) {
     const formData = new FormData();
     formData.set("adminNote", data.adminNote ?? "");
-    formAction(formData);
+    startTransition(() => {
+      formAction(formData);
+    });
   }
 
   if (!open) {

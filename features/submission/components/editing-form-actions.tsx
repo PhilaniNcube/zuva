@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useEffect, useState } from "react";
+import { startTransition, useActionState, useEffect, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -82,7 +82,9 @@ export function StartReviewForm({
     const formData = new FormData();
     formData.set("reviewerId", data.reviewerId);
     formData.set("dueAt", data.dueAt ?? "");
-    formAction(formData);
+    startTransition(() => {
+      formAction(formData);
+    });
   }
 
   if (!open) {
@@ -197,7 +199,9 @@ export function StartEditingForm({
     const formData = new FormData();
     formData.set("editorId", data.editorId);
     formData.set("dueAt", data.dueAt ?? "");
-    formAction(formData);
+    startTransition(() => {
+      formAction(formData);
+    });
   }
 
   if (!open) {
@@ -341,7 +345,9 @@ export function ReturnFileForm({
 
     const formData = new FormData();
     formData.set("fileKey", key);
-    formAction(formData);
+    startTransition(() => {
+      formAction(formData);
+    });
   }
 
   if (!open) {

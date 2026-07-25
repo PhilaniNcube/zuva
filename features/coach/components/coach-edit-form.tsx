@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useEffect, useState } from "react";
+import { startTransition, useActionState, useEffect, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -81,7 +81,9 @@ export function CoachEditForm({
     formData.set("specialty", data.specialty);
     formData.set("whatsappNumber", data.whatsappNumber);
     formData.set("bio", data.bio ?? "");
-    formAction(formData);
+    startTransition(() => {
+      formAction(formData);
+    });
   }
 
   if (!open) {

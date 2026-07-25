@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useActionState, useEffect, useState } from "react";
+import { startTransition, useActionState, useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -75,7 +75,9 @@ export function OnboardingWizard({ initial }: { initial: InitialValues }) {
     formData.set("whatsappNumber", data.whatsappNumber ?? "");
     formData.set("bio", data.bio);
     formData.set("mtpText", data.mtpText);
-    formAction(formData);
+    startTransition(() => {
+      formAction(formData);
+    });
   }
 
   return (
