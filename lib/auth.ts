@@ -6,10 +6,24 @@ import type { Role } from "./roles";
 
 export type { Role } from "./roles";
 
+const envOrigins = process.env.BETTER_AUTH_TRUSTED_ORIGINS
+  ? process.env.BETTER_AUTH_TRUSTED_ORIGINS.split(",").map((o) => o.trim())
+  : [];
+
+const defaultOrigins = [
+  "https://zuvacoaching.com",
+  "https://www.zuvacoaching.com",
+  process.env.BETTER_AUTH_URL,
+  process.env.NEXT_PUBLIC_APP_URL,
+].filter((url): url is string => Boolean(url));
+
+const trustedOrigins = Array.from(new Set([...defaultOrigins, ...envOrigins]));
+
 export const auth = betterAuth({
   database: drizzleAdapter(db, {
     provider: "sqlite",
   }),
+  trustedOrigins,
   emailAndPassword: {
     enabled: true,
     async sendResetPassword({ user, url }) {
