@@ -10,6 +10,7 @@ import {
   UserCheck,
   Calendar,
   BookOpen,
+  UserCog,
 } from "lucide-react";
 
 import {
@@ -57,6 +58,11 @@ const navItems = [
     title: "Resources",
     url: "/resources",
     icon: BookOpen,
+  },
+  {
+    title: "User Management",
+    url: "/users",
+    icon: UserCog,
   },
 ];
 
