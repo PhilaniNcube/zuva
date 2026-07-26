@@ -1,9 +1,10 @@
 import Link from "next/link";
-import { ArrowLeft, User, Mail, Shield, Calendar, Edit, Globe, Phone, FileText } from "lucide-react";
+import { ArrowLeft, Mail, Shield, Calendar, Globe, Phone, User, FileText } from "lucide-react";
 
 import { requireUser } from "@/lib/rbac";
 import { roleHome, type Role } from "@/lib/roles";
 import { getScholarProfile } from "@/features/user/user-queries";
+import { ProfileEditForm } from "@/features/user/components/profile-edit-form";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -77,23 +78,25 @@ export async function ProfileContent() {
           </CardContent>
         </Card>
 
-        {/* Scholar Specific Profile Information */}
-        {role === "scholar" && (
+        {/* Edit Profile & Password Form */}
+        <ProfileEditForm
+          user={{
+            id: user.id,
+            name: user.name,
+            email: user.email,
+            role,
+          }}
+          scholarProfileData={scholarDetails}
+        />
+
+        {/* Scholar Specific Read-only Information Card */}
+        {role === "scholar" && scholarDetails && (
           <Card className="border-border shadow-sm">
-            <CardHeader className="flex flex-row items-center justify-between">
-              <div>
-                <CardTitle className="text-lg">Scholar Details</CardTitle>
-                <CardDescription>Your personal and research profile details</CardDescription>
-              </div>
-              <Link
-                href="/onboarding"
-                className={buttonVariants({ variant: "outline", size: "sm" })}
-              >
-                <Edit className="mr-1.5 size-3.5" />
-                Update Profile
-              </Link>
+            <CardHeader>
+              <CardTitle className="text-lg">Scholar Summary</CardTitle>
+              <CardDescription>Current saved profile details</CardDescription>
             </CardHeader>
-            <CardContent className="grid gap-6">
+            <CardContent className="grid gap-4">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="p-4 rounded-lg bg-muted/40 border border-border/50">
                   <div className="text-xs font-medium text-muted-foreground flex items-center gap-1.5 mb-1">
@@ -101,7 +104,7 @@ export async function ProfileContent() {
                     Country
                   </div>
                   <div className="text-sm font-semibold text-foreground">
-                    {scholarDetails?.country || "Not specified"}
+                    {scholarDetails.country || "Not specified"}
                   </div>
                 </div>
 
@@ -111,12 +114,12 @@ export async function ProfileContent() {
                     WhatsApp Number
                   </div>
                   <div className="text-sm font-semibold text-foreground">
-                    {scholarDetails?.whatsappNumber || "Not specified"}
+                    {scholarDetails.whatsappNumber || "Not specified"}
                   </div>
                 </div>
               </div>
 
-              {scholarDetails?.bio && (
+              {scholarDetails.bio && (
                 <div className="p-4 rounded-lg bg-muted/40 border border-border/50">
                   <div className="text-xs font-medium text-muted-foreground flex items-center gap-1.5 mb-1">
                     <User className="size-3.5" />
@@ -128,7 +131,7 @@ export async function ProfileContent() {
                 </div>
               )}
 
-              {scholarDetails?.mtpText && (
+              {scholarDetails.mtpText && (
                 <div className="p-4 rounded-lg bg-muted/40 border border-border/50">
                   <div className="text-xs font-medium text-muted-foreground flex items-center gap-1.5 mb-1">
                     <FileText className="size-3.5" />
@@ -176,19 +179,14 @@ export function ProfileContentSkeleton() {
         </Card>
 
         <Card className="border-border shadow-sm">
-          <CardHeader className="flex flex-row items-center justify-between">
-            <div className="space-y-1.5">
-              <Skeleton className="h-5 w-32" />
-              <Skeleton className="h-4 w-52" />
-            </div>
-            <Skeleton className="h-8 w-28" />
+          <CardHeader>
+            <Skeleton className="h-6 w-40" />
+            <Skeleton className="h-4 w-60" />
           </CardHeader>
-          <CardContent className="grid gap-6">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <Skeleton className="h-16 w-full rounded-lg" />
-              <Skeleton className="h-16 w-full rounded-lg" />
-            </div>
-            <Skeleton className="h-24 w-full rounded-lg" />
+          <CardContent className="grid gap-4">
+            <Skeleton className="h-10 w-full" />
+            <Skeleton className="h-10 w-full" />
+            <Skeleton className="h-10 w-full" />
           </CardContent>
         </Card>
       </div>
