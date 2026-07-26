@@ -12,6 +12,7 @@ const LINKS = [
   { href: "/coaches", label: "Coaches" },
   { href: "/schedule", label: "Schedule" },
   { href: "/resources", label: "Resources" },
+  { href: "/users", label: "Users" },
 ];
 
 export function AdminNav() {

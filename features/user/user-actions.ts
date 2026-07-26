@@ -170,3 +170,39 @@ export async function changeUserPassword(input: unknown): Promise<ActionResult> 
     return { ok: false, error: errorMessage };
   }
 }
+
+const promoteUserSchema = z.object({
+  userId: z.string().trim().min(1, "User ID is required"),
+});
+
+export async function promoteUserToAdmin(input: unknown): Promise<ActionResult> {
+  await requireRole("admin");
+
+  const parsed = promoteUserSchema.safeParse(input);
+  if (!parsed.success) {
+    return { ok: false, error: parsed.error.issues[0].message };
+  }
+
+  const { userId } = parsed.data;
+
+  const [existingUser] = await db
+    .select()
+    .from(userTable)
+    .where(eq(userTable.id, userId));
+
+  if (!existingUser) {
+    return { ok: false, error: "User not found" };
+  }
+
+  if (existingUser.role === "admin") {
+    return { ok: false, error: "User is already an admin" };
+  }
+
+  await db
+    .update(userTable)
+    .set({ role: "admin" })
+    .where(eq(userTable.id, userId));
+
+  refresh();
+  return { ok: true, data: undefined };
+}
