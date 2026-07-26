@@ -207,6 +207,7 @@ export function UserManagementTable({
             filteredUsers.map((u) => {
               const isSelf = u.id === currentUserId;
               const isAdmin = u.role === "admin";
+              const isScholar = u.role === "scholar";
 
               return (
                 <TableRow key={u.id}>
@@ -250,6 +251,10 @@ export function UserManagementTable({
                     {isAdmin ? (
                       <span className="text-xs text-muted-foreground italic">
                         Admin
+                      </span>
+                    ) : isScholar ? (
+                      <span className="text-xs text-muted-foreground italic">
+                        —
                       </span>
                     ) : (
                       <PromoteAdminDialog user={u} />

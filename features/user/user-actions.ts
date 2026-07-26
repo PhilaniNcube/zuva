@@ -198,6 +198,10 @@ export async function promoteUserToAdmin(input: unknown): Promise<ActionResult> 
     return { ok: false, error: "User is already an admin" };
   }
 
+  if (existingUser.role === "scholar") {
+    return { ok: false, error: "Scholars cannot be promoted to Admin" };
+  }
+
   await db
     .update(userTable)
     .set({ role: "admin" })
