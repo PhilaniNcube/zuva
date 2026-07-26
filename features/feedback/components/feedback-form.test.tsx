@@ -51,7 +51,7 @@ describe("FeedbackForm", () => {
     const btn3 = screen.getByRole("button", { name: "3" });
     await user.click(btn3);
 
-    expect(btn3.className).toContain("border-zinc-900");
+    expect(btn3.className).toContain("bg-primary");
   });
 
   it("renders comment textarea and anonymous checkbox", () => {

@@ -86,7 +86,7 @@ export function OnboardingWizard({ initial }: { initial: InitialValues }) {
         {STEPS.map((label, i) => (
           <div key={label} className="flex-1">
             <div
-              className={`h-1.5 rounded ${i <= step ? "bg-zinc-900 dark:bg-zinc-100" : "bg-zinc-200 dark:bg-zinc-800"}`}
+              className={`h-1.5 rounded transition-colors ${i <= step ? "bg-primary" : "bg-zinc-200"}`}
             />
             <p className="mt-1 text-xs text-zinc-500">{label}</p>
           </div>

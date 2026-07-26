@@ -13,18 +13,18 @@ const LINKS = [
 export function MindsNav() {
   const pathname = usePathname();
   return (
-    <header className="flex items-center justify-between border-b border-zinc-200 px-6 py-3 dark:border-zinc-800">
+    <header className="sticky top-0 z-40 flex items-center justify-between border-b border-border/60 bg-background/85 backdrop-blur-md px-6 py-3">
       <div className="flex items-center gap-6">
-        <span className="font-semibold">ZUVA MINDS</span>
-        <nav className="flex gap-4 text-sm">
+        <span className="font-heading font-bold text-lg text-foreground tracking-tight">ZUVA MINDS</span>
+        <nav className="flex gap-4 text-sm font-medium">
           {LINKS.map((l) => (
             <Link
               key={l.href}
               href={l.href}
               className={
                 pathname.startsWith(l.href)
-                  ? "font-medium text-zinc-900 dark:text-zinc-100"
-                  : "text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100"
+                  ? "font-semibold text-primary border-b-2 border-primary pb-0.5"
+                  : "text-muted-foreground hover:text-foreground transition-colors"
               }
             >
               {l.label}

@@ -27,7 +27,7 @@ export async function FeedbackPrompt({ scholarId }: { scholarId: string }) {
             </div>
             <Link
               href={`/sessions/${s.sessionId}/feedback`}
-              className="rounded-lg bg-zinc-900 px-3 py-1.5 text-xs font-medium text-white dark:bg-zinc-100 dark:text-zinc-900"
+              className="rounded-lg bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/90 transition-colors"
             >
               Give feedback
             </Link>

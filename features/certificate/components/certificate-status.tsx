@@ -9,11 +9,11 @@ const STATUS_LABELS: Record<string, string> = {
 };
 
 const STATUS_STYLES: Record<string, string> = {
-  not_started: "border-zinc-200 dark:border-zinc-800",
-  in_progress: "border-blue-200 bg-blue-50 dark:border-blue-900 dark:bg-blue-950/30",
-  eligible: "border-amber-200 bg-amber-50 dark:border-amber-900 dark:bg-amber-950/30",
-  pending_approval: "border-purple-200 bg-purple-50 dark:border-purple-900 dark:bg-purple-950/30",
-  issued: "border-green-200 bg-green-50 dark:border-green-900 dark:bg-green-950/30",
+  not_started: "border-zinc-200",
+  in_progress: "border-teal-200 bg-teal-50/50",
+  eligible: "border-amber-200 bg-amber-50/50",
+  pending_approval: "border-purple-200 bg-purple-50/50",
+  issued: "border-emerald-200 bg-emerald-50/50",
 };
 
 export async function CertificateStatus({ scholarId }: { scholarId: string }) {
@@ -39,16 +39,16 @@ export async function CertificateStatus({ scholarId }: { scholarId: string }) {
             {cert.feedbackCount} / {cert.threshold}
           </span>
         </div>
-        <div className="mt-1 h-2 rounded-full bg-zinc-200 dark:bg-zinc-800">
+        <div className="mt-1 h-2 rounded-full bg-zinc-200">
           <div
-            className="h-2 rounded-full bg-zinc-900 transition-all dark:bg-zinc-100"
+            className="h-2 rounded-full bg-primary transition-all"
             style={{ width: `${pct}%` }}
           />
         </div>
       </div>
 
       {cert.adminNote ? (
-        <p className="mt-2 text-xs text-zinc-600 dark:text-zinc-400">
+        <p className="mt-2 text-xs text-zinc-600">
           Note from admin: {cert.adminNote}
         </p>
       ) : null}
@@ -59,13 +59,13 @@ export async function CertificateStatus({ scholarId }: { scholarId: string }) {
             href={`/api/files?key=${encodeURIComponent(cert.pdfFileKey)}`}
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-block rounded-lg bg-green-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-green-700"
+            className="inline-block rounded-lg bg-emerald-700 px-3 py-1.5 text-xs font-medium text-white hover:bg-emerald-800 transition-colors"
           >
             Download certificate
           </a>
         </div>
       ) : cert.issuedAt ? (
-        <p className="mt-2 text-xs text-green-600 dark:text-green-400">
+        <p className="mt-2 text-xs text-emerald-700">
           Issued — your certificate is being generated.
         </p>
       ) : null}

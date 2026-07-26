@@ -60,12 +60,12 @@ export function ScholarSidebar({
           href="/pathway"
           className="flex items-center gap-3 font-semibold text-sidebar-foreground"
         >
-          <div className="flex size-8 items-center justify-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground font-bold">
+          <div className="flex size-8 items-center justify-center rounded-lg bg-primary text-primary-foreground font-heading font-bold shadow-xs">
             Z
           </div>
           <div className="flex flex-col gap-0.5 leading-none">
-            <span className="font-semibold text-sm">ZUVA Scholar</span>
-            <span className="text-xs text-sidebar-foreground/60">
+            <span className="font-heading font-bold text-sm text-foreground">ZUVA Scholar</span>
+            <span className="text-xs text-muted-foreground">
               Coaching Hub
             </span>
           </div>

@@ -34,7 +34,7 @@ export default function AdminLayout({
               orientation="vertical"
               className="mr-2 data-vertical:h-4 data-vertical:self-auto"
             />
-            <span className="font-medium text-sm text-zinc-900 dark:text-zinc-100">
+            <span className="font-semibold text-sm text-foreground">
               Admin Portal
             </span>
           </div>

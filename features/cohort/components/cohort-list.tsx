@@ -1,74 +1,90 @@
 import Link from "next/link";
+import { Users } from "lucide-react";
 
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { listCohorts } from "../cohort-queries";
 
 const STATUS_STYLES: Record<string, string> = {
-  draft: "bg-zinc-100 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400",
-  active:
-    "bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-400",
-  completed: "bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-400",
+  draft: "bg-muted text-muted-foreground border border-border/60",
+  active: "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20",
+  completed: "bg-blue-500/10 text-blue-700 dark:text-blue-400 border border-blue-500/20",
 };
 
 export async function CohortList() {
   const cohorts = await listCohorts();
   if (cohorts.length === 0) {
     return (
-      <p className="text-sm text-zinc-500">
+      <p className="text-sm text-muted-foreground">
         No cohorts yet — create the first intake above.
       </p>
     );
   }
   return (
-    <div className="overflow-x-auto rounded-lg border border-zinc-200 dark:border-zinc-800">
-      <table className="w-full text-sm">
-        <thead>
-          <tr className="text-left text-zinc-500">
-            <th className="px-4 py-2 font-medium">Name</th>
-            <th className="px-4 py-2 font-medium">Starts</th>
-            <th className="px-4 py-2 font-medium">Ends</th>
-            <th className="px-4 py-2 font-medium">Status</th>
-            <th className="px-4 py-2 font-medium">Scholars</th>
-          </tr>
-        </thead>
-        <tbody>
-          {cohorts.map((c) => (
-            <tr
-              key={c.id}
-              className="border-t border-zinc-100 dark:border-zinc-800"
-            >
-              <td className="px-4 py-2">
-                <Link
-                  href={`/cohorts/${c.id}`}
-                  className="font-medium underline underline-offset-2"
-                >
-                  {c.name}
-                </Link>
-              </td>
-              <td className="px-4 py-2">{formatDate(c.startsAt)}</td>
-              <td className="px-4 py-2">{formatDate(c.endsAt)}</td>
-              <td className="px-4 py-2">
-                <span
-                  className={`rounded-full px-2 py-0.5 text-xs font-medium ${STATUS_STYLES[c.status]}`}
-                >
-                  {c.status}
-                </span>
-              </td>
-              <td className="px-4 py-2">{c.scholarCount}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
+    <Table>
+      <TableHeader>
+        <TableRow>
+          <TableHead>Cohort Name</TableHead>
+          <TableHead>Starts</TableHead>
+          <TableHead>Ends</TableHead>
+          <TableHead>Status</TableHead>
+          <TableHead>Scholars</TableHead>
+        </TableRow>
+      </TableHeader>
+      <TableBody>
+        {cohorts.map((c) => (
+          <TableRow key={c.id}>
+            <TableCell>
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center text-primary font-bold text-sm shrink-0">
+                  {c.name.slice(0, 1).toUpperCase()}
+                </div>
+                <div>
+                  <Link
+                    href={`/cohorts/${c.id}`}
+                    className="font-medium text-foreground hover:text-primary transition-colors text-sm"
+                  >
+                    {c.name}
+                  </Link>
+                  <p className="text-xs text-muted-foreground">Academic Cohort</p>
+                </div>
+              </div>
+            </TableCell>
+            <TableCell>{formatDate(c.startsAt)}</TableCell>
+            <TableCell>{formatDate(c.endsAt)}</TableCell>
+            <TableCell>
+              <span
+                className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium capitalize ${STATUS_STYLES[c.status]}`}
+              >
+                {c.status}
+              </span>
+            </TableCell>
+            <TableCell>
+              <div className="flex items-center gap-1.5 text-muted-foreground">
+                <Users className="size-4 text-primary" />
+                <span className="font-medium text-foreground">{c.scholarCount}</span>
+              </div>
+            </TableCell>
+          </TableRow>
+        ))}
+      </TableBody>
+    </Table>
   );
 }
 
 export function CohortListSkeleton() {
   return (
-    <div className="rounded-lg border border-zinc-200 p-4 dark:border-zinc-800">
+    <div className="rounded-xl border border-border/60 bg-card p-6">
       {[0, 1, 2].map((i) => (
         <div
           key={i}
-          className="mb-2 h-8 animate-pulse rounded bg-zinc-100 dark:bg-zinc-800"
+          className="mb-3 h-10 animate-pulse rounded-lg bg-muted/60"
         />
       ))}
     </div>

@@ -184,85 +184,83 @@ export function UserManagementTable({
       </div>
 
       {/* Users Table */}
-      <div className="rounded-md border border-border shadow-sm overflow-hidden bg-card">
-        <Table>
-          <TableHeader>
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead>User</TableHead>
+            <TableHead>Role</TableHead>
+            <TableHead className="hidden sm:table-cell">Joined</TableHead>
+            <TableHead className="text-right">Action</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {filteredUsers.length === 0 ? (
             <TableRow>
-              <TableHead>User</TableHead>
-              <TableHead>Role</TableHead>
-              <TableHead className="hidden sm:table-cell">Joined</TableHead>
-              <TableHead className="text-right">Action</TableHead>
+              <TableCell
+                colSpan={4}
+                className="h-24 text-center text-muted-foreground"
+              >
+                No users found matching "{search}".
+              </TableCell>
             </TableRow>
-          </TableHeader>
-          <TableBody>
-            {filteredUsers.length === 0 ? (
-              <TableRow>
-                <TableCell
-                  colSpan={4}
-                  className="h-24 text-center text-muted-foreground"
-                >
-                  No users found matching "{search}".
-                </TableCell>
-              </TableRow>
-            ) : (
-              filteredUsers.map((u) => {
-                const isSelf = u.id === currentUserId;
-                const isAdmin = u.role === "admin";
+          ) : (
+            filteredUsers.map((u) => {
+              const isSelf = u.id === currentUserId;
+              const isAdmin = u.role === "admin";
 
-                return (
-                  <TableRow key={u.id}>
-                    <TableCell>
-                      <div className="flex items-center gap-3">
-                        <Avatar className="size-9">
-                          {u.image ? (
-                            <AvatarImage src={u.image} alt={u.name} />
-                          ) : null}
-                          <AvatarFallback className="text-xs font-semibold">
-                            {getInitials(u.name)}
-                          </AvatarFallback>
-                        </Avatar>
-                        <div>
-                          <div className="font-medium text-foreground text-sm">
-                            {u.name} {isSelf && "(You)"}
-                          </div>
-                          <div className="text-xs text-muted-foreground">
-                            {u.email}
-                          </div>
+              return (
+                <TableRow key={u.id}>
+                  <TableCell>
+                    <div className="flex items-center gap-3">
+                      <Avatar className="size-9">
+                        {u.image ? (
+                          <AvatarImage src={u.image} alt={u.name} />
+                        ) : null}
+                        <AvatarFallback className="text-xs font-semibold">
+                          {getInitials(u.name)}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div>
+                        <div className="font-medium text-foreground text-sm">
+                          {u.name} {isSelf && "(You)"}
+                        </div>
+                        <div className="text-xs text-muted-foreground">
+                          {u.email}
                         </div>
                       </div>
-                    </TableCell>
-                    <TableCell>
-                      <Badge
-                        variant={getRoleBadgeVariant(u.role)}
-                        className="capitalize text-xs px-2.5 py-0.5"
-                      >
-                        {isAdmin && <ShieldCheck className="mr-1 size-3" />}
-                        {u.role}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="hidden sm:table-cell text-xs text-muted-foreground">
-                      {new Date(u.createdAt).toLocaleDateString("en-US", {
-                        month: "short",
-                        day: "numeric",
-                        year: "numeric",
-                      })}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      {isAdmin ? (
-                        <span className="text-xs text-muted-foreground italic">
-                          Admin
-                        </span>
-                      ) : (
-                        <PromoteAdminDialog user={u} />
-                      )}
-                    </TableCell>
-                  </TableRow>
-                );
-              })
-            )}
-          </TableBody>
-        </Table>
-      </div>
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <Badge
+                      variant={getRoleBadgeVariant(u.role)}
+                      className="capitalize text-xs px-2.5 py-0.5 rounded-full font-medium"
+                    >
+                      {isAdmin && <ShieldCheck className="mr-1 size-3" />}
+                      {u.role}
+                    </Badge>
+                  </TableCell>
+                  <TableCell className="hidden sm:table-cell text-xs text-muted-foreground">
+                    {new Date(u.createdAt).toLocaleDateString("en-US", {
+                      month: "short",
+                      day: "numeric",
+                      year: "numeric",
+                    })}
+                  </TableCell>
+                  <TableCell className="text-right">
+                    {isAdmin ? (
+                      <span className="text-xs text-muted-foreground italic">
+                        Admin
+                      </span>
+                    ) : (
+                      <PromoteAdminDialog user={u} />
+                    )}
+                  </TableCell>
+                </TableRow>
+              );
+            })
+          )}
+        </TableBody>
+      </Table>
     </div>
   );
 }

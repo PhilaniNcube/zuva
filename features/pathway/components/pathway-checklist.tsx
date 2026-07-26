@@ -31,8 +31,8 @@ export async function PathwayChecklist({
           key={step.id}
           className={`flex items-start gap-3 rounded-lg border px-4 py-3 ${
             step.completed
-              ? "border-green-200 bg-green-50 dark:border-green-900 dark:bg-green-950/30"
-              : "border-zinc-200 dark:border-zinc-800"
+              ? "border-teal-200 bg-teal-50/50"
+              : "border-zinc-200"
           }`}
         >
           <span className="mt-0.5 text-lg" aria-hidden>
@@ -43,14 +43,14 @@ export async function PathwayChecklist({
               <p
                 className={`text-sm font-medium ${
                   step.completed
-                    ? "text-green-800 dark:text-green-300"
-                    : "text-zinc-900 dark:text-zinc-100"
+                    ? "text-teal-900"
+                    : "text-zinc-900"
                 }`}
               >
                 {step.title}
               </p>
               {step.completed ? (
-                <span className="text-xs font-medium text-green-600 dark:text-green-400">
+                <span className="text-xs font-medium text-teal-700">
                   ✓ Done
                 </span>
               ) : null}
@@ -76,7 +76,7 @@ export function PathwayChecklistSkeleton() {
       {[0, 1, 2, 3].map((i) => (
         <div
           key={i}
-          className="h-16 animate-pulse rounded-lg border border-zinc-200 dark:border-zinc-800"
+          className="h-16 animate-pulse rounded-lg border border-zinc-200"
         />
       ))}
     </div>

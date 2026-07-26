@@ -1,3 +1,13 @@
+import { Award } from "lucide-react";
+
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { listPendingCertificates } from "../certificate-queries";
 import { ApproveButton } from "./approve-button";
 
@@ -6,51 +16,51 @@ export async function CertificateApprovalList() {
 
   if (certificates.length === 0) {
     return (
-      <p className="text-sm text-zinc-500">
+      <p className="text-sm text-muted-foreground">
         No certificates pending approval.
       </p>
     );
   }
 
   return (
-    <div className="overflow-x-auto rounded-lg border border-zinc-200 dark:border-zinc-800">
-      <table className="w-full text-sm">
-        <thead>
-          <tr className="text-left text-zinc-500">
-            <th className="px-4 py-2 font-medium">Scholar</th>
-            <th className="px-4 py-2 font-medium">Email</th>
-            <th className="px-4 py-2 font-medium">Cohort</th>
-            <th className="px-4 py-2 font-medium">Admin note</th>
-            <th className="px-4 py-2 font-medium">Action</th>
-          </tr>
-        </thead>
-        <tbody>
-          {certificates.map((c) => (
-            <tr
-              key={c.id}
-              className="border-t border-zinc-100 dark:border-zinc-800"
-            >
-              <td className="px-4 py-2 font-medium">{c.scholarName}</td>
-              <td className="px-4 py-2 text-zinc-500">{c.scholarEmail}</td>
-              <td className="px-4 py-2">{c.cohortName}</td>
-              <td className="px-4 py-2 text-zinc-500">
-                {c.adminNote ?? "—"}
-              </td>
-              <td className="px-4 py-2">
-                <ApproveButton certificateId={c.id} />
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
+    <Table>
+      <TableHeader>
+        <TableRow>
+          <TableHead>Scholar</TableHead>
+          <TableHead>Email</TableHead>
+          <TableHead>Cohort</TableHead>
+          <TableHead>Admin Note</TableHead>
+          <TableHead className="text-right">Action</TableHead>
+        </TableRow>
+      </TableHeader>
+      <TableBody>
+        {certificates.map((c) => (
+          <TableRow key={c.id}>
+            <TableCell>
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-lg bg-purple-500/10 text-purple-600 dark:text-purple-400 flex items-center justify-center shrink-0">
+                  <Award className="size-5" />
+                </div>
+                <span className="font-medium text-foreground text-sm">{c.scholarName}</span>
+              </div>
+            </TableCell>
+            <TableCell className="text-muted-foreground">{c.scholarEmail}</TableCell>
+            <TableCell>{c.cohortName}</TableCell>
+            <TableCell className="text-muted-foreground text-xs">{c.adminNote ?? "—"}</TableCell>
+            <TableCell className="text-right">
+              <ApproveButton certificateId={c.id} />
+            </TableCell>
+          </TableRow>
+        ))}
+      </TableBody>
+    </Table>
   );
 }
 
 export function CertificateApprovalListSkeleton() {
   return (
-    <div className="rounded-lg border border-zinc-200 p-4 dark:border-zinc-800">
-      <div className="h-8 w-full animate-pulse rounded bg-zinc-100 dark:bg-zinc-800" />
+    <div className="rounded-xl border border-border/60 bg-card p-6">
+      <div className="h-10 w-full animate-pulse rounded-lg bg-muted/60" />
     </div>
   );
 }

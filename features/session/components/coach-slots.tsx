@@ -1,5 +1,14 @@
-import { LocalTime } from "@/components/local-time";
+import { Clock } from "lucide-react";
 
+import { LocalTime } from "@/components/local-time";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { listCoachSlots } from "../session-queries";
 import { JoinCallButton } from "./join-call-button";
 import { CancelSlotButton } from "./slot-buttons";
@@ -10,70 +19,72 @@ export async function CoachSlots({ coachId }: { coachId: string }) {
 
   if (visible.length === 0) {
     return (
-      <p className="text-sm text-zinc-500">
+      <p className="text-sm text-muted-foreground">
         No slots yet — publish your first availability above.
       </p>
     );
   }
 
   return (
-    <div className="overflow-x-auto rounded-lg border border-zinc-200 dark:border-zinc-800">
-      <table className="w-full text-sm">
-        <thead>
-          <tr className="text-left text-zinc-500">
-            <th className="px-4 py-2 font-medium">When</th>
-            <th className="px-4 py-2 font-medium">Status</th>
-            <th className="px-4 py-2 font-medium">Scholar</th>
-            <th className="px-4 py-2 font-medium" />
-          </tr>
-        </thead>
-        <tbody>
-          {visible.map((s) => (
-            <tr
-              key={s.slotId}
-              className="border-t border-zinc-100 dark:border-zinc-800"
-            >
-              <td className="px-4 py-2">
-                <LocalTime value={s.startsAt} /> –{" "}
-                <LocalTime value={s.endsAt} format="time" />
-              </td>
-              <td className="px-4 py-2">
-                <span
-                  className={`rounded-full px-2 py-0.5 text-xs font-medium ${
-                    s.status === "booked"
-                      ? "bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-400"
-                      : "bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-400"
-                  }`}
-                >
-                  {s.status}
+    <Table>
+      <TableHeader>
+        <TableRow>
+          <TableHead>Time Slot</TableHead>
+          <TableHead>Status</TableHead>
+          <TableHead>Scholar</TableHead>
+          <TableHead className="text-right">Action</TableHead>
+        </TableRow>
+      </TableHeader>
+      <TableBody>
+        {visible.map((s) => (
+          <TableRow key={s.slotId}>
+            <TableCell>
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
+                  <Clock className="size-5" />
+                </div>
+                <span className="font-medium text-foreground text-sm">
+                  <LocalTime value={s.startsAt} /> –{" "}
+                  <LocalTime value={s.endsAt} format="time" />
                 </span>
-              </td>
-              <td className="px-4 py-2">{s.scholarName ?? "—"}</td>
-              <td className="px-4 py-2 text-right">
-                {s.status === "open" ? (
-                  <CancelSlotButton slotId={s.slotId} />
-                ) : s.sessionId ? (
-                  <JoinCallButton
-                    sessionId={s.sessionId}
-                    meetLinkAvailable={!!s.meetLink}
-                  />
-                ) : null}
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
+              </div>
+            </TableCell>
+            <TableCell>
+              <span
+                className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium capitalize ${
+                  s.status === "booked"
+                    ? "bg-blue-500/10 text-blue-700 dark:text-blue-400 border border-blue-500/20"
+                    : "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20"
+                }`}
+              >
+                {s.status}
+              </span>
+            </TableCell>
+            <TableCell className="text-muted-foreground">{s.scholarName ?? "—"}</TableCell>
+            <TableCell className="text-right">
+              {s.status === "open" ? (
+                <CancelSlotButton slotId={s.slotId} />
+              ) : s.sessionId ? (
+                <JoinCallButton
+                  sessionId={s.sessionId}
+                  meetLinkAvailable={!!s.meetLink}
+                />
+              ) : null}
+            </TableCell>
+          </TableRow>
+        ))}
+      </TableBody>
+    </Table>
   );
 }
 
 export function CoachSlotsSkeleton() {
   return (
-    <div className="rounded-lg border border-zinc-200 p-4 dark:border-zinc-800">
+    <div className="rounded-xl border border-border/60 bg-card p-6">
       {[0, 1, 2].map((i) => (
         <div
           key={i}
-          className="mb-2 h-8 animate-pulse rounded bg-zinc-100 dark:bg-zinc-800"
+          className="mb-3 h-10 animate-pulse rounded-lg bg-muted/60"
         />
       ))}
     </div>

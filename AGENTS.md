@@ -47,3 +47,8 @@ Responsive web app consolidating the ZUVA postgraduate scholar coaching journey 
 - Certificate eligibility: auto-flag at 5 feedback forms + admin discretion (`certificate.admin_note`); stepper `eligible → pending_approval → issued`; MINDS approves, then PDF generates and emails.
 - Attendance is logged by the "Join Call" server action before redirecting to the Meet link.
 - Testimonials are explicitly out of scope (on hold per PRD).
+
+## UI & Design Rules
+
+- **No Colored Left Borders**: Never use colored left borders (`border-l-2`, `border-l-4`, `border-l-primary`, `border-l-amber-500`, etc.) on buttons, cards, sidebar items, badges, alerts, or interactive UI elements. Use subtle background fills (`bg-primary/10`), bold fonts, pill shapes, or uniform 1px borders instead.
+

@@ -1,9 +1,16 @@
 "use client";
 
 import { parseAsString, useQueryState } from "nuqs";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 const STATUS_OPTIONS = [
-  { value: "", label: "All" },
+  { value: "all", label: "All Statuses" },
   { value: "submitted", label: "Submitted" },
   { value: "critical_review", label: "Critical Review" },
   { value: "language_editing", label: "Language Editing" },
@@ -16,20 +23,36 @@ export function QueueFilter() {
     parseAsString.withDefault("").withOptions({ shallow: false }),
   );
 
+  const selectedValue = !status ? "all" : status;
+
   return (
     <div className="flex items-center gap-2">
-      <label className="text-sm font-medium">Status:</label>
-      <select
-        value={status}
-        onChange={(e) => setStatus(e.target.value || null)}
-        className="rounded border border-zinc-300 px-2 py-1 text-sm dark:border-zinc-700 dark:bg-zinc-900"
+      <span className="text-sm font-medium text-zinc-700">Status:</span>
+      <Select
+        value={selectedValue}
+        onValueChange={(val) => {
+          if (!val || val === "all") {
+            setStatus(null);
+          } else {
+            setStatus(val);
+          }
+        }}
       >
-        {STATUS_OPTIONS.map((o) => (
-          <option key={o.value} value={o.value}>
-            {o.label}
-          </option>
-        ))}
-      </select>
+        <SelectTrigger className="w-[180px] bg-white text-zinc-900 border border-zinc-200 shadow-xs hover:bg-zinc-50">
+          <SelectValue placeholder="All Statuses" />
+        </SelectTrigger>
+        <SelectContent align="end" className="bg-white text-zinc-900 border border-zinc-200 shadow-md z-50">
+          {STATUS_OPTIONS.map((o) => (
+            <SelectItem
+              key={o.value}
+              value={o.value}
+              className="text-zinc-900 focus:bg-zinc-100 focus:text-zinc-900 cursor-pointer"
+            >
+              {o.label}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
     </div>
   );
 }
