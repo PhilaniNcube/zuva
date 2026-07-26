@@ -64,8 +64,10 @@ async function action(
 
 function PromoteAdminDialog({
   user,
+  disabled = false,
 }: {
   user: UserItem;
+  disabled?: boolean;
 }) {
   const [open, setOpen] = useState(false);
   const [state, formAction, isPending] = useActionState(action, null);
@@ -93,6 +95,21 @@ function PromoteAdminDialog({
     startTransition(() => {
       formAction(formData);
     });
+  }
+
+  if (disabled) {
+    return (
+      <Button
+        variant="outline"
+        size="sm"
+        className="gap-1 text-xs"
+        disabled
+        title="Scholars cannot be promoted to Admin"
+      >
+        <UserCheck className="size-3.5" />
+        Promote to Admin
+      </Button>
+    );
   }
 
   return (
@@ -211,9 +228,9 @@ export function UserManagementTable({
 
               return (
                 <TableRow key={u.id}>
-                  <TableCell>
+                  <TableCell className="py-5 sm:py-6">
                     <div className="flex items-center gap-3">
-                      <Avatar className="size-9">
+                      <Avatar className="size-9 shrink-0">
                         {u.image ? (
                           <AvatarImage src={u.image} alt={u.name} />
                         ) : null}
@@ -231,7 +248,7 @@ export function UserManagementTable({
                       </div>
                     </div>
                   </TableCell>
-                  <TableCell>
+                  <TableCell className="py-5 sm:py-6">
                     <Badge
                       variant={getRoleBadgeVariant(u.role)}
                       className="capitalize text-xs px-2.5 py-0.5 rounded-full font-medium"
@@ -240,24 +257,20 @@ export function UserManagementTable({
                       {u.role}
                     </Badge>
                   </TableCell>
-                  <TableCell className="hidden sm:table-cell text-xs text-muted-foreground">
+                  <TableCell className="py-5 sm:py-6 hidden sm:table-cell text-xs text-muted-foreground">
                     {new Date(u.createdAt).toLocaleDateString("en-US", {
                       month: "short",
                       day: "numeric",
                       year: "numeric",
                     })}
                   </TableCell>
-                  <TableCell className="text-right">
+                  <TableCell className="py-5 sm:py-6 text-right">
                     {isAdmin ? (
                       <span className="text-xs text-muted-foreground italic">
                         Admin
                       </span>
-                    ) : isScholar ? (
-                      <span className="text-xs text-muted-foreground italic">
-                        —
-                      </span>
                     ) : (
-                      <PromoteAdminDialog user={u} />
+                      <PromoteAdminDialog user={u} disabled={isScholar} />
                     )}
                   </TableCell>
                 </TableRow>

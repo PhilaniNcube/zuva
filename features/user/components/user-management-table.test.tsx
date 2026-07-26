@@ -62,14 +62,19 @@ describe("UserManagementTable", () => {
     expect(screen.queryByText("Coach Kofi")).not.toBeInTheDocument();
   });
 
-  it("shows Promote to Admin button for eligible coach users but not for scholars or admins", async () => {
+  it("disables Promote to Admin button for scholar users and enables it for coaches", async () => {
     const user = userEvent.setup();
     render(<UserManagementTable users={mockUsers} currentUserId="admin-1" />);
 
     const promoteButtons = screen.getAllByRole("button", { name: /Promote to Admin/i });
-    expect(promoteButtons.length).toBe(1);
+    expect(promoteButtons.length).toBe(2);
 
-    await user.click(promoteButtons[0]);
+    // Scholar button is disabled
+    expect(promoteButtons[0]).toBeDisabled();
+
+    // Coach button is enabled and opens confirmation dialog
+    expect(promoteButtons[1]).toBeEnabled();
+    await user.click(promoteButtons[1]);
 
     expect(screen.getByText("Confirm Admin Promotion")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Promote User" })).toBeInTheDocument();
