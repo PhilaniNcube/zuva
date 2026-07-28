@@ -5,7 +5,7 @@ import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { toast } from "sonner";
-import { PlusIcon } from "lucide-react";
+import { PlusIcon, CheckCircle2, AlertTriangle, Mail } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Field, FieldLabel, FieldError } from "@/components/ui/field";
@@ -51,10 +51,16 @@ const schema = z.object({
 
 type FormValues = z.infer<typeof schema>;
 
+type CreateCoachData = {
+  tempPassword: string;
+  emailSent: boolean;
+  emailReason?: "resend_not_configured" | "send_failed";
+};
+
 async function action(
-  _prev: ActionResult<{ tempPassword: string }> | null,
+  _prev: ActionResult<CreateCoachData> | null,
   formData: FormData,
-): Promise<ActionResult<{ tempPassword: string }>> {
+): Promise<ActionResult<CreateCoachData>> {
   return createCoach({
     name: formData.get("name"),
     email: formData.get("email"),
@@ -70,6 +76,8 @@ export function CoachCreateForm() {
   const [created, setCreated] = useState<{
     email: string;
     tempPassword: string;
+    emailSent: boolean;
+    emailReason?: "resend_not_configured" | "send_failed";
   } | null>(null);
 
   const form = useForm<FormValues>({
@@ -85,10 +93,16 @@ export function CoachCreateForm() {
 
   useEffect(() => {
     if (state?.ok) {
-      toast.success("Coach added");
+      if (state.data.emailSent) {
+        toast.success(`Coach added! Credentials email sent to ${form.getValues("email")}.`);
+      } else {
+        toast.success("Coach added! (Temporary password displayed below)");
+      }
       setCreated({
         email: form.getValues("email"),
         tempPassword: state.data.tempPassword,
+        emailSent: state.data.emailSent,
+        emailReason: state.data.emailReason,
       });
       form.reset();
     }
@@ -134,18 +148,43 @@ export function CoachCreateForm() {
 
         {created ? (
           <div className="flex flex-col gap-4 py-2">
-            <div className="rounded-lg bg-green-50 p-4 text-sm text-green-800 dark:bg-green-900/30 dark:text-green-300">
-              <p className="font-semibold">Account created successfully!</p>
-              <p className="mt-1">
-                Account created for <span className="font-medium">{created.email}</span>. Temporary password:{" "}
-                <code className="font-mono font-semibold bg-green-100 dark:bg-green-800/50 px-1.5 py-0.5 rounded">
-                  {created.tempPassword}
-                </code>
-              </p>
-              <p className="mt-2 text-xs opacity-90">
-                Share this password securely with the coach; it is only displayed once.
-              </p>
-            </div>
+            {created.emailSent ? (
+              <div className="rounded-lg border border-emerald-500/20 bg-emerald-50/50 p-4 text-sm text-emerald-900 dark:bg-emerald-950/30 dark:text-emerald-200 space-y-2">
+                <div className="flex items-center gap-2 font-semibold text-emerald-800 dark:text-emerald-300">
+                  <CheckCircle2 className="size-4 text-emerald-600 dark:text-emerald-400" />
+                  Account Created & Email Sent
+                </div>
+                <p className="text-xs text-emerald-700 dark:text-emerald-300">
+                  An email containing login instructions and temporary credentials has been sent to{" "}
+                  <strong className="font-semibold">{created.email}</strong>.
+                </p>
+                <div className="pt-2 border-t border-emerald-500/20 text-xs flex items-center justify-between">
+                  <span>Temporary password:</span>
+                  <code className="font-mono font-semibold bg-emerald-100/70 dark:bg-emerald-900/60 px-2 py-0.5 rounded text-emerald-950 dark:text-emerald-100">
+                    {created.tempPassword}
+                  </code>
+                </div>
+              </div>
+            ) : (
+              <div className="rounded-lg border border-amber-500/20 bg-amber-50/50 p-4 text-sm text-amber-900 dark:bg-amber-950/30 dark:text-amber-200 space-y-2">
+                <div className="flex items-center gap-2 font-semibold text-amber-800 dark:text-amber-300">
+                  <AlertTriangle className="size-4 text-amber-600 dark:text-amber-400" />
+                  Account Created — Email Delivery {created.emailReason === "resend_not_configured" ? "Skipped (Dev Mode)" : "Failed"}
+                </div>
+                <p className="text-xs text-amber-700 dark:text-amber-300">
+                  {created.emailReason === "resend_not_configured"
+                    ? `Resend API key is not configured in this environment, so no email was sent to ${created.email}.`
+                    : `Email delivery to ${created.email} failed.`}{" "}
+                  Please copy and share the temporary password with the coach manually:
+                </p>
+                <div className="pt-2 border-t border-amber-500/20 text-xs flex items-center justify-between">
+                  <span>Temporary password:</span>
+                  <code className="font-mono font-semibold bg-amber-100/70 dark:bg-amber-900/60 px-2 py-0.5 rounded text-amber-950 dark:text-amber-100">
+                    {created.tempPassword}
+                  </code>
+                </div>
+              </div>
+            )}
             <DialogFooter>
               <Button type="button" onClick={() => handleOpenChange(false)}>
                 Done

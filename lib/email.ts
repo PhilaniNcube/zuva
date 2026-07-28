@@ -146,11 +146,11 @@ export async function sendScholarEnrolledEmail({
   scholarName: string;
   tempPassword?: string;
   userId?: string;
-}): Promise<void> {
+}): Promise<{ sent: boolean; reason?: "resend_not_configured" | "send_failed" }> {
   const resend = getResend();
   if (!resend) {
     console.warn("Resend not configured — skipping scholar enrolment email to", to);
-    return;
+    return { sent: false, reason: "resend_not_configured" };
   }
 
   try {
@@ -188,6 +188,8 @@ export async function sendScholarEnrolledEmail({
       type: "scholar_enrolled",
       status: "sent",
     });
+
+    return { sent: true };
   } catch (err) {
     console.error("Failed to send scholar enrolment email:", err);
     await db.insert(emailLog).values({
@@ -195,7 +197,74 @@ export async function sendScholarEnrolledEmail({
       type: "scholar_enrolled",
       status: "failed",
     });
+    return { sent: false, reason: "send_failed" };
   }
 }
+
+/**
+ * Send a welcome & credentials email to a newly created coach.
+ * Logs to emailLog. Returns status indicating whether delivery succeeded or why it was skipped.
+ */
+export async function sendCoachWelcomeEmail({
+  to,
+  coachName,
+  tempPassword,
+  userId,
+}: {
+  to: string;
+  coachName: string;
+  tempPassword: string;
+  userId: string;
+}): Promise<{ sent: boolean; reason?: "resend_not_configured" | "send_failed" }> {
+  const resend = getResend();
+  if (!resend) {
+    console.warn("Resend not configured — skipping coach welcome email to", to);
+    return { sent: false, reason: "resend_not_configured" };
+  }
+
+  try {
+    await resend.emails.send({
+      from: FROM,
+      to,
+      subject: "Welcome to ZUVA Scholar Hub - Coach Account Credentials",
+      html: `
+        <div style="font-family: sans-serif; max-width: 480px; margin: 0 auto;">
+          <h2 style="color: #18181b;">Welcome to ZUVA Scholar Hub, ${coachName}!</h2>
+          <p style="color: #3f3f46;">
+            You have been registered as a Coach on the ZUVA postgraduate scholar coaching platform.
+          </p>
+          <div style="background: #f4f4f5; padding: 16px; border-radius: 8px; margin: 20px 0;">
+            <p style="margin: 0 0 8px 0; color: #71717a; font-size: 14px;">Your temporary password:</p>
+            <code style="font-size: 16px; font-weight: bold; color: #18181b;">${tempPassword}</code>
+          </div>
+          <p style="margin: 24px 0;">
+            <a href="${process.env.BETTER_AUTH_URL ?? "http://localhost:3000"}/login"
+               style="background: #18181b; color: #fafafa; padding: 12px 24px;
+                      border-radius: 8px; text-decoration: none; font-weight: 500; display: inline-block;">
+              Sign In to Coach Dashboard
+            </a>
+          </p>
+        </div>
+      `,
+    });
+
+    await db.insert(emailLog).values({
+      userId,
+      type: "coach_welcome",
+      status: "sent",
+    });
+
+    return { sent: true };
+  } catch (err) {
+    console.error("Failed to send coach welcome email:", err);
+    await db.insert(emailLog).values({
+      userId,
+      type: "coach_welcome",
+      status: "failed",
+    });
+    return { sent: false, reason: "send_failed" };
+  }
+}
+
 
 

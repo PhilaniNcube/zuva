@@ -461,6 +461,7 @@ export const emailLog = sqliteTable(
         "editing_queue_alert",
         "password_reset",
         "scholar_enrolled",
+        "coach_welcome",
       ],
     }).notNull(),
     status: text("status", { enum: ["sent", "failed"] }).notNull(),

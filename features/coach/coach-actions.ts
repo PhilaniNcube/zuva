@@ -32,7 +32,13 @@ const coachInputSchema = z.object({
 /** Provisions a coach account; returns the temporary password once. */
 export async function createCoach(
   input: unknown,
-): Promise<ActionResult<{ tempPassword: string }>> {
+): Promise<
+  ActionResult<{
+    tempPassword: string;
+    emailSent: boolean;
+    emailReason?: "resend_not_configured" | "send_failed";
+  }>
+> {
   await requireRole("admin");
   const parsed = coachInputSchema.safeParse(input);
   if (!parsed.success) {
@@ -63,8 +69,23 @@ export async function createCoach(
     bio: bio || null,
   });
 
+  const { sendCoachWelcomeEmail } = await import("@/lib/email");
+  const emailResult = await sendCoachWelcomeEmail({
+    to: email,
+    coachName: name,
+    tempPassword,
+    userId,
+  });
+
   refresh();
-  return { ok: true, data: { tempPassword } };
+  return {
+    ok: true,
+    data: {
+      tempPassword,
+      emailSent: emailResult.sent,
+      emailReason: emailResult.reason,
+    },
+  };
 }
 
 const updateCoachSchema = coachInputSchema.omit({ name: true, email: true });
