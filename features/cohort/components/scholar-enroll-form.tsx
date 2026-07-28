@@ -111,7 +111,7 @@ export function ScholarEnrollForm({ cohortId }: { cohortId: string }) {
 
         {enrolled ? (
           <div className="flex flex-col gap-4 py-2">
-            <div className="rounded-lg bg-green-50 p-4 text-sm text-green-800 dark:bg-green-900/30 dark:text-green-300 space-y-2">
+            <div className="rounded-lg bg-slate-50 p-4 text-sm space-y-2">
               <p className="font-semibold">Scholar enrolled successfully!</p>
               <p>
                 An invitation email has been dispatched to <span className="font-medium">{enrolled.email}</span>.
@@ -120,7 +120,7 @@ export function ScholarEnrollForm({ cohortId }: { cohortId: string }) {
                 <div>
                   <p className="mt-1">
                     Temporary password:{" "}
-                    <code className="font-mono font-semibold bg-green-100 dark:bg-green-800/50 px-1.5 py-0.5 rounded text-foreground">
+                    <code className="font-mono font-semibold bg-slate-800 px-1.5 py-0.5 rounded text-white">
                       {enrolled.tempPassword}
                     </code>
                   </p>
