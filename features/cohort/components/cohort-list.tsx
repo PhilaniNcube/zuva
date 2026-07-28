@@ -10,6 +10,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { listCohorts } from "../cohort-queries";
+import { DeleteCohortDialog } from "./delete-cohort-dialog";
 
 const STATUS_STYLES: Record<string, string> = {
   draft: "bg-muted text-muted-foreground border border-border/60",
@@ -35,6 +36,7 @@ export async function CohortList() {
           <TableHead>Ends</TableHead>
           <TableHead>Status</TableHead>
           <TableHead>Scholars</TableHead>
+          <TableHead className="text-right">Actions</TableHead>
         </TableRow>
       </TableHeader>
       <TableBody>
@@ -70,6 +72,9 @@ export async function CohortList() {
                 <Users className="size-4 text-primary" />
                 <span className="font-medium text-foreground">{c.scholarCount}</span>
               </div>
+            </TableCell>
+            <TableCell className="text-right">
+              <DeleteCohortDialog cohortId={c.id} cohortName={c.name} />
             </TableCell>
           </TableRow>
         ))}

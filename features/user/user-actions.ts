@@ -210,3 +210,38 @@ export async function promoteUserToAdmin(input: unknown): Promise<ActionResult> 
   refresh();
   return { ok: true, data: undefined };
 }
+
+const deleteUserSchema = z.object({
+  userId: z.string().trim().min(1, "User ID is required"),
+});
+
+export async function deleteUser(input: unknown): Promise<ActionResult> {
+  const session = await requireRole("admin");
+  const currentUser = session.user;
+
+  const parsed = deleteUserSchema.safeParse(input);
+  if (!parsed.success) {
+    return { ok: false, error: parsed.error.issues[0].message };
+  }
+
+  const { userId } = parsed.data;
+
+  if (currentUser.id === userId) {
+    return { ok: false, error: "You cannot delete your own account" };
+  }
+
+  const [existingUser] = await db
+    .select()
+    .from(userTable)
+    .where(eq(userTable.id, userId));
+
+  if (!existingUser) {
+    return { ok: false, error: "User not found" };
+  }
+
+  await db.delete(userTable).where(eq(userTable.id, userId));
+
+  refresh();
+  return { ok: true, data: undefined };
+}
+

@@ -57,13 +57,12 @@ const enrollSchema = z.object({
 });
 
 /**
- * Provisions a scholar account and enrols them in the cohort. Returns the
- * generated temporary password once so the admin can share it securely
- * (email invites are a post-MVP nicety).
+ * Provisions a scholar account (or enrols an existing scholar) into the cohort.
+ * Sends an invitation & enrolment email with account details and login link.
  */
 export async function enrollScholar(
   input: unknown,
-): Promise<ActionResult<{ tempPassword: string }>> {
+): Promise<ActionResult<{ tempPassword: string; emailSent: boolean }>> {
   await requireRole("admin");
   const parsed = enrollSchema.safeParse(input);
   if (!parsed.success) {
@@ -71,36 +70,135 @@ export async function enrollScholar(
   }
   const { cohortId, name, email, country } = parsed.data;
 
-  const tempPassword = `zuva-${randomBytes(4).toString("hex")}`;
+  const [existingUser] = await db
+    .select()
+    .from(user)
+    .where(eq(user.email, email));
 
   let userId: string;
-  try {
-    const result = await auth.api.signUpEmail({
-      body: { name, email, password: tempPassword },
+  let tempPassword: string | undefined = undefined;
+
+  if (existingUser) {
+    if (existingUser.role !== "scholar") {
+      return {
+        ok: false,
+        error: "An account with this email exists but is not a scholar account.",
+      };
+    }
+    userId = existingUser.id;
+
+    const [existingProfile] = await db
+      .select()
+      .from(scholarProfile)
+      .where(eq(scholarProfile.userId, userId));
+
+    if (existingProfile) {
+      if (existingProfile.cohortId === cohortId) {
+        return { ok: false, error: "Scholar is already enrolled in this cohort." };
+      }
+      await db
+        .update(scholarProfile)
+        .set({ cohortId })
+        .where(eq(scholarProfile.id, existingProfile.id));
+    } else {
+      await db.insert(scholarProfile).values({
+        userId,
+        cohortId,
+        country: country || null,
+      });
+    }
+  } else {
+    tempPassword = `zuva-${randomBytes(4).toString("hex")}`;
+    try {
+      const result = await auth.api.signUpEmail({
+        body: { name, email, password: tempPassword },
+      });
+      userId = result.user.id;
+    } catch {
+      return {
+        ok: false,
+        error: "Could not create the account — please verify the email address.",
+      };
+    }
+
+    await db.update(user).set({ role: "scholar" }).where(eq(user.id, userId));
+    await db.insert(scholarProfile).values({
+      userId,
+      cohortId,
+      country: country || null,
     });
-    userId = result.user.id;
-  } catch {
-    return {
-      ok: false,
-      error: "Could not create the account — the email may already be in use.",
-    };
   }
 
-  await db.update(user).set({ role: "scholar" }).where(eq(user.id, userId));
-  await db.insert(scholarProfile).values({
-    userId,
-    cohortId,
-    country: country || null,
-  });
-
   const { sendScholarEnrolledEmail } = await import("@/lib/email");
-  await sendScholarEnrolledEmail({
+  const emailRes = await sendScholarEnrolledEmail({
     to: email,
-    scholarName: name,
+    scholarName: existingUser ? existingUser.name : name,
     tempPassword,
     userId,
   });
 
   refresh();
-  return { ok: true, data: { tempPassword } };
+  return {
+    ok: true,
+    data: { tempPassword: tempPassword ?? "", emailSent: emailRes.sent },
+  };
 }
+
+const deleteCohortSchema = z.object({
+  cohortId: z.string().min(1, "Cohort ID is required"),
+});
+
+export async function deleteCohort(input: unknown): Promise<ActionResult> {
+  await requireRole("admin");
+  const parsed = deleteCohortSchema.safeParse(input);
+  if (!parsed.success) {
+    return { ok: false, error: parsed.error.issues[0].message };
+  }
+  const { cohortId } = parsed.data;
+
+  const [existing] = await db
+    .select()
+    .from(cohort)
+    .where(eq(cohort.id, cohortId));
+
+  if (!existing) {
+    return { ok: false, error: "Cohort not found" };
+  }
+
+  await db.delete(cohort).where(eq(cohort.id, cohortId));
+
+  refresh();
+  return { ok: true, data: undefined };
+}
+
+const unenrollScholarSchema = z.object({
+  scholarId: z.string().min(1, "Scholar ID is required"),
+  cohortId: z.string().min(1, "Cohort ID is required"),
+});
+
+export async function unenrollScholar(input: unknown): Promise<ActionResult> {
+  await requireRole("admin");
+  const parsed = unenrollScholarSchema.safeParse(input);
+  if (!parsed.success) {
+    return { ok: false, error: parsed.error.issues[0].message };
+  }
+  const { scholarId, cohortId } = parsed.data;
+
+  const [profile] = await db
+    .select()
+    .from(scholarProfile)
+    .where(eq(scholarProfile.userId, scholarId));
+
+  if (!profile || profile.cohortId !== cohortId) {
+    return { ok: false, error: "Scholar is not enrolled in this cohort" };
+  }
+
+  await db
+    .update(scholarProfile)
+    .set({ cohortId: null })
+    .where(eq(scholarProfile.id, profile.id));
+
+  refresh();
+  return { ok: true, data: undefined };
+}
+

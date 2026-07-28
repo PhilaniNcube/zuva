@@ -33,9 +33,9 @@ type FormValues = z.infer<typeof schema>;
 
 async function action(
   cohortId: string,
-  _prev: ActionResult<{ tempPassword: string }> | null,
+  _prev: ActionResult<{ tempPassword: string; emailSent: boolean }> | null,
   formData: FormData,
-): Promise<ActionResult<{ tempPassword: string }>> {
+): Promise<ActionResult<{ tempPassword: string; emailSent: boolean }>> {
   return enrollScholar({
     cohortId,
     name: formData.get("name"),
@@ -52,7 +52,8 @@ export function ScholarEnrollForm({ cohortId }: { cohortId: string }) {
   );
   const [enrolled, setEnrolled] = useState<{
     email: string;
-    tempPassword: string;
+    tempPassword?: string;
+    emailSent?: boolean;
   } | null>(null);
 
   const form = useForm<FormValues>({
@@ -66,6 +67,7 @@ export function ScholarEnrollForm({ cohortId }: { cohortId: string }) {
       setEnrolled({
         email: form.getValues("email"),
         tempPassword: state.data.tempPassword,
+        emailSent: state.data.emailSent,
       });
       form.reset();
     }
@@ -103,23 +105,30 @@ export function ScholarEnrollForm({ cohortId }: { cohortId: string }) {
         <DialogHeader>
           <DialogTitle>Enrol a new scholar</DialogTitle>
           <DialogDescription>
-            Add a scholar to this cohort and generate their temporary password.
+            Enrol a scholar in this cohort and send their invitation email with login credentials.
           </DialogDescription>
         </DialogHeader>
 
         {enrolled ? (
           <div className="flex flex-col gap-4 py-2">
-            <div className="rounded-lg bg-green-50 p-4 text-sm text-green-800 dark:bg-green-900/30 dark:text-green-300">
+            <div className="rounded-lg bg-green-50 p-4 text-sm text-green-800 dark:bg-green-900/30 dark:text-green-300 space-y-2">
               <p className="font-semibold">Scholar enrolled successfully!</p>
-              <p className="mt-1">
-                Account created for <span className="font-medium">{enrolled.email}</span>. Temporary password:{" "}
-                <code className="font-mono font-semibold bg-green-100 dark:bg-green-800/50 px-1.5 py-0.5 rounded">
-                  {enrolled.tempPassword}
-                </code>
+              <p>
+                An invitation email has been dispatched to <span className="font-medium">{enrolled.email}</span>.
               </p>
-              <p className="mt-2 text-xs opacity-90">
-                Share this password securely with the scholar; it is only displayed once.
-              </p>
+              {enrolled.tempPassword ? (
+                <div>
+                  <p className="mt-1">
+                    Temporary password:{" "}
+                    <code className="font-mono font-semibold bg-green-100 dark:bg-green-800/50 px-1.5 py-0.5 rounded text-foreground">
+                      {enrolled.tempPassword}
+                    </code>
+                  </p>
+                  <p className="mt-1 text-xs opacity-90">
+                    You can also share this password securely with the scholar; it is only displayed once.
+                  </p>
+                </div>
+              ) : null}
             </div>
             <DialogFooter>
               <Button type="button" onClick={() => handleOpenChange(false)}>

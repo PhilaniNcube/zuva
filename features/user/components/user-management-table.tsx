@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import { Search, ShieldAlert, ShieldCheck, UserCheck } from "lucide-react";
 
 import { promoteUserToAdmin } from "@/features/user/user-actions";
+import { DeleteUserDialog } from "./delete-user-dialog";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -265,13 +266,16 @@ export function UserManagementTable({
                     })}
                   </TableCell>
                   <TableCell className="py-5 sm:py-6 text-right">
-                    {isAdmin ? (
-                      <span className="text-xs text-muted-foreground italic">
-                        Admin
-                      </span>
-                    ) : (
-                      <PromoteAdminDialog user={u} disabled={isScholar} />
-                    )}
+                    <div className="flex items-center justify-end gap-2">
+                      {!isAdmin && <PromoteAdminDialog user={u} disabled={isScholar} />}
+                      {!isSelf && (
+                        <DeleteUserDialog
+                          userId={u.id}
+                          userName={u.name}
+                          userEmail={u.email}
+                        />
+                      )}
+                    </div>
                   </TableCell>
                 </TableRow>
               );

@@ -9,9 +9,12 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { DeleteUserDialog } from "@/features/user/components/delete-user-dialog";
 import { getCohort, listCohortScholars } from "../cohort-queries";
 import { CohortEditForm } from "./cohort-edit-form";
+import { DeleteCohortDialog } from "./delete-cohort-dialog";
 import { ScholarEnrollForm } from "./scholar-enroll-form";
+import { UnenrollScholarDialog } from "./unenroll-scholar-dialog";
 
 export async function CohortDetail({ id }: { id: Promise<string> }) {
   const cohortId = await id;
@@ -35,6 +38,11 @@ export async function CohortDetail({ id }: { id: Promise<string> }) {
                 : ""}
             </p>
           </div>
+          <DeleteCohortDialog
+            cohortId={cohort.id}
+            cohortName={cohort.name}
+            redirectOnSuccess
+          />
         </div>
         <CohortEditForm
           cohortId={cohort.id}
@@ -67,6 +75,7 @@ export async function CohortDetail({ id }: { id: Promise<string> }) {
                 <TableHead>Email</TableHead>
                 <TableHead>Country</TableHead>
                 <TableHead>Onboarding Status</TableHead>
+                <TableHead className="text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -92,6 +101,20 @@ export async function CohortDetail({ id }: { id: Promise<string> }) {
                         <Clock className="size-3" /> Pending
                       </span>
                     )}
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <div className="flex items-center justify-end gap-2">
+                      <UnenrollScholarDialog
+                        scholarId={s.id}
+                        scholarName={s.name}
+                        cohortId={cohort.id}
+                      />
+                      <DeleteUserDialog
+                        userId={s.id}
+                        userName={s.name}
+                        userEmail={s.email}
+                      />
+                    </div>
                   </TableCell>
                 </TableRow>
               ))}

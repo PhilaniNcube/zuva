@@ -4,9 +4,10 @@ import { describe, expect, it, vi } from "vitest";
 
 import { UserManagementTable } from "./user-management-table";
 
-// Mock promote action
+// Mock user actions
 vi.mock("../user-actions", () => ({
   promoteUserToAdmin: vi.fn(),
+  deleteUser: vi.fn(),
 }));
 
 // Mock sonner toast
@@ -79,4 +80,18 @@ describe("UserManagementTable", () => {
     expect(screen.getByText("Confirm Admin Promotion")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Promote User" })).toBeInTheDocument();
   });
+
+  it("renders delete buttons for non-self users and opens Delete User Account dialog", async () => {
+    const user = userEvent.setup();
+    render(<UserManagementTable users={mockUsers} currentUserId="admin-1" />);
+
+    const deleteButtons = screen.getAllByRole("button", { name: /Delete/i });
+    expect(deleteButtons.length).toBe(2); // Scholar Tendai & Coach Kofi, not self (Admin Amara)
+
+    await user.click(deleteButtons[0]);
+
+    expect(screen.getByText("Delete User Account")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Delete Account" })).toBeInTheDocument();
+  });
 });
+
