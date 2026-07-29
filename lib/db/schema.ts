@@ -142,6 +142,15 @@ export const coachProfile = sqliteTable(
     }).notNull(),
     whatsappNumber: text("whatsapp_number").notNull(),
     bio: text("bio"),
+    icalUrl: text("ical_url"),
+    workingHours: text("working_hours", { mode: "json" }).$type<{
+      days: number[];
+      start: string;
+      end: string;
+      slotDurationMinutes: number;
+      bufferMinutes: number;
+    }>(),
+    lastSyncedAt: integer("last_synced_at", { mode: "timestamp" }),
     ...timestamps,
   },
   (t) => [uniqueIndex("coach_profile_user_id_idx").on(t.userId)],

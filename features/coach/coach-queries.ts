@@ -20,3 +20,21 @@ export const listCoaches = cache(async () => {
     .innerJoin(user, eq(user.id, coachProfile.userId))
     .orderBy(asc(user.name));
 });
+
+export const getCoachProfile = cache(async (userId: string) => {
+  const [profile] = await db
+    .select({
+      id: coachProfile.id,
+      userId: coachProfile.userId,
+      specialty: coachProfile.specialty,
+      whatsappNumber: coachProfile.whatsappNumber,
+      bio: coachProfile.bio,
+      icalUrl: coachProfile.icalUrl,
+      workingHours: coachProfile.workingHours,
+      lastSyncedAt: coachProfile.lastSyncedAt,
+    })
+    .from(coachProfile)
+    .where(eq(coachProfile.userId, userId));
+  return profile ?? null;
+});
+

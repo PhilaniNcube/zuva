@@ -1,7 +1,7 @@
 import "server-only";
 
 import { cache } from "react";
-import { and, asc, desc, eq, gt, inArray } from "drizzle-orm";
+import { and, asc, desc, eq, gt, gte, inArray } from "drizzle-orm";
 
 import { db } from "@/lib/db";
 import {
@@ -59,7 +59,12 @@ export const listCoachSlots = cache(async (coachId: string) => {
     )
     .leftJoin(user, eq(user.id, booking.scholarId))
     .leftJoin(programmeSession, eq(programmeSession.id, booking.sessionId))
-    .where(eq(availabilitySlot.coachId, coachId))
+    .where(
+      and(
+        eq(availabilitySlot.coachId, coachId),
+        gte(availabilitySlot.endsAt, new Date()),
+      ),
+    )
     .orderBy(asc(availabilitySlot.startsAt));
 });
 
