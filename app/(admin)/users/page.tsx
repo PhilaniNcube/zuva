@@ -1,5 +1,6 @@
 import { Suspense } from "react";
 import type { Metadata } from "next";
+import { createSearchParamsCache, parseAsInteger, parseAsString } from "nuqs/server";
 
 import {
   UsersContent,
@@ -8,7 +9,23 @@ import {
 
 export const metadata: Metadata = { title: "User Management | ZUVA Admin" };
 
-export default function AdminUsersPage() {
+const userSearchParamsCache = createSearchParamsCache({
+  page: parseAsInteger.withDefault(1),
+  pageSize: parseAsInteger.withDefault(10),
+  country: parseAsString.withDefault(""),
+  role: parseAsString.withDefault(""),
+  search: parseAsString.withDefault(""),
+  onboardingStatus: parseAsString.withDefault(""),
+});
+
+export default async function AdminUsersPage({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
+  const { page, pageSize, country, role, search, onboardingStatus } =
+    await userSearchParamsCache.parse(searchParams);
+
   return (
     <div className="flex flex-col gap-6">
       <div>
@@ -19,7 +36,14 @@ export default function AdminUsersPage() {
       </div>
 
       <Suspense fallback={<UserManagementTableSkeleton />}>
-        <UsersContent />
+        <UsersContent
+          page={page}
+          pageSize={pageSize}
+          country={country}
+          role={role}
+          search={search}
+          onboardingStatus={onboardingStatus}
+        />
       </Suspense>
     </div>
   );

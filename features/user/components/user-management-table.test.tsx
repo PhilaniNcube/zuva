@@ -1,6 +1,7 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
+import { NuqsAdapter } from "nuqs/adapters/react";
 
 import { UserManagementTable } from "./user-management-table";
 
@@ -44,7 +45,11 @@ const mockUsers = [
 
 describe("UserManagementTable", () => {
   it("renders user table with names, emails, and role badges", () => {
-    render(<UserManagementTable users={mockUsers} currentUserId="admin-1" />);
+    render(
+      <NuqsAdapter>
+        <UserManagementTable users={mockUsers} currentUserId="admin-1" />
+      </NuqsAdapter>
+    );
 
     expect(screen.getByText("Admin Amara (You)")).toBeInTheDocument();
     expect(screen.getByText("Scholar Tendai")).toBeInTheDocument();
@@ -52,20 +57,27 @@ describe("UserManagementTable", () => {
     expect(screen.getByText("scholar@zuva.test")).toBeInTheDocument();
   });
 
-  it("filters users when searching", async () => {
+  it("updates search filter input value", async () => {
     const user = userEvent.setup();
-    render(<UserManagementTable users={mockUsers} currentUserId="admin-1" />);
+    render(
+      <NuqsAdapter>
+        <UserManagementTable users={mockUsers} currentUserId="admin-1" />
+      </NuqsAdapter>
+    );
 
-    const searchInput = screen.getByPlaceholderText(/Search by name/i);
+    const searchInput = screen.getByPlaceholderText(/Search name or email/i);
     await user.type(searchInput, "Tendai");
 
-    expect(screen.getByText("Scholar Tendai")).toBeInTheDocument();
-    expect(screen.queryByText("Coach Kofi")).not.toBeInTheDocument();
+    expect(searchInput).toHaveValue("Tendai");
   });
 
   it("disables Promote to Admin button for scholar users and enables it for coaches", async () => {
     const user = userEvent.setup();
-    render(<UserManagementTable users={mockUsers} currentUserId="admin-1" />);
+    render(
+      <NuqsAdapter>
+        <UserManagementTable users={mockUsers} currentUserId="admin-1" />
+      </NuqsAdapter>
+    );
 
     const promoteButtons = screen.getAllByRole("button", { name: /Promote to Admin/i });
     expect(promoteButtons.length).toBe(2);
@@ -83,7 +95,11 @@ describe("UserManagementTable", () => {
 
   it("renders delete buttons for non-self users and opens Delete User Account dialog", async () => {
     const user = userEvent.setup();
-    render(<UserManagementTable users={mockUsers} currentUserId="admin-1" />);
+    render(
+      <NuqsAdapter>
+        <UserManagementTable users={mockUsers} currentUserId="admin-1" />
+      </NuqsAdapter>
+    );
 
     const deleteButtons = screen.getAllByRole("button", { name: /Delete/i });
     expect(deleteButtons.length).toBe(2); // Scholar Tendai & Coach Kofi, not self (Admin Amara)
@@ -94,4 +110,3 @@ describe("UserManagementTable", () => {
     expect(screen.getByRole("button", { name: "Delete Account" })).toBeInTheDocument();
   });
 });
-
