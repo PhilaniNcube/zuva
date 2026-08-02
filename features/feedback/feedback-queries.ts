@@ -1,7 +1,7 @@
 import "server-only";
 
 import { cache } from "react";
-import { and, desc, eq, inArray } from "drizzle-orm";
+import { and, desc, eq, inArray, sql } from "drizzle-orm";
 
 import { db } from "@/lib/db";
 import {
@@ -80,5 +80,82 @@ export const listAttendedSessionsNeedingFeedback = cache(
 
     const submittedIds = new Set(submitted.map((s) => s.sessionId));
     return attended.filter((a) => !submittedIds.has(a.sessionId));
+  },
+);
+
+export type ScholarFeedbackSummary = {
+  totalCount: number;
+  ratedCount: number;
+  averageRating: number | null;
+  recent: {
+    sessionId: string;
+    sessionTitle: string;
+    startsAt: Date;
+    rating: number;
+    comment: string | null;
+    submittedAt: Date;
+  }[];
+};
+
+/**
+ * Feedback aggregates for the admin scholar page. Anonymous submissions are
+ * counted toward the total (drives the certificate threshold) but their
+ * ratings and comments are withheld — anonymous feedback is never surfaced to
+ * admins.
+ */
+export const getScholarFeedbackSummary = cache(
+  async (scholarId: string): Promise<ScholarFeedbackSummary> => {
+    const [totalRow] = await db
+      .select({ count: sql<number>`count(*)` })
+      .from(feedbackSubmission)
+      .where(eq(feedbackSubmission.scholarId, scholarId));
+    const totalCount = totalRow?.count ?? 0;
+
+    const [ratedRow] = await db
+      .select({
+        count: sql<number>`count(*)`,
+        avg: sql<number>`avg(json_extract(${feedbackSubmission.responses}, '$.rating'))`,
+      })
+      .from(feedbackSubmission)
+      .where(
+        and(
+          eq(feedbackSubmission.scholarId, scholarId),
+          eq(feedbackSubmission.isAnonymous, false),
+        ),
+      );
+
+    const recent = await db
+      .select({
+        sessionId: feedbackSubmission.sessionId,
+        sessionTitle: programmeSession.title,
+        startsAt: programmeSession.startsAt,
+        rating: sql<number>`json_extract(${feedbackSubmission.responses}, '$.rating')`,
+        comment: sql<string | null>`json_extract(${feedbackSubmission.responses}, '$.comment')`,
+        submittedAt: feedbackSubmission.submittedAt,
+      })
+      .from(feedbackSubmission)
+      .innerJoin(
+        programmeSession,
+        eq(programmeSession.id, feedbackSubmission.sessionId),
+      )
+      .where(
+        and(
+          eq(feedbackSubmission.scholarId, scholarId),
+          eq(feedbackSubmission.isAnonymous, false),
+        ),
+      )
+      .orderBy(desc(feedbackSubmission.submittedAt))
+      .limit(5);
+
+    const ratedCount = ratedRow?.count ?? 0;
+    return {
+      totalCount,
+      ratedCount,
+      averageRating:
+        ratedCount > 0
+          ? Math.round(((ratedRow?.avg ?? 0) as number) * 10) / 10
+          : null,
+      recent: recent as ScholarFeedbackSummary["recent"],
+    };
   },
 );

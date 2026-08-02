@@ -28,6 +28,22 @@ export const getScholarProfile = cache(async (userId: string) => {
   return row ?? null;
 });
 
+export const getUser = cache(async (userId: string) => {
+  const [row] = await db
+    .select({
+      id: user.id,
+      name: user.name,
+      email: user.email,
+      role: user.role,
+      image: user.image,
+      createdAt: user.createdAt,
+      updatedAt: user.updatedAt,
+    })
+    .from(user)
+    .where(eq(user.id, userId));
+  return row ?? null;
+});
+
 export const getUsersForAdmin = cache(async () => {
   await requireRole("admin");
   const users = await db

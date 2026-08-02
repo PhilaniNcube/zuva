@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useMemo, useTransition } from "react";
 import { parseAsInteger, parseAsString, useQueryState } from "nuqs";
 import {
@@ -116,12 +117,17 @@ export function CohortScholarsTable({
         cell: ({ row }) => {
           const s = row.original;
           return (
-            <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center text-primary font-bold text-xs shrink-0">
+            <Link
+              href={`/admin/scholars/${s.id}`}
+              className="group flex items-center gap-3"
+            >
+              <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center text-primary font-bold text-xs shrink-0 group-hover:bg-primary/20 transition-colors">
                 {getInitials(s.name)}
               </div>
-              <span className="font-medium text-foreground text-sm">{s.name}</span>
-            </div>
+              <span className="font-medium text-foreground text-sm group-hover:text-primary group-hover:underline underline-offset-4 transition-colors">
+                {s.name}
+              </span>
+            </Link>
           );
         },
       },

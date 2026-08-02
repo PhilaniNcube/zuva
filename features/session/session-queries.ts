@@ -1,11 +1,23 @@
 import "server-only";
 
 import { cache } from "react";
-import { and, asc, desc, eq, gt, gte, or } from "drizzle-orm";
+import {
+  and,
+  asc,
+  desc,
+  eq,
+  gt,
+  gte,
+  lte,
+  ne,
+  or,
+  sql,
+} from "drizzle-orm";
 import { alias } from "drizzle-orm/sqlite-core";
 
 import { db } from "@/lib/db";
 import {
+  attendance,
   availabilitySlot,
   booking,
   coachProfile,
@@ -245,3 +257,154 @@ export const listAdminSessions = cache(async () => {
     )
     .orderBy(desc(programmeSession.startsAt));
 });
+
+// ---------------------------------------------------------------------------
+// Admin scholar overview
+// ---------------------------------------------------------------------------
+
+/**
+ * Sessions a scholar still has coming up: their cohort's group sessions,
+ * onboarding 1:1s targeted at them, and coaching 1:1s they've booked.
+ */
+export const listScholarUpcomingSessions = cache(
+  async (scholarId: string, cohortId: string | null) => {
+    const visibility = [
+      cohortId
+        ? and(
+            eq(programmeSession.cohortId, cohortId),
+            eq(sessionType.format, "group"),
+          )
+        : undefined,
+      and(
+        eq(programmeSession.scholarId, scholarId),
+        eq(sessionType.kind, "onboarding"),
+      ),
+      and(
+        eq(booking.scholarId, scholarId),
+        eq(booking.status, "confirmed"),
+        eq(sessionType.kind, "coaching"),
+      ),
+    ];
+
+    return db
+      .select({
+        id: programmeSession.id,
+        kind: sessionType.kind,
+        format: sessionType.format,
+        typeName: sessionType.name,
+        title: programmeSession.title,
+        startsAt: programmeSession.startsAt,
+        endsAt: programmeSession.endsAt,
+        coachName: user.name,
+      })
+      .from(programmeSession)
+      .innerJoin(sessionType, eq(sessionType.id, programmeSession.sessionTypeId))
+      .leftJoin(user, eq(user.id, programmeSession.coachId))
+      .leftJoin(
+        booking,
+        and(
+          eq(booking.sessionId, programmeSession.id),
+          eq(booking.scholarId, scholarId),
+          eq(booking.status, "confirmed"),
+        ),
+      )
+      .where(
+        and(
+          eq(programmeSession.status, "scheduled"),
+          gte(programmeSession.startsAt, new Date()),
+          or(...visibility),
+        ),
+      )
+      .orderBy(asc(programmeSession.startsAt));
+  },
+);
+
+/** Sessions the scholar has attended (has an attendance record). */
+export const listScholarAttendedSessions = cache(
+  async (scholarId: string) => {
+    return db
+      .select({
+        sessionId: attendance.sessionId,
+        title: programmeSession.title,
+        kind: sessionType.kind,
+        typeName: sessionType.name,
+        startsAt: programmeSession.startsAt,
+        endsAt: programmeSession.endsAt,
+        joinedAt: attendance.joinedAt,
+        coachName: user.name,
+      })
+      .from(attendance)
+      .innerJoin(programmeSession, eq(programmeSession.id, attendance.sessionId))
+      .innerJoin(sessionType, eq(sessionType.id, programmeSession.sessionTypeId))
+      .leftJoin(user, eq(user.id, programmeSession.coachId))
+      .where(eq(attendance.scholarId, scholarId))
+      .orderBy(desc(attendance.joinedAt));
+  },
+);
+
+/**
+ * Attendance aggregates: how many sessions were attended vs how many the
+ * scholar was expected to attend (past, non-cancelled group/targeted/booked
+ * sessions). Cancelled sessions are excluded from the denominator.
+ */
+export const getScholarAttendanceStats = cache(
+  async (scholarId: string, cohortId: string | null) => {
+    const now = new Date();
+
+    const [attendedRow] = await db
+      .select({ count: sql<number>`count(*)` })
+      .from(attendance)
+      .where(eq(attendance.scholarId, scholarId));
+    const attendedCount = attendedRow?.count ?? 0;
+
+    const visibility = [
+      cohortId
+        ? and(
+            eq(programmeSession.cohortId, cohortId),
+            eq(sessionType.format, "group"),
+          )
+        : undefined,
+      and(
+        eq(programmeSession.scholarId, scholarId),
+        eq(sessionType.kind, "onboarding"),
+      ),
+      and(
+        eq(booking.scholarId, scholarId),
+        eq(booking.status, "confirmed"),
+        eq(sessionType.kind, "coaching"),
+      ),
+    ];
+
+    const [eligibleRow] = await db
+      .select({
+        count: sql<number>`count(distinct ${programmeSession.id})`,
+      })
+      .from(programmeSession)
+      .innerJoin(sessionType, eq(sessionType.id, programmeSession.sessionTypeId))
+      .leftJoin(
+        booking,
+        and(
+          eq(booking.sessionId, programmeSession.id),
+          eq(booking.scholarId, scholarId),
+          eq(booking.status, "confirmed"),
+        ),
+      )
+      .where(
+        and(
+          lte(programmeSession.endsAt, now),
+          ne(programmeSession.status, "cancelled"),
+          or(...visibility),
+        ),
+      );
+    const eligibleCompletedCount = eligibleRow?.count ?? 0;
+
+    return {
+      attendedCount,
+      eligibleCompletedCount,
+      attendanceRate:
+        eligibleCompletedCount > 0
+          ? Math.round((attendedCount / eligibleCompletedCount) * 100)
+          : null,
+    };
+  },
+);
