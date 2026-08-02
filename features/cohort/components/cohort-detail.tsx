@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+import { format } from "date-fns";
 import { UserCheck, Clock } from "lucide-react";
 
 import {
@@ -31,10 +32,9 @@ export async function CohortDetail({ id }: { id: Promise<string> }) {
           <div>
             <h1 className="text-2xl font-semibold tracking-tight">{cohort.name}</h1>
             <p className="text-sm text-muted-foreground">
-              {cohort.status} · starts{" "}
-              {cohort.startsAt.toLocaleDateString("en-GB", { timeZone: "UTC" })}
+              {cohort.status} · starts {format(cohort.startsAt, "dd MMM yyyy")}
               {cohort.endsAt
-                ? ` · ends ${cohort.endsAt.toLocaleDateString("en-GB", { timeZone: "UTC" })}`
+                ? ` · ends ${format(cohort.endsAt, "dd MMM yyyy")}`
                 : ""}
             </p>
           </div>
@@ -83,7 +83,7 @@ export async function CohortDetail({ id }: { id: Promise<string> }) {
                 <TableRow key={s.id}>
                   <TableCell>
                     <div className="flex items-center gap-3">
-                      <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center text-primary font-bold text-xs shrink-0">
+                      <div className="w-9 h-9 rounded-lg flex items-center justify-center text-primary font-bold text-xs shrink-0">
                         {getInitials(s.name)}
                       </div>
                       <span className="font-medium text-foreground">{s.name}</span>
@@ -136,7 +136,7 @@ export function CohortDetailSkeleton() {
 }
 
 function toDateInputValue(d: Date) {
-  return d.toISOString().slice(0, 10);
+  return format(d, "yyyy-MM-dd");
 }
 
 function getInitials(name: string): string {
