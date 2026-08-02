@@ -84,7 +84,7 @@ export async function ProfileContent() {
               <CardDescription>Current saved profile details</CardDescription>
             </CardHeader>
             <CardContent className="grid gap-4">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div className="p-4 rounded-lg bg-muted/40 border border-border/50">
                   <div className="text-xs font-medium text-muted-foreground flex items-center gap-1.5 mb-1">
                     <Globe className="size-3.5" />
@@ -102,6 +102,31 @@ export async function ProfileContent() {
                   </div>
                   <div className="text-sm font-semibold text-foreground">
                     {scholarDetails.whatsappNumber || "Not specified"}
+                  </div>
+                </div>
+
+                <div className="p-4 rounded-lg bg-muted/40 border border-border/50">
+                  <div className="text-xs font-medium text-muted-foreground flex items-center gap-1.5 mb-1">
+                    <Globe className="size-3.5 text-sky-600" />
+                    LinkedIn Profile
+                  </div>
+                  <div className="text-sm font-semibold text-foreground">
+                    {scholarDetails.linkedinUrl ? (
+                      <a
+                        href={
+                          scholarDetails.linkedinUrl.startsWith("http")
+                            ? scholarDetails.linkedinUrl
+                            : `https://${scholarDetails.linkedinUrl}`
+                        }
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-sky-600 hover:underline"
+                      >
+                        View Profile
+                      </a>
+                    ) : (
+                      "Not specified"
+                    )}
                   </div>
                 </div>
               </div>

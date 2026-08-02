@@ -120,6 +120,7 @@ export const scholarProfile = sqliteTable(
     }),
     country: text("country"),
     whatsappNumber: text("whatsapp_number"),
+    linkedinUrl: text("linkedin_url"),
     bio: text("bio"),
     mtpText: text("mtp_text"),
     onboardingCompletedAt: integer("onboarding_completed_at", {

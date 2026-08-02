@@ -19,6 +19,7 @@ import {
   Loader2,
   X,
   MessageCircle,
+  ExternalLink,
   Filter,
 } from "lucide-react";
 
@@ -48,6 +49,7 @@ export interface CohortScholarItem {
   email: string;
   country: string | null;
   whatsappNumber?: string | null;
+  linkedinUrl?: string | null;
   onboardedAt: Date | string | null;
 }
 
@@ -157,6 +159,27 @@ export function CohortScholarsTable({
             >
               <MessageCircle className="size-3.5 text-emerald-600 dark:text-emerald-400 shrink-0" />
               <span>{phone}</span>
+            </a>
+          );
+        },
+      },
+      {
+        accessorKey: "linkedinUrl",
+        header: "LinkedIn",
+        cell: ({ row }) => {
+          const url = row.original.linkedinUrl;
+          if (!url) return <span className="text-xs text-muted-foreground">—</span>;
+          const href = url.startsWith("http") ? url : `https://${url}`;
+          return (
+            <a
+              href={href}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1.5 text-xs font-medium text-sky-600 hover:text-sky-700 dark:text-sky-400 hover:underline"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <ExternalLink className="size-3.5 shrink-0" />
+              <span>Profile</span>
             </a>
           );
         },

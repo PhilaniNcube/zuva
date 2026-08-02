@@ -104,6 +104,7 @@ export const listCohortScholars = cache(async (cohortId: string) => {
       email: user.email,
       country: scholarProfile.country,
       whatsappNumber: scholarProfile.whatsappNumber,
+      linkedinUrl: scholarProfile.linkedinUrl,
       onboardedAt: scholarProfile.onboardingCompletedAt,
     })
     .from(scholarProfile)
@@ -174,6 +175,7 @@ export const listCohortScholarsPaginated = cache(
         email: user.email,
         country: scholarProfile.country,
         whatsappNumber: scholarProfile.whatsappNumber,
+        linkedinUrl: scholarProfile.linkedinUrl,
         onboardedAt: scholarProfile.onboardingCompletedAt,
       })
       .from(scholarProfile)

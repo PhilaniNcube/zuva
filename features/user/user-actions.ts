@@ -20,6 +20,12 @@ const onboardingSchema = z.object({
     .max(30, "WhatsApp number looks too long")
     .optional()
     .or(z.literal("")),
+  linkedinUrl: z
+    .string()
+    .trim()
+    .max(300, "LinkedIn URL is too long")
+    .optional()
+    .or(z.literal("")),
   bio: z
     .string()
     .trim()
@@ -52,6 +58,7 @@ export async function completeOnboarding(input: unknown): Promise<ActionResult> 
       .set({
         country: v.country,
         whatsappNumber: v.whatsappNumber || null,
+        linkedinUrl: v.linkedinUrl || null,
         bio: v.bio,
         mtpText: v.mtpText,
         onboardingCompletedAt: now,
@@ -62,6 +69,7 @@ export async function completeOnboarding(input: unknown): Promise<ActionResult> 
       userId: user.id,
       country: v.country,
       whatsappNumber: v.whatsappNumber || null,
+      linkedinUrl: v.linkedinUrl || null,
       bio: v.bio,
       mtpText: v.mtpText,
       onboardingCompletedAt: now,
@@ -76,6 +84,7 @@ const updateProfileSchema = z.object({
   name: z.string().trim().min(2, "Full name must be at least 2 characters").max(100),
   country: z.string().trim().max(100).optional().or(z.literal("")),
   whatsappNumber: z.string().trim().max(30).optional().or(z.literal("")),
+  linkedinUrl: z.string().trim().max(300).optional().or(z.literal("")),
   bio: z.string().trim().max(2000).optional().or(z.literal("")),
   mtpText: z.string().trim().max(500).optional().or(z.literal("")),
 });
@@ -109,6 +118,7 @@ export async function updateProfileDetails(input: unknown): Promise<ActionResult
         .set({
           country: v.country || existing.country,
           whatsappNumber: v.whatsappNumber ?? existing.whatsappNumber,
+          linkedinUrl: v.linkedinUrl ?? existing.linkedinUrl,
           bio: v.bio ?? existing.bio,
           mtpText: v.mtpText ?? existing.mtpText,
         })
@@ -118,6 +128,7 @@ export async function updateProfileDetails(input: unknown): Promise<ActionResult
         userId: currentUser.id,
         country: v.country,
         whatsappNumber: v.whatsappNumber || null,
+        linkedinUrl: v.linkedinUrl || null,
         bio: v.bio,
         mtpText: v.mtpText,
       });

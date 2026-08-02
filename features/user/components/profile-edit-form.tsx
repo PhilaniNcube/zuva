@@ -40,6 +40,7 @@ const detailsSchema = z.object({
   name: z.string().trim().min(2, "Full name must be at least 2 characters").max(100),
   country: z.string().trim().max(100).optional().or(z.literal("")),
   whatsappNumber: z.string().trim().max(30).optional().or(z.literal("")),
+  linkedinUrl: z.string().trim().max(300).optional().or(z.literal("")),
   bio: z.string().trim().max(2000).optional().or(z.literal("")),
   mtpText: z.string().trim().max(500).optional().or(z.literal("")),
 });
@@ -71,6 +72,7 @@ async function submitDetailsAction(
     name: formData.get("name"),
     country: formData.get("country"),
     whatsappNumber: formData.get("whatsappNumber"),
+    linkedinUrl: formData.get("linkedinUrl"),
     bio: formData.get("bio"),
     mtpText: formData.get("mtpText"),
   });
@@ -111,6 +113,7 @@ export function ProfileEditForm({ user, scholarProfileData }: ProfileEditFormPro
       name: user.name || "",
       country: scholarProfileData?.country || "",
       whatsappNumber: scholarProfileData?.whatsappNumber || "",
+      linkedinUrl: scholarProfileData?.linkedinUrl || "",
       bio: scholarProfileData?.bio || "",
       mtpText: scholarProfileData?.mtpText || "",
     },
@@ -130,6 +133,7 @@ export function ProfileEditForm({ user, scholarProfileData }: ProfileEditFormPro
     formData.set("name", data.name);
     formData.set("country", data.country ?? "");
     formData.set("whatsappNumber", data.whatsappNumber ?? "");
+    formData.set("linkedinUrl", data.linkedinUrl ?? "");
     formData.set("bio", data.bio ?? "");
     formData.set("mtpText", data.mtpText ?? "");
 
@@ -267,6 +271,21 @@ export function ProfileEditForm({ user, scholarProfileData }: ProfileEditFormPro
                       />
                     </Field>
                   </div>
+
+                  <Field>
+                    <FieldLabel htmlFor="linkedinUrl" className="flex items-center gap-1.5">
+                      <Globe className="size-3.5" />
+                      LinkedIn Profile URL
+                    </FieldLabel>
+                    <Input
+                      id="linkedinUrl"
+                      {...detailsForm.register("linkedinUrl")}
+                      placeholder="https://linkedin.com/in/username"
+                    />
+                    <FieldError
+                      errors={[detailsForm.formState.errors.linkedinUrl]}
+                    />
+                  </Field>
 
                   <Field>
                     <FieldLabel htmlFor="bio" className="flex items-center gap-1.5">

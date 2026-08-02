@@ -114,7 +114,16 @@ async function main() {
     ON \`resource_engagement\` (\`session_id\`);
   `);
 
-  console.log("6. Verifying production tables...");
+  console.log("6. Checking columns on scholar_profile table...");
+  const scholarColsRes = await client.execute(`PRAGMA table_info("scholar_profile")`);
+  const scholarCols = new Set(scholarColsRes.rows.map((r) => r.name as string));
+
+  if (!scholarCols.has("linkedin_url")) {
+    console.log("Adding missing column 'linkedin_url' to scholar_profile...");
+    await client.execute(`ALTER TABLE \`scholar_profile\` ADD COLUMN \`linkedin_url\` text;`);
+  }
+
+  console.log("7. Verifying production tables...");
   const tablesRes = await client.execute(
     "SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%' AND name NOT LIKE '__drizzle_%'"
   );

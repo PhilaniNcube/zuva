@@ -23,6 +23,12 @@ const schema = z.object({
     .max(30)
     .optional()
     .or(z.literal("")),
+  linkedinUrl: z
+    .string()
+    .trim()
+    .max(300)
+    .optional()
+    .or(z.literal("")),
   bio: z.string().trim().min(10, "Bio is required").max(2000),
   mtpText: z.string().trim().min(5, "MTP is required").max(500),
 });
@@ -36,6 +42,7 @@ async function action(
   return completeOnboarding({
     country: formData.get("country"),
     whatsappNumber: formData.get("whatsappNumber"),
+    linkedinUrl: formData.get("linkedinUrl"),
     bio: formData.get("bio"),
     mtpText: formData.get("mtpText"),
   });
@@ -44,6 +51,7 @@ async function action(
 type InitialValues = {
   country: string;
   whatsappNumber: string;
+  linkedinUrl?: string;
   bio: string;
   mtpText: string;
 };
@@ -73,6 +81,7 @@ export function OnboardingWizard({ initial }: { initial: InitialValues }) {
     const formData = new FormData();
     formData.set("country", data.country);
     formData.set("whatsappNumber", data.whatsappNumber ?? "");
+    formData.set("linkedinUrl", data.linkedinUrl ?? "");
     formData.set("bio", data.bio);
     formData.set("mtpText", data.mtpText);
     startTransition(() => {
@@ -95,47 +104,38 @@ export function OnboardingWizard({ initial }: { initial: InitialValues }) {
 
       {step === 0 && (
         <div className="flex flex-col gap-4">
-          <h1 className="text-2xl font-semibold">Welcome to ZUVA</h1>
+          <h1 className="text-2xl font-semibold">Welcome to ZUVA Scholar Hub</h1>
           <p className="text-zinc-600 dark:text-zinc-400">
-            ZUVA is a postgraduate coaching programme delivered by Concept
-            Afrika on behalf of MINDS. Across your intake you will attend an
-            orientation, join expert-led masterclasses (Academic Writing,
-            Leadership, and Data &amp; Decisions), and work 1:1 with a dedicated
-            coach as you develop your research.
+            This hub consolidates your postgraduate coaching journey with Concept
+            Afrika / MINDS — 1:1 coaching, masterclasses, paper editing, and
+            feedback.
           </p>
           <p className="text-zinc-600 dark:text-zinc-400">
-            When you complete the journey — including five session feedback
-            forms — you will earn your ZUVA certificate, personalised with your
-            Massive Transformative Purpose.
+            Let&apos;s take two quick steps to set up your profile.
           </p>
         </div>
       )}
 
       {step === 1 && (
         <div className="flex flex-col gap-4">
-          <h1 className="text-2xl font-semibold">How the hub works</h1>
-          <ul className="list-disc space-y-2 pl-5 text-zinc-600 dark:text-zinc-400">
+          <h1 className="text-2xl font-semibold">Key features</h1>
+          <ul className="flex flex-col gap-2.5 text-sm text-zinc-600 dark:text-zinc-400">
             <li>
-              <strong>My Learning Pathway</strong> — your full checklist, always
-              visible. Nothing is locked; track your progress at a glance.
+              <strong>Pathway</strong> — your step-by-step progress from
+              orientation to certificate eligibility.
             </li>
             <li>
-              <strong>Sessions</strong> — view coach availability, book 1:1s and
-              masterclasses, and join the video call with one tap. Attendance is
-              logged automatically when you join.
+              <strong>Sessions & Bookings</strong> — view group masterclasses and
+              book 1:1 coaching slots.
             </li>
             <li>
-              <strong>Submissions</strong> — upload documents for critical
-              review and language editing, and follow each one through to
+              <strong>Editing Queue</strong> — submit research papers for critical
+              review and language editing, then track status through to
               &ldquo;Returned&rdquo;.
             </li>
             <li>
               <strong>Feedback</strong> — short post-session forms (anonymous if
               you prefer). Five completed forms count toward your certificate.
-            </li>
-            <li>
-              <strong>My Certificate</strong> — watch your eligibility tracker
-              fill up, then download your certificate right here.
             </li>
           </ul>
         </div>
@@ -155,6 +155,12 @@ export function OnboardingWizard({ initial }: { initial: InitialValues }) {
             <FieldLabel>WhatsApp number (optional, international format)</FieldLabel>
             <Input {...form.register("whatsappNumber")} placeholder="+263…" />
             <FieldError errors={[form.formState.errors.whatsappNumber]} />
+          </Field>
+
+          <Field>
+            <FieldLabel>LinkedIn Profile URL (optional)</FieldLabel>
+            <Input {...form.register("linkedinUrl")} placeholder="https://linkedin.com/in/username" />
+            <FieldError errors={[form.formState.errors.linkedinUrl]} />
           </Field>
 
           <Field>
