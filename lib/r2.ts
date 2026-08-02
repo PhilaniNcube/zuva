@@ -69,11 +69,16 @@ export async function putObject(
 }
 
 export function objectKey(
-  purpose: "submission" | "resource" | "returned",
+  purpose: "submission" | "resource" | "returned" | "avatar",
   userId: string,
   filename: string,
 ): string {
   const safe = filename.replace(/[^a-zA-Z0-9._-]/g, "_").slice(0, 80);
-  const prefix = purpose === "returned" ? "returned" : `${purpose}s`;
+  const prefix =
+    purpose === "returned"
+      ? "returned"
+      : purpose === "avatar"
+        ? "avatars"
+        : `${purpose}s`;
   return `${prefix}/${userId}/${crypto.randomUUID()}-${safe}`;
 }

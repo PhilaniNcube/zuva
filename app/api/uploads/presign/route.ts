@@ -7,7 +7,7 @@ import { objectKey, presignPut } from "@/lib/r2";
 const schema = z.object({
   filename: z.string().min(1, "filename is required"),
   contentType: z.string().min(1),
-  purpose: z.enum(["submission", "resource", "returned"]),
+  purpose: z.enum(["submission", "resource", "returned", "avatar"]),
 });
 
 export async function POST(request: Request) {

@@ -93,5 +93,17 @@ export async function GET(request: NextRequest) {
     return NextResponse.redirect(url);
   }
 
+  // Check avatars (authenticated users can view avatar images)
+  if (key.startsWith("avatars/")) {
+    const url = await presignGet(key);
+    if (!url) {
+      return NextResponse.json(
+        { error: "File storage not available" },
+        { status: 503 },
+      );
+    }
+    return NextResponse.redirect(url);
+  }
+
   return NextResponse.json({ error: "File not found" }, { status: 404 });
 }

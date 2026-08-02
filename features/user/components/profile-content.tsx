@@ -4,19 +4,12 @@ import { ArrowLeft, Mail, Shield, Calendar, Globe, Phone, User, FileText } from 
 import { requireUser } from "@/lib/rbac";
 import { roleHome, type Role } from "@/lib/roles";
 import { getScholarProfile } from "@/features/user/user-queries";
+import { ProfileAvatarUpload } from "@/features/user/components/profile-avatar-upload";
 import { ProfileEditForm } from "@/features/user/components/profile-edit-form";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-
-function getInitials(name?: string | null): string {
-  if (!name) return "U";
-  const parts = name.trim().split(/\s+/);
-  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
-  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
-}
 
 export async function ProfileContent() {
   const session = await requireUser();
@@ -24,7 +17,6 @@ export async function ProfileContent() {
   const role = user.role as Role;
 
   const scholarDetails = role === "scholar" ? await getScholarProfile(user.id) : null;
-  const initials = getInitials(user.name);
 
   return (
     <>
@@ -43,12 +35,7 @@ export async function ProfileContent() {
         <Card className="border-border shadow-sm">
           <CardContent className="pt-6">
             <div className="flex flex-col sm:flex-row items-center sm:items-start gap-6 text-center sm:text-left">
-              <Avatar className="size-20 border-2 border-primary/10">
-                {user.image ? <AvatarImage src={user.image} alt={user.name} /> : null}
-                <AvatarFallback className="bg-primary/10 text-primary text-xl font-bold">
-                  {initials}
-                </AvatarFallback>
-              </Avatar>
+              <ProfileAvatarUpload user={user} />
 
               <div className="flex-1 space-y-2">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">

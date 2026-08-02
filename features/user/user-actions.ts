@@ -9,6 +9,7 @@ import type { ActionResult } from "@/lib/action-result";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { scholarProfile, user as userTable } from "@/lib/db/schema";
+import { deleteObject } from "@/lib/r2";
 import { requireRole, requireUser } from "@/lib/rbac";
 
 const onboardingSchema = z.object({
@@ -244,4 +245,80 @@ export async function deleteUser(input: unknown): Promise<ActionResult> {
   refresh();
   return { ok: true, data: undefined };
 }
+
+function extractKeyFromImage(image: string | null): string | null {
+  if (!image) return null;
+  if (image.includes("key=")) {
+    try {
+      const url = new URL(image, "http://localhost");
+      return url.searchParams.get("key");
+    } catch {
+      return null;
+    }
+  }
+  if (image.startsWith("avatars/")) return image;
+  return null;
+}
+
+const updateProfileImageSchema = z.object({
+  fileKey: z.string().trim().min(1, "File key is required"),
+});
+
+export async function updateProfileImage(input: unknown): Promise<ActionResult> {
+  const session = await requireUser();
+  const currentUser = session.user;
+
+  const parsed = updateProfileImageSchema.safeParse(input);
+  if (!parsed.success) {
+    return { ok: false, error: parsed.error.issues[0].message };
+  }
+  const { fileKey } = parsed.data;
+  const imageUrl = `/api/files?key=${encodeURIComponent(fileKey)}`;
+
+  const [existingUser] = await db
+    .select()
+    .from(userTable)
+    .where(eq(userTable.id, currentUser.id));
+
+  if (existingUser?.image) {
+    const oldKey = extractKeyFromImage(existingUser.image);
+    if (oldKey && oldKey !== fileKey) {
+      await deleteObject(oldKey).catch(() => null);
+    }
+  }
+
+  await db
+    .update(userTable)
+    .set({ image: imageUrl })
+    .where(eq(userTable.id, currentUser.id));
+
+  refresh();
+  return { ok: true, data: undefined };
+}
+
+export async function removeProfileImage(): Promise<ActionResult> {
+  const session = await requireUser();
+  const currentUser = session.user;
+
+  const [existingUser] = await db
+    .select()
+    .from(userTable)
+    .where(eq(userTable.id, currentUser.id));
+
+  if (existingUser?.image) {
+    const oldKey = extractKeyFromImage(existingUser.image);
+    if (oldKey) {
+      await deleteObject(oldKey).catch(() => null);
+    }
+  }
+
+  await db
+    .update(userTable)
+    .set({ image: null })
+    .where(eq(userTable.id, currentUser.id));
+
+  refresh();
+  return { ok: true, data: undefined };
+}
+
 
