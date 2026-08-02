@@ -43,6 +43,8 @@ Responsive web app consolidating the ZUVA postgraduate scholar coaching journey 
 
 ## Data model notes
 
+- Session types live in the `session_type` lookup table (seeded, grows per cohort) — `name` is display content; code keys off `kind` (`masterclass` | `coaching` | `orientation` | `onboarding`) and `format` (`group` | `one_on_one`). `programme_session.sessionTypeId` references it; there is no `type` enum column. Retire types with `isActive`, never delete.
+- Coaching 1:1s are slot-booked (scholar picks the coaching topic at booking time); onboarding 1:1s are admin-scheduled with a programme-team host (stored in `coach_id`) and target one scholar via `programme_session.scholarId`. Group sessions are visible cohort-wide.
 - Feedback is always linked to `scholarId` (needed for the 5-form certificate count) but hidden in UI when `isAnonymous`.
 - Certificate eligibility: auto-flag at 5 feedback forms + admin discretion (`certificate.admin_note`); stepper `eligible → pending_approval → issued`; MINDS approves, then PDF generates and emails.
 - Attendance is logged by the "Join Call" server action before redirecting to the Meet link.

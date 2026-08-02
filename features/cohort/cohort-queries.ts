@@ -1,7 +1,7 @@
 import "server-only";
 
 import { cache } from "react";
-import { asc, count, desc, eq } from "drizzle-orm";
+import { asc, count, desc, eq, isNotNull } from "drizzle-orm";
 
 import { db } from "@/lib/db";
 import { cohort, scholarProfile, user } from "@/lib/db/schema";
@@ -39,5 +39,20 @@ export const listCohortScholars = cache(async (cohortId: string) => {
     .from(scholarProfile)
     .innerJoin(user, eq(user.id, scholarProfile.userId))
     .where(eq(scholarProfile.cohortId, cohortId))
+    .orderBy(asc(user.name));
+});
+
+/** All enrolled scholars — e.g. the onboarding-session scheduler. */
+export const listScholars = cache(async () => {
+  return db
+    .select({
+      id: user.id,
+      name: user.name,
+      cohortName: cohort.name,
+    })
+    .from(scholarProfile)
+    .innerJoin(user, eq(user.id, scholarProfile.userId))
+    .innerJoin(cohort, eq(cohort.id, scholarProfile.cohortId))
+    .where(isNotNull(scholarProfile.cohortId))
     .orderBy(asc(user.name));
 });

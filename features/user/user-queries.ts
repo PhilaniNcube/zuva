@@ -1,7 +1,7 @@
 import "server-only";
 
 import { cache } from "react";
-import { desc, eq } from "drizzle-orm";
+import { asc, desc, eq, inArray } from "drizzle-orm";
 
 import { db } from "@/lib/db";
 import { scholarProfile, user } from "@/lib/db/schema";
@@ -29,4 +29,13 @@ export const getUsersForAdmin = cache(async () => {
     .from(user)
     .orderBy(desc(user.createdAt));
   return users;
+});
+
+/** Programme team (admin + MINDS) — hosts for onboarding 1:1 sessions. */
+export const listProgrammeTeam = cache(async () => {
+  return db
+    .select({ id: user.id, name: user.name, role: user.role })
+    .from(user)
+    .where(inArray(user.role, ["admin", "minds"]))
+    .orderBy(asc(user.name));
 });

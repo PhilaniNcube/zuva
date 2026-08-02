@@ -9,6 +9,7 @@ import {
   feedbackSubmission,
   pathwayStep,
   programmeSession,
+  sessionType,
 } from "@/lib/db/schema";
 
 export type PathwayProgressStep = {
@@ -38,19 +39,23 @@ export const getPathwayProgress = cache(
 
     if (steps.length === 0) return [];
 
-    // Get all attended sessions with their types.
+    // Get all attended sessions with their kinds.
     const attended = await db
-      .select({ type: programmeSession.type })
+      .select({ kind: sessionType.kind })
       .from(attendance)
       .innerJoin(
         programmeSession,
         eq(programmeSession.id, attendance.sessionId),
       )
+      .innerJoin(
+        sessionType,
+        eq(sessionType.id, programmeSession.sessionTypeId),
+      )
       .where(eq(attendance.scholarId, scholarId));
 
-    const attendedTypes = new Set(attended.map((a) => a.type));
+    const attendedKinds = new Set(attended.map((a) => a.kind));
     const masterclassCount = attended.filter(
-      (a) => a.type === "masterclass",
+      (a) => a.kind === "masterclass",
     ).length;
 
     // Get feedback count.
@@ -66,7 +71,7 @@ export const getPathwayProgress = cache(
 
       switch (step.kind) {
         case "orientation":
-          completed = attendedTypes.has("orientation");
+          completed = attendedKinds.has("orientation");
           detail = completed ? "Attended" : null;
           break;
         case "masterclass":
@@ -76,7 +81,7 @@ export const getPathwayProgress = cache(
             : null;
           break;
         case "coaching":
-          completed = attendedTypes.has("coaching_1on1");
+          completed = attendedKinds.has("coaching");
           detail = completed ? "Attended" : null;
           break;
         case "feedback":

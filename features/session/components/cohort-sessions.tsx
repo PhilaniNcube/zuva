@@ -12,13 +12,20 @@ import {
 } from "@/components/ui/table";
 import { listCohortSessions } from "../session-queries";
 
-const TYPE_STYLES: Record<string, string> = {
+const KIND_STYLES: Record<string, string> = {
   orientation: "bg-purple-500/10 text-purple-700 dark:text-purple-400 border border-purple-500/20",
   masterclass: "bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-500/20",
+  onboarding: "bg-sky-500/10 text-sky-700 dark:text-sky-400 border border-sky-500/20",
 };
 
-export async function CohortSessions({ cohortId }: { cohortId: string }) {
-  const sessions = await listCohortSessions(cohortId);
+export async function CohortSessions({
+  cohortId,
+  scholarId,
+}: {
+  cohortId: string;
+  scholarId?: string;
+}) {
+  const sessions = await listCohortSessions(cohortId, scholarId);
 
   if (sessions.length === 0) {
     return (
@@ -57,9 +64,9 @@ export async function CohortSessions({ cohortId }: { cohortId: string }) {
             </TableCell>
             <TableCell>
               <span
-                className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium capitalize ${TYPE_STYLES[s.type] ?? "bg-muted text-muted-foreground border border-border/60"}`}
+                className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${KIND_STYLES[s.kind] ?? "bg-muted text-muted-foreground border border-border/60"}`}
               >
-                {s.type}
+                {s.typeName}
               </span>
             </TableCell>
             <TableCell className="text-muted-foreground">{s.coachName ?? "—"}</TableCell>

@@ -10,6 +10,7 @@ import {
   cohort,
   feedbackSubmission,
   programmeSession,
+  sessionType,
   scholarProfile,
   submission,
   user,
@@ -77,7 +78,7 @@ export const getFeedbackSummary = cache(async () => {
 
   const byType = await db
     .select({
-      type: programmeSession.type,
+      type: sessionType.name,
       count: sql<number>`count(*)`,
       avgRating: sql<number>`avg(cast(json_extract(${feedbackSubmission.responses}, '$.rating') as real))`,
     })
@@ -86,7 +87,11 @@ export const getFeedbackSummary = cache(async () => {
       programmeSession,
       eq(programmeSession.id, feedbackSubmission.sessionId),
     )
-    .groupBy(programmeSession.type);
+    .innerJoin(
+      sessionType,
+      eq(sessionType.id, programmeSession.sessionTypeId),
+    )
+    .groupBy(sessionType.name);
 
   return {
     total: totals?.count ?? 0,
@@ -125,15 +130,19 @@ export const getSubmissionStats = cache(async () => {
 export const getAttendanceSummary = cache(async () => {
   const sessions = await db
     .select({
-      type: programmeSession.type,
+      type: sessionType.name,
       count: sql<number>`count(*)`,
     })
     .from(programmeSession)
-    .groupBy(programmeSession.type);
+    .innerJoin(
+      sessionType,
+      eq(sessionType.id, programmeSession.sessionTypeId),
+    )
+    .groupBy(sessionType.name);
 
   const attendanceByType = await db
     .select({
-      type: programmeSession.type,
+      type: sessionType.name,
       count: sql<number>`count(*)`,
     })
     .from(attendance)
@@ -141,7 +150,11 @@ export const getAttendanceSummary = cache(async () => {
       programmeSession,
       eq(programmeSession.id, attendance.sessionId),
     )
-    .groupBy(programmeSession.type);
+    .innerJoin(
+      sessionType,
+      eq(sessionType.id, programmeSession.sessionTypeId),
+    )
+    .groupBy(sessionType.name);
 
   return {
     sessions: sessions.map((s) => ({ type: s.type, count: s.count })),

@@ -18,20 +18,27 @@ export async function SessionDetail({ id }: { id: Promise<string> }) {
   ]);
   if (!session) notFound();
 
-  // Access control: scholars need a confirmed booking (1:1) or cohort
-  // membership (group sessions); coaches see their own; admins see all.
+  // Access control: scholars need a confirmed booking (coaching 1:1), to be
+  // the targeted scholar (onboarding 1:1), or cohort membership (group
+  // sessions); coaches see their own; admins see all.
   const role = currentUser.role;
   let scholarProfile = null;
   if (role === "scholar") {
     scholarProfile = await getScholarProfile(currentUser.id);
-    const allowed =
-      session.type === "coaching_1on1"
-        ? !!(await getConfirmedBooking(sessionId, currentUser.id))
-        : scholarProfile?.cohortId === session.cohortId;
+    let allowed = false;
+    if (session.format === "one_on_one") {
+      allowed =
+        session.kind === "coaching"
+          ? !!(await getConfirmedBooking(sessionId, currentUser.id))
+          : session.scholarId === currentUser.id;
+    } else {
+      allowed = scholarProfile?.cohortId === session.cohortId;
+    }
     if (!allowed) notFound();
   } else if (role === "coach") {
     if (session.coachId !== currentUser.id) notFound();
-  } else if (role !== "admin") {
+  } else if (role !== "admin" && session.coachId !== currentUser.id) {
+    // MINDS users only see sessions they host (onboarding).
     notFound();
   }
 
@@ -50,7 +57,7 @@ export async function SessionDetail({ id }: { id: Promise<string> }) {
         <div className="mb-2 flex items-center gap-3">
           <h1 className="text-2xl font-semibold">{session.title}</h1>
           <span className="rounded-full bg-zinc-100 px-2 py-0.5 text-xs font-medium text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400">
-            {session.type === "coaching_1on1" ? "1:1 coaching" : session.type}
+            {session.typeName}
           </span>
           {session.status === "cancelled" ? (
             <span className="rounded-full bg-red-100 px-2 py-0.5 text-xs font-medium text-red-700 dark:bg-red-900/40 dark:text-red-400">
@@ -66,7 +73,7 @@ export async function SessionDetail({ id }: { id: Promise<string> }) {
 
         {session.coachName ? (
           <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-400">
-            Coach: {session.coachName}
+            {session.kind === "onboarding" ? "Host" : "Coach"}: {session.coachName}
             {session.specialty ? ` · ${SPECIALTIES[session.specialty]}` : ""}
           </p>
         ) : null}

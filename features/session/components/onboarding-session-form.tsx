@@ -5,12 +5,10 @@ import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { toast } from "sonner";
-import { PlusIcon } from "lucide-react";
+import { UserPlusIcon } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Field, FieldLabel, FieldError } from "@/components/ui/field";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import {
   Select,
   SelectContent,
@@ -30,24 +28,19 @@ import {
 } from "@/components/ui/dialog";
 import type { ActionResult } from "@/lib/action-result";
 
-import { createCohortSession } from "../session-actions";
+import { createOnboardingSession } from "../session-actions";
 
 const schema = z
   .object({
-    cohortId: z.string().min(1, "Cohort is required"),
-    sessionTypeId: z.string().min(1, "Session type is required"),
-    coachId: z.string().optional(),
-    title: z.string().trim().min(3, "Title is required").max(200),
+    scholarId: z.string().min(1, "Scholar is required"),
+    hostId: z.string().min(1, "Host is required"),
     startsAt: z.string().min(1, "Start time is required"),
     endsAt: z.string().min(1, "End time is required"),
-    description: z.string().trim().max(2000).optional().or(z.literal("")),
   })
   .refine(
     (data) => {
       if (!data.startsAt) return true;
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-      return new Date(data.startsAt) >= today;
+      return new Date(data.startsAt) > new Date();
     },
     {
       message: "Start time cannot be in the past",
@@ -71,25 +64,20 @@ async function action(
   _prev: ActionResult | null,
   formData: FormData,
 ): Promise<ActionResult> {
-  return createCohortSession({
-    cohortId: formData.get("cohortId"),
-    sessionTypeId: formData.get("sessionTypeId"),
-    coachId: formData.get("coachId") || null,
-    title: formData.get("title"),
-    description: formData.get("description"),
+  return createOnboardingSession({
+    scholarId: formData.get("scholarId"),
+    hostId: formData.get("hostId"),
     startsAt: formData.get("startsAt") as string,
     endsAt: formData.get("endsAt") as string,
   });
 }
 
-export function CohortSessionForm({
-  cohorts,
-  coaches,
-  sessionTypes,
+export function OnboardingSessionForm({
+  scholars,
+  hosts,
 }: {
-  cohorts: { id: string; name: string }[];
-  coaches: { id: string; name: string }[];
-  sessionTypes: { id: string; name: string }[];
+  scholars: { id: string; name: string; cohortName: string }[];
+  hosts: { id: string; name: string }[];
 }) {
   const [open, setOpen] = useState(false);
   const [state, formAction, isPending] = useActionState(action, null);
@@ -97,13 +85,10 @@ export function CohortSessionForm({
   const form = useForm<FormValues>({
     resolver: zodResolver(schema),
     defaultValues: {
-      cohortId: cohorts[0]?.id ?? "",
-      sessionTypeId: sessionTypes[0]?.id ?? "",
-      coachId: "",
-      title: "",
+      scholarId: "",
+      hostId: hosts[0]?.id ?? "",
       startsAt: "",
       endsAt: "",
-      description: "",
     },
   });
 
@@ -112,7 +97,7 @@ export function CohortSessionForm({
 
   useEffect(() => {
     if (state?.ok) {
-      toast.success("Session scheduled");
+      toast.success("Onboarding session scheduled");
       form.reset();
       setOpen(false);
     }
@@ -121,13 +106,10 @@ export function CohortSessionForm({
 
   function onSubmit(data: FormValues) {
     const formData = new FormData();
-    formData.set("cohortId", data.cohortId);
-    formData.set("sessionTypeId", data.sessionTypeId);
-    formData.set("coachId", data.coachId ?? "");
-    formData.set("title", data.title);
+    formData.set("scholarId", data.scholarId);
+    formData.set("hostId", data.hostId);
     formData.set("startsAt", new Date(data.startsAt).toISOString());
     formData.set("endsAt", new Date(data.endsAt).toISOString());
-    formData.set("description", data.description ?? "");
     startTransition(() => {
       formAction(formData);
     });
@@ -137,17 +119,18 @@ export function CohortSessionForm({
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger
         render={
-          <Button>
-            <PlusIcon className="mr-1.5 size-4" />
-            Schedule Session
+          <Button variant="outline">
+            <UserPlusIcon className="mr-1.5 size-4" />
+            Schedule Onboarding
           </Button>
         }
       />
       <DialogContent className="sm:max-w-xl">
         <DialogHeader>
-          <DialogTitle>Schedule a group session</DialogTitle>
+          <DialogTitle>Schedule an onboarding 1:1</DialogTitle>
           <DialogDescription>
-            Create a new session for a cohort and optionally assign a coach.
+            Book a one-on-one onboarding call between a scholar and a programme
+            team member.
           </DialogDescription>
         </DialogHeader>
 
@@ -155,30 +138,30 @@ export function CohortSessionForm({
           onSubmit={form.handleSubmit(onSubmit)}
           className="flex flex-col gap-4 py-2"
         >
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <Field>
-              <FieldLabel>Cohort</FieldLabel>
+              <FieldLabel>Scholar</FieldLabel>
               <Controller
                 control={form.control}
-                name="cohortId"
+                name="scholarId"
                 render={({ field }) => {
-                  const cohortItems = cohorts.map((c) => ({
-                    value: c.id,
-                    label: c.name,
+                  const scholarItems = scholars.map((s) => ({
+                    value: s.id,
+                    label: `${s.name} (${s.cohortName})`,
                   }));
                   return (
                     <Select
                       value={field.value}
                       onValueChange={field.onChange}
-                      items={cohortItems}
+                      items={scholarItems}
                     >
                       <SelectTrigger className="w-full">
-                        <SelectValue />
+                        <SelectValue placeholder="Pick a scholar" />
                       </SelectTrigger>
                       <SelectContent>
-                        {cohortItems.map((c) => (
-                          <SelectItem key={c.value} value={c.value}>
-                            {c.label}
+                        {scholarItems.map((s) => (
+                          <SelectItem key={s.value} value={s.value}>
+                            {s.label}
                           </SelectItem>
                         ))}
                       </SelectContent>
@@ -186,44 +169,31 @@ export function CohortSessionForm({
                   );
                 }}
               />
-              <FieldError errors={[form.formState.errors.cohortId]} />
+              <FieldError errors={[form.formState.errors.scholarId]} />
             </Field>
             <Field>
-              <FieldLabel>Type</FieldLabel>
+              <FieldLabel>Host</FieldLabel>
               <Controller
                 control={form.control}
-                name="sessionTypeId"
+                name="hostId"
                 render={({ field }) => {
-                  const typeItems = sessionTypes.map((t) => ({
-                    value: t.id,
-                    label: t.name,
+                  const hostItems = hosts.map((h) => ({
+                    value: h.id,
+                    label: h.name,
                   }));
                   return (
                     <Select
                       value={field.value}
-                      onValueChange={(value) => {
-                        field.onChange(value);
-                        // Prefill the title from the type while it's untouched.
-                        const currentTitle = form.getValues("title");
-                        const isPrefilled = sessionTypes.some(
-                          (t) => t.name === currentTitle,
-                        );
-                        if (!currentTitle || isPrefilled) {
-                          const picked = sessionTypes.find(
-                            (t) => t.id === value,
-                          );
-                          if (picked) form.setValue("title", picked.name);
-                        }
-                      }}
-                      items={typeItems}
+                      onValueChange={field.onChange}
+                      items={hostItems}
                     >
                       <SelectTrigger className="w-full">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        {typeItems.map((t) => (
-                          <SelectItem key={t.value} value={t.value}>
-                            {t.label}
+                        {hostItems.map((h) => (
+                          <SelectItem key={h.value} value={h.value}>
+                            {h.label}
                           </SelectItem>
                         ))}
                       </SelectContent>
@@ -231,50 +201,9 @@ export function CohortSessionForm({
                   );
                 }}
               />
-              <FieldError errors={[form.formState.errors.sessionTypeId]} />
-            </Field>
-            <Field>
-              <FieldLabel>Coach (optional)</FieldLabel>
-              <Controller
-                control={form.control}
-                name="coachId"
-                render={({ field }) => {
-                  const coachItems = [
-                    { value: "", label: "—" },
-                    ...coaches.map((c) => ({ value: c.id, label: c.name })),
-                  ];
-                  return (
-                    <Select
-                      value={field.value}
-                      onValueChange={field.onChange}
-                      items={coachItems}
-                    >
-                      <SelectTrigger className="w-full">
-                        <SelectValue placeholder="—" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {coachItems.map((c) => (
-                          <SelectItem key={c.value} value={c.value}>
-                            {c.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  );
-                }}
-              />
-              <FieldError errors={[form.formState.errors.coachId]} />
+              <FieldError errors={[form.formState.errors.hostId]} />
             </Field>
           </div>
-
-          <Field>
-            <FieldLabel>Title</FieldLabel>
-            <Input
-              {...form.register("title")}
-              placeholder="Academic Writing Masterclass II"
-            />
-            <FieldError errors={[form.formState.errors.title]} />
-          </Field>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <Field>
@@ -311,12 +240,6 @@ export function CohortSessionForm({
             </Field>
           </div>
 
-          <Field>
-            <FieldLabel>Description (optional)</FieldLabel>
-            <Textarea {...form.register("description")} rows={2} />
-            <FieldError errors={[form.formState.errors.description]} />
-          </Field>
-
           <DialogFooter className="mt-2">
             <Button
               type="button"
@@ -326,7 +249,7 @@ export function CohortSessionForm({
               Cancel
             </Button>
             <Button type="submit" disabled={isPending}>
-              {isPending ? "Scheduling…" : "Schedule session"}
+              {isPending ? "Scheduling…" : "Schedule onboarding"}
             </Button>
           </DialogFooter>
         </form>

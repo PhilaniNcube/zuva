@@ -160,6 +160,25 @@ export const coachProfile = sqliteTable(
 // Sessions, booking & attendance
 // ---------------------------------------------------------------------------
 
+/**
+ * Named session types — programme content that grows per cohort (e.g.
+ * "Academic Writing" masterclass). Retire with isActive instead of deleting.
+ * Code keys off `kind` (behavioural category) and `format` (group vs 1:1
+ * mechanics); `name` is the display label.
+ */
+export const sessionType = sqliteTable("session_type", {
+  id: id(),
+  name: text("name").notNull().unique(),
+  kind: text("kind", {
+    enum: ["masterclass", "coaching", "orientation", "onboarding"],
+  }).notNull(),
+  format: text("format", { enum: ["group", "one_on_one"] }).notNull(),
+  description: text("description"),
+  sortOrder: integer("sort_order").notNull().default(0),
+  isActive: integer("is_active", { mode: "boolean" }).notNull().default(true),
+  ...timestamps,
+});
+
 // Named programme_session to avoid collision with Better Auth's session table.
 export const programmeSession = sqliteTable(
   "programme_session",
@@ -168,12 +187,17 @@ export const programmeSession = sqliteTable(
     cohortId: text("cohort_id")
       .notNull()
       .references(() => cohort.id, { onDelete: "cascade" }),
+    sessionTypeId: text("session_type_id")
+      .notNull()
+      .references(() => sessionType.id, { onDelete: "restrict" }),
     coachId: text("coach_id").references(() => user.id, {
       onDelete: "set null",
     }),
-    type: text("type", {
-      enum: ["orientation", "masterclass", "coaching_1on1"],
-    }).notNull(),
+    // Targeted scholar for one_on_one sessions that aren't slot-booked
+    // (onboarding). Slot-booked coaching sessions use the booking table instead.
+    scholarId: text("scholar_id").references(() => user.id, {
+      onDelete: "set null",
+    }),
     title: text("title").notNull(),
     description: text("description"),
     startsAt: integer("starts_at", { mode: "timestamp" }).notNull(),
@@ -188,6 +212,8 @@ export const programmeSession = sqliteTable(
   (t) => [
     index("programme_session_cohort_idx").on(t.cohortId),
     index("programme_session_coach_idx").on(t.coachId),
+    index("programme_session_type_idx").on(t.sessionTypeId),
+    index("programme_session_scholar_idx").on(t.scholarId),
   ],
 );
 

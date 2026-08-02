@@ -43,9 +43,13 @@ export function CancelSlotButton({ slotId }: { slotId: string }) {
 
 export function BookSlotButton({
   slotId,
+  sessionTypeId,
+  disabled,
   children,
 }: {
   slotId: string;
+  sessionTypeId: string;
+  disabled?: boolean;
   children: React.ReactNode;
 }) {
   const { error, setError, pending, startTransition } = useActionButton();
@@ -63,11 +67,11 @@ export function BookSlotButton({
     <span className="inline-flex flex-col items-start gap-1">
       <button
         type="button"
-        disabled={pending}
+        disabled={pending || disabled}
         onClick={() =>
           startTransition(async () => {
             setError(null);
-            const result = await bookSlot(slotId);
+            const result = await bookSlot(slotId, sessionTypeId);
             if (!result.ok) {
               setError(result.error);
               return;

@@ -42,7 +42,8 @@ const columns: ColumnDef<AdminSessionItem>[] = [
               {s.title}
             </span>
             <span className="text-xs text-muted-foreground capitalize mt-0.5">
-              {s.type.replace("_", " ")}
+              {s.typeName}
+              {s.scholarName ? ` · ${s.scholarName}` : ""}
             </span>
           </div>
         </div>
@@ -153,8 +154,9 @@ export function AdminSessionTable({
     const q = search.toLowerCase();
     return (
       s.title.toLowerCase().includes(q) ||
-      s.type.toLowerCase().includes(q) ||
+      s.typeName.toLowerCase().includes(q) ||
       (s.coachName && s.coachName.toLowerCase().includes(q)) ||
+      (s.scholarName && s.scholarName.toLowerCase().includes(q)) ||
       s.cohortName.toLowerCase().includes(q) ||
       s.status.toLowerCase().includes(q)
     );

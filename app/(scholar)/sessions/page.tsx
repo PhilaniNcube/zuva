@@ -44,7 +44,7 @@ export default async function SessionsPage() {
         <section className="flex flex-col gap-3">
           <h2 className="text-lg font-semibold">Cohort sessions</h2>
           <Suspense fallback={<CohortSessionsSkeleton />}>
-            <CohortSessions cohortId={profile.cohortId} />
+            <CohortSessions cohortId={profile.cohortId} scholarId={user.id} />
           </Suspense>
         </section>
       ) : null}

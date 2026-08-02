@@ -27,7 +27,36 @@ async function main() {
     pathwayStep,
     availabilitySlot,
     programmeSession,
+    sessionType,
   } = await import("../lib/db/schema");
+
+  // --- Session types (programme content — safe to re-run) -------------------
+  const SESSION_TYPES = [
+    // Masterclasses (group)
+    { name: "Leadership beyond your degree", kind: "masterclass", format: "group", sortOrder: 0 },
+    { name: "Academic Writing", kind: "masterclass", format: "group", sortOrder: 1 },
+    { name: "Data and Decisions", kind: "masterclass", format: "group", sortOrder: 2 },
+    // Coaching sessions (1:1, scholar picks the topic at booking)
+    { name: "Aligning your research with your purpose", kind: "coaching", format: "one_on_one", sortOrder: 0 },
+    { name: "Developing your thesis structure and writing the perfect abstract", kind: "coaching", format: "one_on_one", sortOrder: 1 },
+    // Other
+    { name: "Onboarding Session", kind: "onboarding", format: "one_on_one", sortOrder: 0 },
+    { name: "Orientation Session", kind: "orientation", format: "group", sortOrder: 0 },
+  ] as const;
+
+  const typeIds = new Map<string, string>();
+  for (const st of SESSION_TYPES) {
+    let [row] = await db
+      .select()
+      .from(sessionType)
+      .where(eq(sessionType.name, st.name));
+    if (!row) {
+      [row] = await db.insert(sessionType).values(st).returning();
+      console.log("Created session type:", st.name);
+    }
+    typeIds.set(st.name, row.id);
+  }
+  console.log("Session types ready");
 
   // --- Cohort -------------------------------------------------------------
   let [theCohort] = await db
@@ -204,8 +233,8 @@ async function main() {
   if (existingSessions.length === 0) {
     await db.insert(programmeSession).values({
       cohortId: theCohort.id,
+      sessionTypeId: typeIds.get("Academic Writing")!,
       coachId: kofi.id,
-      type: "masterclass",
       title: "Academic Writing Masterclass I",
       description:
         "Structuring your thesis: from research question to a working outline.",

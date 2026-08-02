@@ -2,7 +2,7 @@
 
 import { refresh } from "next/cache";
 import { redirect } from "next/navigation";
-import { eq } from "drizzle-orm";
+import { and, asc, eq } from "drizzle-orm";
 import { z } from "zod";
 
 import type { ActionResult } from "@/lib/action-result";
@@ -12,6 +12,7 @@ import {
   availabilitySlot,
   booking,
   programmeSession,
+  sessionType,
   user,
 } from "@/lib/db/schema";
 import { cancelMeetEvent, createMeetEvent } from "@/lib/google-calendar";
@@ -77,7 +78,10 @@ export async function cancelSlot(slotId: string): Promise<ActionResult> {
 // Scholar: booking
 // ---------------------------------------------------------------------------
 
-export async function bookSlot(slotId: string): Promise<ActionResult> {
+export async function bookSlot(
+  slotId: string,
+  sessionTypeId: string,
+): Promise<ActionResult> {
   const { user: scholar } = await requireRole("scholar");
   const profile = await getScholarProfile(scholar.id);
   if (!profile?.cohortId) {
@@ -85,6 +89,20 @@ export async function bookSlot(slotId: string): Promise<ActionResult> {
       ok: false,
       error: "You are not enrolled in a cohort yet — please contact the programme team.",
     };
+  }
+
+  // The scholar picks the coaching topic at booking time.
+  const [topic] = await db
+    .select()
+    .from(sessionType)
+    .where(eq(sessionType.id, sessionTypeId));
+  if (
+    !topic ||
+    !topic.isActive ||
+    topic.kind !== "coaching" ||
+    topic.format !== "one_on_one"
+  ) {
+    return { ok: false, error: "Please pick a valid coaching session type." };
   }
 
   const [slot] = await db
@@ -107,8 +125,8 @@ export async function bookSlot(slotId: string): Promise<ActionResult> {
 
   // Best-effort Meet link (no-op without Google credentials, e.g. local dev).
   const meet = await createMeetEvent({
-    title: `ZUVA 1:1 — ${scholar.name} × ${slot.coachName}`,
-    description: `ZUVA coaching session between ${scholar.name} and ${slot.coachName}.`,
+    title: `ZUVA ${topic.name} — ${scholar.name} × ${slot.coachName}`,
+    description: `ZUVA coaching session (${topic.name}) between ${scholar.name} and ${slot.coachName}.`,
     startsAt: slot.startsAt,
     endsAt: slot.endsAt,
     attendees: [scholar.email, slot.coachEmail],
@@ -120,9 +138,9 @@ export async function bookSlot(slotId: string): Promise<ActionResult> {
         .insert(programmeSession)
         .values({
           cohortId: profile.cohortId!,
+          sessionTypeId: topic.id,
           coachId: slot.coachId,
-          type: "coaching_1on1",
-          title: `1:1 coaching — ${slot.coachName}`,
+          title: `${topic.name} — ${slot.coachName}`,
           startsAt: slot.startsAt,
           endsAt: slot.endsAt,
           googleEventId: meet?.eventId ?? null,
@@ -200,7 +218,7 @@ export async function cancelBooking(bookingId: string): Promise<ActionResult> {
 const cohortSessionSchema = z
   .object({
     cohortId: z.string().min(1, "Pick a cohort"),
-    type: z.enum(["orientation", "masterclass"]),
+    sessionTypeId: z.string().min(1, "Pick a session type"),
     title: z.string().trim().min(3, "Title is required").max(150),
     description: z.string().trim().max(2000).optional().or(z.literal("")),
     coachId: z.string().optional().or(z.literal("")),
@@ -221,6 +239,14 @@ export async function createCohortSession(
   }
   const v = parsed.data;
 
+  const [type] = await db
+    .select()
+    .from(sessionType)
+    .where(eq(sessionType.id, v.sessionTypeId));
+  if (!type || !type.isActive || type.format !== "group") {
+    return { ok: false, error: "Please pick a valid group session type." };
+  }
+
   const attendees: string[] = [];
   if (v.coachId) {
     const [assignedCoach] = await db
@@ -240,10 +266,91 @@ export async function createCohortSession(
 
   await db.insert(programmeSession).values({
     cohortId: v.cohortId,
+    sessionTypeId: type.id,
     coachId: v.coachId || null,
-    type: v.type,
     title: v.title,
     description: v.description || null,
+    startsAt: v.startsAt,
+    endsAt: v.endsAt,
+    googleEventId: meet?.eventId ?? null,
+    meetLink: meet?.meetLink ?? null,
+  });
+
+  refresh();
+  return { ok: true, data: undefined };
+}
+
+// ---------------------------------------------------------------------------
+// Admin: onboarding 1:1 sessions (scholar × programme team)
+// ---------------------------------------------------------------------------
+
+const onboardingSessionSchema = z
+  .object({
+    scholarId: z.string().min(1, "Pick a scholar"),
+    hostId: z.string().min(1, "Pick a host"),
+    startsAt: z.coerce.date(),
+    endsAt: z.coerce.date(),
+  })
+  .refine((v) => v.endsAt > v.startsAt, {
+    message: "End time must be after the start time",
+  });
+
+export async function createOnboardingSession(
+  input: unknown,
+): Promise<ActionResult> {
+  await requireRole("admin");
+  const parsed = onboardingSessionSchema.safeParse(input);
+  if (!parsed.success) {
+    return { ok: false, error: parsed.error.issues[0].message };
+  }
+  const v = parsed.data;
+
+  // There is exactly one active onboarding type — seeded.
+  const [type] = await db
+    .select()
+    .from(sessionType)
+    .where(
+      and(eq(sessionType.kind, "onboarding"), eq(sessionType.isActive, true)),
+    )
+    .orderBy(asc(sessionType.sortOrder))
+    .limit(1);
+  if (!type) {
+    return { ok: false, error: "No active onboarding session type exists." };
+  }
+
+  const [scholar] = await db
+    .select({ id: user.id, name: user.name, email: user.email })
+    .from(user)
+    .where(and(eq(user.id, v.scholarId), eq(user.role, "scholar")));
+  if (!scholar) return { ok: false, error: "Scholar not found" };
+
+  const profile = await getScholarProfile(scholar.id);
+  if (!profile?.cohortId) {
+    return { ok: false, error: "This scholar is not enrolled in a cohort." };
+  }
+
+  const [host] = await db
+    .select({ id: user.id, email: user.email, role: user.role })
+    .from(user)
+    .where(eq(user.id, v.hostId));
+  if (!host || (host.role !== "admin" && host.role !== "minds")) {
+    return { ok: false, error: "The host must be a programme team member." };
+  }
+
+  const meet = await createMeetEvent({
+    title: `ZUVA ${type.name} — ${scholar.name}`,
+    description: `ZUVA onboarding session for ${scholar.name} with the programme team.`,
+    startsAt: v.startsAt,
+    endsAt: v.endsAt,
+    attendees: [scholar.email, host.email],
+  });
+
+  await db.insert(programmeSession).values({
+    cohortId: profile.cohortId,
+    sessionTypeId: type.id,
+    coachId: host.id,
+    scholarId: scholar.id,
+    title: `${type.name} — ${scholar.name}`,
     startsAt: v.startsAt,
     endsAt: v.endsAt,
     googleEventId: meet?.eventId ?? null,
@@ -299,8 +406,12 @@ export async function joinCall(sessionId: string): Promise<ActionResult> {
 
   if (role === "scholar") {
     let allowed = false;
-    if (session.type === "coaching_1on1") {
-      allowed = !!(await getConfirmedBooking(sessionId, currentUser.id));
+    if (session.format === "one_on_one") {
+      // Coaching 1:1s are slot-booked; onboarding 1:1s are admin-targeted.
+      allowed =
+        session.kind === "coaching"
+          ? !!(await getConfirmedBooking(sessionId, currentUser.id))
+          : session.scholarId === currentUser.id;
     } else {
       const profile = await getScholarProfile(currentUser.id);
       allowed = profile?.cohortId === session.cohortId;
@@ -316,7 +427,8 @@ export async function joinCall(sessionId: string): Promise<ActionResult> {
     redirect(session.meetLink);
   }
 
-  if ((role === "coach" && session.coachId === currentUser.id) || role === "admin") {
+  // The assigned coach (or onboarding host) and admins may join directly.
+  if (session.coachId === currentUser.id || role === "admin") {
     redirect(session.meetLink);
   }
 

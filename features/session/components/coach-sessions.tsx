@@ -44,7 +44,7 @@ export async function CoachSessions({ coachId }: { coachId: string }) {
                 </div>
                 <div>
                   <span className="font-medium text-foreground text-sm">{s.title}</span>
-                  <p className="text-xs text-muted-foreground capitalize">{s.type.replace("_", " ")}</p>
+                  <p className="text-xs text-muted-foreground capitalize">{s.typeName}</p>
                 </div>
               </div>
             </TableCell>

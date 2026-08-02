@@ -8,6 +8,7 @@ import {
   attendance,
   feedbackSubmission,
   programmeSession,
+  sessionType,
   user,
 } from "@/lib/db/schema";
 
@@ -46,7 +47,7 @@ export const listAttendedSessionsNeedingFeedback = cache(
       .select({
         sessionId: attendance.sessionId,
         title: programmeSession.title,
-        type: programmeSession.type,
+        typeName: sessionType.name,
         startsAt: programmeSession.startsAt,
         endsAt: programmeSession.endsAt,
         coachName: user.name,
@@ -55,6 +56,10 @@ export const listAttendedSessionsNeedingFeedback = cache(
       .innerJoin(
         programmeSession,
         eq(programmeSession.id, attendance.sessionId),
+      )
+      .innerJoin(
+        sessionType,
+        eq(sessionType.id, programmeSession.sessionTypeId),
       )
       .leftJoin(user, eq(user.id, programmeSession.coachId))
       .where(eq(attendance.scholarId, scholarId))
