@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { CalendarDays } from "lucide-react";
 
 import { LocalTime } from "@/components/local-time";
@@ -43,7 +44,12 @@ export async function CoachSessions({ coachId }: { coachId: string }) {
                   <CalendarDays className="size-5" />
                 </div>
                 <div>
-                  <span className="font-medium text-foreground text-sm">{s.title}</span>
+                  <Link
+                    href={`/sessions/${s.id}`}
+                    className="font-medium text-foreground hover:text-primary transition-colors text-sm"
+                  >
+                    {s.title}
+                  </Link>
                   <p className="text-xs text-muted-foreground capitalize">{s.typeName}</p>
                 </div>
               </div>

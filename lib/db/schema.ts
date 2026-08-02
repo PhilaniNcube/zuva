@@ -400,11 +400,15 @@ export const resource = sqliteTable(
       onDelete: "cascade",
     }),
     sessionId: text("session_id").references(() => programmeSession.id, {
-      onDelete: "set null",
+      onDelete: "cascade",
     }),
     title: text("title").notNull(),
     description: text("description"),
-    fileKey: text("file_key").notNull(),
+    type: text("type", { enum: ["document", "video", "link"] })
+      .notNull()
+      .default("document"),
+    fileKey: text("file_key"),
+    url: text("url"),
     uploadedBy: text("uploaded_by").references(() => user.id, {
       onDelete: "set null",
     }),
@@ -412,8 +416,41 @@ export const resource = sqliteTable(
       .notNull()
       .$defaultFn(() => new Date()),
   },
-  (t) => [index("resource_cohort_idx").on(t.cohortId)],
+  (t) => [
+    index("resource_cohort_idx").on(t.cohortId),
+    index("resource_session_idx").on(t.sessionId),
+  ],
 );
+
+export const resourceEngagement = sqliteTable(
+  "resource_engagement",
+  {
+    id: id(),
+    resourceId: text("resource_id")
+      .notNull()
+      .references(() => resource.id, { onDelete: "cascade" }),
+    scholarId: text("scholar_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    sessionId: text("session_id").references(() => programmeSession.id, {
+      onDelete: "cascade",
+    }),
+    viewedAt: integer("viewed_at", { mode: "timestamp" })
+      .notNull()
+      .$defaultFn(() => new Date()),
+    completedAt: integer("completed_at", { mode: "timestamp" }),
+    ...timestamps,
+  },
+  (t) => [
+    uniqueIndex("resource_engagement_resource_scholar_idx").on(
+      t.resourceId,
+      t.scholarId,
+    ),
+    index("resource_engagement_scholar_idx").on(t.scholarId),
+    index("resource_engagement_session_idx").on(t.sessionId),
+  ],
+);
+
 
 // ---------------------------------------------------------------------------
 // Feedback
