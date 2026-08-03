@@ -20,6 +20,28 @@ function getInitials(name?: string | null): string {
   return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
 }
 
+const MIN_FILE_SIZE = 10 * 1024; // 10 KB
+const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5 MB
+const MIN_DIMENSION = 128; // 128px
+const MAX_DIMENSION = 4096; // 4096px
+const ALLOWED_TYPES = ["image/jpeg", "image/jpg", "image/png", "image/webp", "image/gif"];
+
+function checkImageDimensions(file: File): Promise<{ width: number; height: number }> {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    const url = URL.createObjectURL(file);
+    img.onload = () => {
+      URL.revokeObjectURL(url);
+      resolve({ width: img.width, height: img.height });
+    };
+    img.onerror = () => {
+      URL.revokeObjectURL(url);
+      reject(new Error("Failed to load image for validation"));
+    };
+    img.src = url;
+  });
+}
+
 interface ProfileAvatarUploadProps {
   user: {
     id: string;
@@ -40,16 +62,45 @@ export function ProfileAvatarUpload({ user }: ProfileAvatarUploadProps) {
     const file = event.target.files?.[0];
     if (!file) return;
 
-    // Validate size (max 5MB)
-    if (file.size > 5 * 1024 * 1024) {
-      toast.error("Image file must be smaller than 5MB");
+    // Validate MIME type
+    if (!file.type.startsWith("image/") || !ALLOWED_TYPES.includes(file.type.toLowerCase())) {
+      toast.error("Please select a valid image file (JPEG, PNG, WebP, GIF)");
       if (fileInputRef.current) fileInputRef.current.value = "";
       return;
     }
 
-    // Validate type
-    if (!file.type.startsWith("image/")) {
-      toast.error("Please select a valid image file (JPEG, PNG, WebP, GIF)");
+    // Validate file size bounds (10KB - 5MB)
+    if (file.size < MIN_FILE_SIZE) {
+      toast.error("Image file is too small (minimum size is 10 KB)");
+      if (fileInputRef.current) fileInputRef.current.value = "";
+      return;
+    }
+
+    if (file.size > MAX_FILE_SIZE) {
+      toast.error("Image file is too large (maximum size is 5 MB)");
+      if (fileInputRef.current) fileInputRef.current.value = "";
+      return;
+    }
+
+    // Validate image pixel dimension bounds (128x128 to 4096x4096px)
+    try {
+      const { width, height } = await checkImageDimensions(file);
+      if (width < MIN_DIMENSION || height < MIN_DIMENSION) {
+        toast.error(
+          `Image resolution is too low (${width}×${height}px). Minimum dimensions are ${MIN_DIMENSION}×${MIN_DIMENSION}px.`
+        );
+        if (fileInputRef.current) fileInputRef.current.value = "";
+        return;
+      }
+      if (width > MAX_DIMENSION || height > MAX_DIMENSION) {
+        toast.error(
+          `Image resolution is too high (${width}×${height}px). Maximum dimensions are ${MAX_DIMENSION}×${MAX_DIMENSION}px.`
+        );
+        if (fileInputRef.current) fileInputRef.current.value = "";
+        return;
+      }
+    } catch (err: unknown) {
+      toast.error("Could not verify image dimensions. Please select a valid image file.");
       if (fileInputRef.current) fileInputRef.current.value = "";
       return;
     }
@@ -136,35 +187,43 @@ export function ProfileAvatarUpload({ user }: ProfileAvatarUploadProps) {
       <DropdownMenu>
         <DropdownMenuTrigger
           disabled={isLoading}
-          className="relative rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 cursor-pointer group/avatar text-left"
+          className="relative rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 cursor-pointer group/avatar text-left shrink-0"
           title="Change profile picture"
         >
-            <Avatar className="size-24 border-2 border-primary/20 shadow-sm transition-opacity group-hover/avatar:opacity-90">
-              {user.image ? (
-                <AvatarImage src={user.image} alt={user.name} />
-              ) : null}
-              <AvatarFallback className="bg-primary/10 text-primary text-2xl font-bold">
-                {initials}
-              </AvatarFallback>
-            </Avatar>
+          <Avatar className="size-16 w-16 h-16 shrink-0 overflow-hidden border-2 border-primary/20 shadow-sm transition-opacity group-hover/avatar:opacity-90">
+            {user.image ? (
+              <AvatarImage src={user.image} alt={user.name} />
+            ) : null}
+            <AvatarFallback className="bg-primary/10 text-primary text-xl font-bold">
+              {initials}
+            </AvatarFallback>
+          </Avatar>
 
-            {/* Hover overlay badge */}
-            <div className="absolute inset-0 rounded-full bg-black/40 flex items-center justify-center opacity-0 group-hover/avatar:opacity-100 transition-opacity">
-              {isLoading ? (
-                <Loader2 className="size-6 text-white animate-spin" />
-              ) : (
-                <Camera className="size-6 text-white" />
-              )}
-            </div>
+          {/* Dark backdrop overlay on hover */}
+          <div
+            className={`absolute inset-0 rounded-full bg-black/40 flex items-center justify-center transition-opacity ${
+              isLoading ? "opacity-100" : "opacity-0 group-hover/avatar:opacity-100"
+            }`}
+          >
+            {isLoading ? (
+              <Loader2 className="size-5 text-white animate-spin" />
+            ) : (
+              <Camera className="size-5 text-white" />
+            )}
+          </div>
 
-            {/* Corner camera button badge */}
-            <div className="absolute -bottom-1 -right-1 size-7 rounded-full bg-primary text-primary-foreground flex items-center justify-center shadow-md border-2 border-background">
-              {isLoading ? (
-                <Loader2 className="size-3.5 animate-spin" />
-              ) : (
-                <Camera className="size-3.5" />
-              )}
-            </div>
+          {/* Corner camera button badge on hover */}
+          <div
+            className={`absolute -bottom-1 -right-1 size-6 rounded-full bg-primary text-primary-foreground flex items-center justify-center shadow-md border-2 border-background transition-opacity ${
+              isLoading ? "opacity-100" : "opacity-0 group-hover/avatar:opacity-100"
+            }`}
+          >
+            {isLoading ? (
+              <Loader2 className="size-3 animate-spin" />
+            ) : (
+              <Camera className="size-3" />
+            )}
+          </div>
         </DropdownMenuTrigger>
 
         <DropdownMenuContent align="center" className="w-48">

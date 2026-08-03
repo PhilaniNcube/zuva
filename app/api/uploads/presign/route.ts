@@ -29,12 +29,21 @@ export async function POST(request: Request) {
   const role = session.user.role;
   const userId = session.user.id;
 
-  // Role validation per purpose.
+  // Role and type validation per purpose.
   if (purpose === "returned" && role !== "admin") {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
   if (purpose === "resource" && role !== "admin") {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+  if (purpose === "avatar") {
+    const allowedAvatarTypes = ["image/jpeg", "image/jpg", "image/png", "image/webp", "image/gif"];
+    if (!allowedAvatarTypes.includes(contentType.toLowerCase())) {
+      return NextResponse.json(
+        { error: "Invalid image format for profile avatar" },
+        { status: 400 }
+      );
+    }
   }
 
   // The uploader is always the current user; returned files are uploaded by

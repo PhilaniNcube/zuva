@@ -121,7 +121,7 @@ export function CohortScholarsTable({
               href={`/admin/scholars/${s.id}`}
               className="group flex items-center gap-3"
             >
-              <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center text-primary font-bold text-xs shrink-0 group-hover:bg-primary/20 transition-colors">
+              <div className="flex items-center justify-center text-primary font-bold text-xs shrink-0 group-hover:bg-primary/20 transition-colors">
                 {getInitials(s.name)}
               </div>
               <span className="font-medium text-foreground text-sm group-hover:text-primary group-hover:underline underline-offset-4 transition-colors">
@@ -338,9 +338,9 @@ export function CohortScholarsTable({
                     {header.isPlaceholder
                       ? null
                       : flexRender(
-                          header.column.columnDef.header,
-                          header.getContext()
-                        )}
+                        header.column.columnDef.header,
+                        header.getContext()
+                      )}
                   </TableHead>
                 ))}
               </TableRow>

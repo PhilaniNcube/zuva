@@ -173,7 +173,7 @@ export function ProfileContentSkeleton() {
         <Card className="border-border shadow-sm">
           <CardContent className="pt-6">
             <div className="flex flex-col sm:flex-row items-center sm:items-start gap-6">
-              <Skeleton className="size-20 rounded-full" />
+              <Skeleton className="size-16 shrink-0 rounded-full" />
               <div className="flex-1 space-y-3 w-full">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                   <div className="space-y-2">
