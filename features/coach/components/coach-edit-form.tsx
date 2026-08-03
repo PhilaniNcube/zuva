@@ -1,6 +1,6 @@
 "use client";
 
-import { startTransition, useActionState, useEffect, useState } from "react";
+import { startTransition, useActionState, useEffect, useState, type ReactElement } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -16,12 +16,22 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import type { ActionResult } from "@/lib/action-result";
 
 import { updateCoach } from "../coach-actions";
 import { SPECIALTIES, type Specialty } from "../specialties";
 
 const schema = z.object({
+  name: z.string().trim().min(2, "Coach name is required").max(100),
   specialty: z.enum([
     "academic_writing",
     "leadership",
@@ -44,6 +54,7 @@ async function action(
   formData: FormData,
 ): Promise<ActionResult> {
   return updateCoach(coachUserId, {
+    name: formData.get("name"),
     specialty: formData.get("specialty"),
     whatsappNumber: formData.get("whatsappNumber"),
     bio: formData.get("bio"),
@@ -53,9 +64,11 @@ async function action(
 export function CoachEditForm({
   coachUserId,
   initial,
+  trigger,
 }: {
   coachUserId: string;
-  initial: { specialty: Specialty; whatsappNumber: string; bio: string };
+  initial: { name: string; specialty: Specialty; whatsappNumber: string; bio: string };
+  trigger?: ReactElement;
 }) {
   const [open, setOpen] = useState(false);
   const [state, formAction, isPending] = useActionState(
@@ -78,6 +91,7 @@ export function CoachEditForm({
 
   function onSubmit(data: FormValues) {
     const formData = new FormData();
+    formData.set("name", data.name);
     formData.set("specialty", data.specialty);
     formData.set("whatsappNumber", data.whatsappNumber);
     formData.set("bio", data.bio ?? "");
@@ -86,66 +100,83 @@ export function CoachEditForm({
     });
   }
 
-  if (!open) {
-    return (
-      <Button variant="outline" size="sm" onClick={() => setOpen(true)}>
-        Edit
-      </Button>
-    );
-  }
-
   return (
-    <form onSubmit={form.handleSubmit(onSubmit)} className="flex min-w-72 flex-col gap-2">
-      <Field>
-        <FieldLabel>Specialty</FieldLabel>
-        <Controller
-          control={form.control}
-          name="specialty"
-          render={({ field }) => {
-            const specialtyItems = Object.entries(SPECIALTIES).map(([value, label]) => ({
-              value,
-              label,
-            }));
-            return (
-              <Select
-                value={field.value}
-                onValueChange={field.onChange}
-                items={specialtyItems}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {specialtyItems.map(({ value, label }) => (
-                    <SelectItem key={value} value={value}>
-                      {label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            );
-          }}
-        />
-        <FieldError errors={[form.formState.errors.specialty]} />
-      </Field>
-      <Field>
-        <FieldLabel>WhatsApp number</FieldLabel>
-        <Input {...form.register("whatsappNumber")} />
-        <FieldError errors={[form.formState.errors.whatsappNumber]} />
-      </Field>
-      <Field>
-        <FieldLabel>Bio</FieldLabel>
-        <Input {...form.register("bio")} placeholder="Bio (optional)" />
-        <FieldError errors={[form.formState.errors.bio]} />
-      </Field>
-      <div className="flex gap-2">
-        <Button type="submit" size="sm" disabled={isPending}>
-          {isPending ? "Saving…" : "Save"}
-        </Button>
-        <Button variant="outline" size="sm" onClick={() => setOpen(false)}>
-          Cancel
-        </Button>
-      </div>
-    </form>
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger
+        render={
+          trigger ?? (
+            <Button variant="outline" size="sm">
+              Edit
+            </Button>
+          )
+        }
+      />
+      <DialogContent className="sm:max-w-lg">
+        <DialogHeader>
+          <DialogTitle>Edit Coach Profile</DialogTitle>
+          <DialogDescription>
+            Update coach information and specialty preferences.
+          </DialogDescription>
+        </DialogHeader>
+        <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col gap-4 py-2">
+          <Field>
+            <FieldLabel>Name</FieldLabel>
+            <Input {...form.register("name")} />
+            <FieldError errors={[form.formState.errors.name]} />
+          </Field>
+          <Field>
+            <FieldLabel>Specialty</FieldLabel>
+            <Controller
+              control={form.control}
+              name="specialty"
+              render={({ field }) => {
+                const specialtyItems = Object.entries(SPECIALTIES).map(([value, label]) => ({
+                  value,
+                  label,
+                }));
+                return (
+                  <Select
+                    value={field.value}
+                    onValueChange={field.onChange}
+                    items={specialtyItems}
+                  >
+                    <SelectTrigger className="w-full">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {specialtyItems.map(({ value, label }) => (
+                        <SelectItem key={value} value={value}>
+                          {label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                );
+              }}
+            />
+            <FieldError errors={[form.formState.errors.specialty]} />
+          </Field>
+          <Field>
+            <FieldLabel>WhatsApp number</FieldLabel>
+            <Input {...form.register("whatsappNumber")} />
+            <FieldError errors={[form.formState.errors.whatsappNumber]} />
+          </Field>
+          <Field>
+            <FieldLabel>Bio</FieldLabel>
+            <Input {...form.register("bio")} placeholder="Bio (optional)" />
+            <FieldError errors={[form.formState.errors.bio]} />
+          </Field>
+          <DialogFooter className="mt-2">
+            <Button type="button" variant="outline" onClick={() => setOpen(false)}>
+              Cancel
+            </Button>
+            <Button type="submit" disabled={isPending}>
+              {isPending ? "Saving…" : "Save changes"}
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
   );
 }
+

@@ -88,7 +88,7 @@ export async function createCoach(
   };
 }
 
-const updateCoachSchema = coachInputSchema.omit({ name: true, email: true });
+const updateCoachSchema = coachInputSchema.omit({ email: true }).partial({ name: true });
 
 export async function updateCoach(
   coachUserId: string,
@@ -99,7 +99,10 @@ export async function updateCoach(
   if (!parsed.success) {
     return { ok: false, error: parsed.error.issues[0].message };
   }
-  const { specialty, whatsappNumber, bio } = parsed.data;
+  const { name, specialty, whatsappNumber, bio } = parsed.data;
+  if (name) {
+    await db.update(user).set({ name }).where(eq(user.id, coachUserId));
+  }
   await db
     .update(coachProfile)
     .set({ specialty, whatsappNumber, bio: bio || null })
@@ -107,3 +110,4 @@ export async function updateCoach(
   refresh();
   return { ok: true, data: undefined };
 }
+
