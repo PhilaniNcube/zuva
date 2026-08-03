@@ -119,6 +119,7 @@ export const scholarProfile = sqliteTable(
       onDelete: "set null",
     }),
     country: text("country"),
+    degree: text("degree"),
     whatsappNumber: text("whatsapp_number"),
     linkedinUrl: text("linkedin_url"),
     bio: text("bio"),

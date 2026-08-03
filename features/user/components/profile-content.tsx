@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowLeft, Mail, Shield, Calendar, Globe, Phone, User, FileText } from "lucide-react";
+import { ArrowLeft, Mail, Shield, Calendar, Globe, Phone, User, FileText, GraduationCap } from "lucide-react";
 
 import { requireUser } from "@/lib/rbac";
 import { roleHome, type Role } from "@/lib/roles";
@@ -84,7 +84,7 @@ export async function ProfileContent() {
               <CardDescription>Current saved profile details</CardDescription>
             </CardHeader>
             <CardContent className="grid gap-4">
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                 <div className="p-4 rounded-lg bg-muted/40 border border-border/50">
                   <div className="text-xs font-medium text-muted-foreground flex items-center gap-1.5 mb-1">
                     <Globe className="size-3.5" />
@@ -92,6 +92,16 @@ export async function ProfileContent() {
                   </div>
                   <div className="text-sm font-semibold text-foreground">
                     {scholarDetails.country || "Not specified"}
+                  </div>
+                </div>
+
+                <div className="p-4 rounded-lg bg-muted/40 border border-border/50">
+                  <div className="text-xs font-medium text-muted-foreground flex items-center gap-1.5 mb-1">
+                    <GraduationCap className="size-3.5" />
+                    Degree / Qualification
+                  </div>
+                  <div className="text-sm font-semibold text-foreground">
+                    {scholarDetails.degree || "Not specified"}
                   </div>
                 </div>
 

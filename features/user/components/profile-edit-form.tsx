@@ -15,6 +15,7 @@ import {
   Globe,
   Phone,
   FileText,
+  GraduationCap,
 } from "lucide-react";
 
 import { changeUserPassword, updateProfileDetails } from "@/features/user/user-actions";
@@ -39,6 +40,7 @@ import type { scholarProfile } from "@/lib/db/schema";
 const detailsSchema = z.object({
   name: z.string().trim().min(2, "Full name must be at least 2 characters").max(100),
   country: z.string().trim().max(100).optional().or(z.literal("")),
+  degree: z.string().trim().max(150).optional().or(z.literal("")),
   whatsappNumber: z.string().trim().max(30).optional().or(z.literal("")),
   linkedinUrl: z.string().trim().max(300).optional().or(z.literal("")),
   bio: z.string().trim().max(2000).optional().or(z.literal("")),
@@ -71,6 +73,7 @@ async function submitDetailsAction(
   return updateProfileDetails({
     name: formData.get("name"),
     country: formData.get("country"),
+    degree: formData.get("degree"),
     whatsappNumber: formData.get("whatsappNumber"),
     linkedinUrl: formData.get("linkedinUrl"),
     bio: formData.get("bio"),
@@ -112,6 +115,7 @@ export function ProfileEditForm({ user, scholarProfileData }: ProfileEditFormPro
     defaultValues: {
       name: user.name || "",
       country: scholarProfileData?.country || "",
+      degree: scholarProfileData?.degree || "",
       whatsappNumber: scholarProfileData?.whatsappNumber || "",
       linkedinUrl: scholarProfileData?.linkedinUrl || "",
       bio: scholarProfileData?.bio || "",
@@ -132,6 +136,7 @@ export function ProfileEditForm({ user, scholarProfileData }: ProfileEditFormPro
     const formData = new FormData();
     formData.set("name", data.name);
     formData.set("country", data.country ?? "");
+    formData.set("degree", data.degree ?? "");
     formData.set("whatsappNumber", data.whatsappNumber ?? "");
     formData.set("linkedinUrl", data.linkedinUrl ?? "");
     formData.set("bio", data.bio ?? "");
@@ -257,6 +262,21 @@ export function ProfileEditForm({ user, scholarProfileData }: ProfileEditFormPro
                     </Field>
 
                     <Field>
+                      <FieldLabel htmlFor="degree" className="flex items-center gap-1.5">
+                        <GraduationCap className="size-3.5" />
+                        Degree / Qualification
+                      </FieldLabel>
+                      <Input
+                        id="degree"
+                        {...detailsForm.register("degree")}
+                        placeholder="e.g. MSc Public Health"
+                      />
+                      <FieldError errors={[detailsForm.formState.errors.degree]} />
+                    </Field>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <Field>
                       <FieldLabel htmlFor="whatsappNumber" className="flex items-center gap-1.5">
                         <Phone className="size-3.5" />
                         WhatsApp Number
@@ -270,22 +290,22 @@ export function ProfileEditForm({ user, scholarProfileData }: ProfileEditFormPro
                         errors={[detailsForm.formState.errors.whatsappNumber]}
                       />
                     </Field>
-                  </div>
 
-                  <Field>
-                    <FieldLabel htmlFor="linkedinUrl" className="flex items-center gap-1.5">
-                      <Globe className="size-3.5" />
-                      LinkedIn Profile URL
-                    </FieldLabel>
-                    <Input
-                      id="linkedinUrl"
-                      {...detailsForm.register("linkedinUrl")}
-                      placeholder="https://linkedin.com/in/username"
-                    />
-                    <FieldError
-                      errors={[detailsForm.formState.errors.linkedinUrl]}
-                    />
-                  </Field>
+                    <Field>
+                      <FieldLabel htmlFor="linkedinUrl" className="flex items-center gap-1.5">
+                        <Globe className="size-3.5" />
+                        LinkedIn Profile URL
+                      </FieldLabel>
+                      <Input
+                        id="linkedinUrl"
+                        {...detailsForm.register("linkedinUrl")}
+                        placeholder="https://linkedin.com/in/username"
+                      />
+                      <FieldError
+                        errors={[detailsForm.formState.errors.linkedinUrl]}
+                      />
+                    </Field>
+                  </div>
 
                   <Field>
                     <FieldLabel htmlFor="bio" className="flex items-center gap-1.5">

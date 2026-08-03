@@ -73,6 +73,7 @@ export interface UserItem {
   role: Role;
   image: string | null;
   country?: string | null;
+  degree?: string | null;
   whatsappNumber?: string | null;
   linkedinUrl?: string | null;
   onboardedAt?: Date | string | null;
@@ -328,6 +329,15 @@ export function UserManagementTable({
         cell: ({ row }) => (
           <span className="text-xs text-muted-foreground">
             {row.original.country ?? "—"}
+          </span>
+        ),
+      },
+      {
+        accessorKey: "degree",
+        header: "Degree",
+        cell: ({ row }) => (
+          <span className="text-xs text-muted-foreground font-mono">
+            {row.original.degree ?? "—"}
           </span>
         ),
       },

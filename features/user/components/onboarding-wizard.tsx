@@ -17,6 +17,12 @@ import { completeOnboarding } from "@/features/user/user-actions";
 
 const schema = z.object({
   country: z.string().trim().min(2, "Country is required").max(100),
+  degree: z
+    .string()
+    .trim()
+    .max(150)
+    .optional()
+    .or(z.literal("")),
   whatsappNumber: z
     .string()
     .trim()
@@ -41,6 +47,7 @@ async function action(
 ): Promise<ActionResult> {
   return completeOnboarding({
     country: formData.get("country"),
+    degree: formData.get("degree"),
     whatsappNumber: formData.get("whatsappNumber"),
     linkedinUrl: formData.get("linkedinUrl"),
     bio: formData.get("bio"),
@@ -50,6 +57,7 @@ async function action(
 
 type InitialValues = {
   country: string;
+  degree?: string;
   whatsappNumber: string;
   linkedinUrl?: string;
   bio: string;
@@ -80,6 +88,7 @@ export function OnboardingWizard({ initial }: { initial: InitialValues }) {
   function onSubmit(data: FormValues) {
     const formData = new FormData();
     formData.set("country", data.country);
+    formData.set("degree", data.degree ?? "");
     formData.set("whatsappNumber", data.whatsappNumber ?? "");
     formData.set("linkedinUrl", data.linkedinUrl ?? "");
     formData.set("bio", data.bio);
@@ -149,6 +158,12 @@ export function OnboardingWizard({ initial }: { initial: InitialValues }) {
             <FieldLabel>Country</FieldLabel>
             <Input {...form.register("country")} placeholder="e.g. Zimbabwe" />
             <FieldError errors={[form.formState.errors.country]} />
+          </Field>
+
+          <Field>
+            <FieldLabel>Degree / Qualification (optional)</FieldLabel>
+            <Input {...form.register("degree")} placeholder="e.g. MSc Public Health" />
+            <FieldError errors={[form.formState.errors.degree]} />
           </Field>
 
           <Field>

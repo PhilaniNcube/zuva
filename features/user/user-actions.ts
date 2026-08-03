@@ -14,6 +14,12 @@ import { requireRole, requireUser } from "@/lib/rbac";
 
 const onboardingSchema = z.object({
   country: z.string().trim().min(2, "Country is required").max(100),
+  degree: z
+    .string()
+    .trim()
+    .max(150, "Degree title is too long")
+    .optional()
+    .or(z.literal("")),
   whatsappNumber: z
     .string()
     .trim()
@@ -57,6 +63,7 @@ export async function completeOnboarding(input: unknown): Promise<ActionResult> 
       .update(scholarProfile)
       .set({
         country: v.country,
+        degree: v.degree || null,
         whatsappNumber: v.whatsappNumber || null,
         linkedinUrl: v.linkedinUrl || null,
         bio: v.bio,
@@ -68,6 +75,7 @@ export async function completeOnboarding(input: unknown): Promise<ActionResult> 
     await db.insert(scholarProfile).values({
       userId: user.id,
       country: v.country,
+      degree: v.degree || null,
       whatsappNumber: v.whatsappNumber || null,
       linkedinUrl: v.linkedinUrl || null,
       bio: v.bio,
@@ -83,6 +91,7 @@ export async function completeOnboarding(input: unknown): Promise<ActionResult> 
 const updateProfileSchema = z.object({
   name: z.string().trim().min(2, "Full name must be at least 2 characters").max(100),
   country: z.string().trim().max(100).optional().or(z.literal("")),
+  degree: z.string().trim().max(150).optional().or(z.literal("")),
   whatsappNumber: z.string().trim().max(30).optional().or(z.literal("")),
   linkedinUrl: z.string().trim().max(300).optional().or(z.literal("")),
   bio: z.string().trim().max(2000).optional().or(z.literal("")),
@@ -117,6 +126,7 @@ export async function updateProfileDetails(input: unknown): Promise<ActionResult
         .update(scholarProfile)
         .set({
           country: v.country || existing.country,
+          degree: v.degree ?? existing.degree,
           whatsappNumber: v.whatsappNumber ?? existing.whatsappNumber,
           linkedinUrl: v.linkedinUrl ?? existing.linkedinUrl,
           bio: v.bio ?? existing.bio,
@@ -127,6 +137,7 @@ export async function updateProfileDetails(input: unknown): Promise<ActionResult
       await db.insert(scholarProfile).values({
         userId: currentUser.id,
         country: v.country,
+        degree: v.degree || null,
         whatsappNumber: v.whatsappNumber || null,
         linkedinUrl: v.linkedinUrl || null,
         bio: v.bio,

@@ -49,6 +49,7 @@ export interface CohortScholarItem {
   name: string;
   email: string;
   country: string | null;
+  degree?: string | null;
   whatsappNumber?: string | null;
   linkedinUrl?: string | null;
   onboardedAt: Date | string | null;
@@ -143,6 +144,13 @@ export function CohortScholarsTable({
         header: "Country",
         cell: ({ row }) => (
           <span className="text-sm">{row.original.country ?? "—"}</span>
+        ),
+      },
+      {
+        accessorKey: "degree",
+        header: "Degree",
+        cell: ({ row }) => (
+          <span className="text-sm">{row.original.degree ?? "—"}</span>
         ),
       },
       {

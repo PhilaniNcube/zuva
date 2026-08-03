@@ -122,6 +122,10 @@ async function main() {
     console.log("Adding missing column 'linkedin_url' to scholar_profile...");
     await client.execute(`ALTER TABLE \`scholar_profile\` ADD COLUMN \`linkedin_url\` text;`);
   }
+  if (!scholarCols.has("degree")) {
+    console.log("Adding missing column 'degree' to scholar_profile...");
+    await client.execute(`ALTER TABLE \`scholar_profile\` ADD COLUMN \`degree\` text;`);
+  }
 
   console.log("7. Verifying production tables...");
   const tablesRes = await client.execute(

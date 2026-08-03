@@ -14,6 +14,7 @@ export default async function OnboardingPage() {
     <OnboardingWizard
       initial={{
         country: profile?.country ?? "",
+        degree: profile?.degree ?? "",
         whatsappNumber: profile?.whatsappNumber ?? "",
         bio: profile?.bio ?? "",
         mtpText: profile?.mtpText ?? "",

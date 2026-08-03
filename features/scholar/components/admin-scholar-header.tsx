@@ -87,6 +87,11 @@ export async function AdminScholarHeader({ scholarId }: { scholarId: string }) {
                   <Globe className="size-3.5" /> {profile.country}
                 </span>
               ) : null}
+              {profile?.degree ? (
+                <span className="inline-flex items-center gap-1 font-medium text-foreground">
+                  <GraduationCap className="size-3.5 text-primary" /> {profile.degree}
+                </span>
+              ) : null}
               <span className="inline-flex items-center gap-1">
                 <Clock className="size-3.5" /> Joined{" "}
                 {new Date(user.createdAt).toLocaleDateString("en-US", {
