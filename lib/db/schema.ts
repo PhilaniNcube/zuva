@@ -127,6 +127,20 @@ export const scholarProfile = sqliteTable(
     onboardingCompletedAt: integer("onboarding_completed_at", {
       mode: "timestamp",
     }),
+    bioReviewedAt: integer("bio_reviewed_at", { mode: "timestamp" }),
+    bioReviewedBy: text("bio_reviewed_by").references(() => user.id, {
+      onDelete: "set null",
+    }),
+    bioRewriteNeeded: integer("bio_rewrite_needed", { mode: "boolean" })
+      .notNull()
+      .default(false),
+    bioRewriteCompletedAt: integer("bio_rewrite_completed_at", {
+      mode: "timestamp",
+    }),
+    bioRewriteCompletedBy: text("bio_rewrite_completed_by").references(
+      () => user.id,
+      { onDelete: "set null" }
+    ),
     ...timestamps,
   },
   (t) => [uniqueIndex("scholar_profile_user_id_idx").on(t.userId)],

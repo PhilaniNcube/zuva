@@ -27,6 +27,10 @@ import {
   ScholarUpcomingSessions,
   ScholarUpcomingSessionsSkeleton,
 } from "./scholar-upcoming-sessions";
+import {
+  ScholarBioSection,
+  ScholarBioSectionSkeleton,
+} from "./scholar-bio-section";
 
 export async function AdminScholarOverview({ id }: { id: Promise<string> }) {
   const scholarId = await id;
@@ -45,6 +49,10 @@ export async function AdminScholarOverview({ id }: { id: Promise<string> }) {
 
       <Suspense fallback={<AdminScholarHeaderSkeleton />}>
         <AdminScholarHeader scholarId={scholarId} />
+      </Suspense>
+
+      <Suspense fallback={<ScholarBioSectionSkeleton />}>
+        <ScholarBioSection scholarId={scholarId} />
       </Suspense>
 
       <div className="grid gap-4 lg:grid-cols-2">
@@ -73,6 +81,7 @@ export function AdminScholarOverviewSkeleton() {
     <div className="flex flex-col gap-6">
       <div className="h-8 w-28 animate-pulse rounded-md bg-muted" />
       <AdminScholarHeaderSkeleton />
+      <ScholarBioSectionSkeleton />
       <div className="grid gap-4 lg:grid-cols-2">
         <ScholarAttendanceSkeleton />
         <ScholarUpcomingSessionsSkeleton />

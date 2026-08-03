@@ -126,6 +126,26 @@ async function main() {
     console.log("Adding missing column 'degree' to scholar_profile...");
     await client.execute(`ALTER TABLE \`scholar_profile\` ADD COLUMN \`degree\` text;`);
   }
+  if (!scholarCols.has("bio_reviewed_at")) {
+    console.log("Adding missing column 'bio_reviewed_at' to scholar_profile...");
+    await client.execute(`ALTER TABLE \`scholar_profile\` ADD COLUMN \`bio_reviewed_at\` integer;`);
+  }
+  if (!scholarCols.has("bio_reviewed_by")) {
+    console.log("Adding missing column 'bio_reviewed_by' to scholar_profile...");
+    await client.execute(`ALTER TABLE \`scholar_profile\` ADD COLUMN \`bio_reviewed_by\` text;`);
+  }
+  if (!scholarCols.has("bio_rewrite_needed")) {
+    console.log("Adding missing column 'bio_rewrite_needed' to scholar_profile...");
+    await client.execute(`ALTER TABLE \`scholar_profile\` ADD COLUMN \`bio_rewrite_needed\` integer DEFAULT 0 NOT NULL;`);
+  }
+  if (!scholarCols.has("bio_rewrite_completed_at")) {
+    console.log("Adding missing column 'bio_rewrite_completed_at' to scholar_profile...");
+    await client.execute(`ALTER TABLE \`scholar_profile\` ADD COLUMN \`bio_rewrite_completed_at\` integer;`);
+  }
+  if (!scholarCols.has("bio_rewrite_completed_by")) {
+    console.log("Adding missing column 'bio_rewrite_completed_by' to scholar_profile...");
+    await client.execute(`ALTER TABLE \`scholar_profile\` ADD COLUMN \`bio_rewrite_completed_by\` text;`);
+  }
 
   console.log("7. Verifying production tables...");
   const tablesRes = await client.execute(

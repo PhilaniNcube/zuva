@@ -141,6 +141,9 @@ export const getUsersForAdminPaginated = cache(
         whatsappNumber: scholarProfile.whatsappNumber,
         linkedinUrl: scholarProfile.linkedinUrl,
         onboardedAt: scholarProfile.onboardingCompletedAt,
+        bioReviewedAt: scholarProfile.bioReviewedAt,
+        bioRewriteNeeded: scholarProfile.bioRewriteNeeded,
+        bioRewriteCompletedAt: scholarProfile.bioRewriteCompletedAt,
         createdAt: user.createdAt,
       })
       .from(user)

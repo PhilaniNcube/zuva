@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useActionState, useEffect, useMemo, useState, useTransition, startTransition } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -29,6 +30,8 @@ import {
   MessageCircle,
   ExternalLink,
   Filter,
+  CheckCircle2,
+  FileText,
 } from "lucide-react";
 
 import { promoteUserToAdmin } from "@/features/user/user-actions";
@@ -77,6 +80,9 @@ export interface UserItem {
   whatsappNumber?: string | null;
   linkedinUrl?: string | null;
   onboardedAt?: Date | string | null;
+  bioReviewedAt?: Date | string | null;
+  bioRewriteNeeded?: boolean | null;
+  bioRewriteCompletedAt?: Date | string | null;
   createdAt: Date | string;
 }
 
@@ -297,9 +303,18 @@ export function UserManagementTable({
                 </AvatarFallback>
               </Avatar>
               <div>
-                <div className="font-medium text-foreground text-sm">
-                  {u.name} {isSelf && "(You)"}
-                </div>
+                {u.role === "scholar" ? (
+                  <Link
+                    href={`/admin/scholars/${u.id}`}
+                    className="font-medium text-foreground text-sm hover:text-primary hover:underline underline-offset-4 transition-colors"
+                  >
+                    {u.name} {isSelf && "(You)"}
+                  </Link>
+                ) : (
+                  <div className="font-medium text-foreground text-sm">
+                    {u.name} {isSelf && "(You)"}
+                  </div>
+                )}
                 <div className="text-xs text-muted-foreground">{u.email}</div>
               </div>
             </div>
@@ -401,6 +416,42 @@ export function UserManagementTable({
           ) : (
             <span className="inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium bg-muted text-muted-foreground border border-border/60">
               <Clock className="size-3" /> Pending
+            </span>
+          );
+        },
+      },
+      {
+        id: "bioStatus",
+        header: "Bio Status",
+        cell: ({ row }) => {
+          const u = row.original;
+          if (u.role !== "scholar") {
+            return <span className="text-xs text-muted-foreground">N/A</span>;
+          }
+          if (u.bioRewriteCompletedAt) {
+            return (
+              <span className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium bg-sky-500/10 text-sky-700 dark:text-sky-400 border border-sky-500/20">
+                <CheckCircle2 className="size-3" /> Rewritten
+              </span>
+            );
+          }
+          if (u.bioReviewedAt) {
+            return (
+              <span className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20">
+                <CheckCircle2 className="size-3" /> Reviewed
+              </span>
+            );
+          }
+          if (u.bioRewriteNeeded) {
+            return (
+              <span className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium bg-rose-500/10 text-rose-700 dark:text-rose-400 border border-rose-500/20">
+                <FileText className="size-3" /> Rewrite Needed
+              </span>
+            );
+          }
+          return (
+            <span className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium bg-muted text-muted-foreground border border-border/60">
+              <Clock className="size-3" /> Unreviewed
             </span>
           );
         },

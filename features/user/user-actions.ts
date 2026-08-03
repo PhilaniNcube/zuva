@@ -343,4 +343,103 @@ export async function removeProfileImage(): Promise<ActionResult> {
   return { ok: true, data: undefined };
 }
 
+const markBioReviewedSchema = z.object({
+  scholarUserId: z.string().trim().min(1, "Scholar User ID is required"),
+  reviewed: z.boolean(),
+});
+
+export async function markScholarBioReviewed(
+  input: unknown
+): Promise<ActionResult> {
+  const adminSession = await requireRole("admin");
+
+  const parsed = markBioReviewedSchema.safeParse(input);
+  if (!parsed.success) {
+    return { ok: false, error: parsed.error.issues[0].message };
+  }
+
+  const { scholarUserId, reviewed } = parsed.data;
+
+  const [existingProfile] = await db
+    .select()
+    .from(scholarProfile)
+    .where(eq(scholarProfile.userId, scholarUserId));
+
+  if (!existingProfile) {
+    return { ok: false, error: "Scholar profile not found" };
+  }
+
+  const now = new Date();
+  await db
+    .update(scholarProfile)
+    .set({
+      bioReviewedAt: reviewed ? now : null,
+      bioReviewedBy: reviewed ? adminSession.user.id : null,
+    })
+    .where(eq(scholarProfile.id, existingProfile.id));
+
+  refresh();
+  return { ok: true, data: undefined };
+}
+
+const updateBioRewriteSchema = z.object({
+  scholarUserId: z.string().trim().min(1, "Scholar User ID is required"),
+  rewriteNeeded: z.boolean().optional(),
+  completed: z.boolean().optional(),
+  updatedBio: z.string().trim().max(2000).optional(),
+});
+
+export async function updateScholarBioRewriteStatus(
+  input: unknown
+): Promise<ActionResult> {
+  const adminSession = await requireRole("admin");
+
+  const parsed = updateBioRewriteSchema.safeParse(input);
+  if (!parsed.success) {
+    return { ok: false, error: parsed.error.issues[0].message };
+  }
+
+  const { scholarUserId, rewriteNeeded, completed, updatedBio } = parsed.data;
+
+  const [existingProfile] = await db
+    .select()
+    .from(scholarProfile)
+    .where(eq(scholarProfile.userId, scholarUserId));
+
+  if (!existingProfile) {
+    return { ok: false, error: "Scholar profile not found" };
+  }
+
+  const now = new Date();
+  const updateData: Partial<typeof scholarProfile.$inferInsert> = {};
+
+  if (updatedBio !== undefined) {
+    updateData.bio = updatedBio;
+  }
+
+  if (rewriteNeeded !== undefined) {
+    updateData.bioRewriteNeeded = rewriteNeeded;
+  }
+
+  if (completed !== undefined) {
+    if (completed) {
+      updateData.bioRewriteCompletedAt = now;
+      updateData.bioRewriteCompletedBy = adminSession.user.id;
+      updateData.bioRewriteNeeded = false;
+    } else {
+      updateData.bioRewriteCompletedAt = null;
+      updateData.bioRewriteCompletedBy = null;
+    }
+  }
+
+  await db
+    .update(scholarProfile)
+    .set(updateData)
+    .where(eq(scholarProfile.id, existingProfile.id));
+
+  refresh();
+  return { ok: true, data: undefined };
+}
+
+
 
