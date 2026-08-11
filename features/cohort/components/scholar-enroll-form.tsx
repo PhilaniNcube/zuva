@@ -5,11 +5,13 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { toast } from "sonner";
-import { PlusIcon } from "lucide-react";
+import { PlusIcon, Mail, CheckCircle2, History } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Field, FieldLabel, FieldError } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 import {
   Dialog,
   DialogContent,
@@ -27,6 +29,8 @@ const schema = z.object({
   name: z.string().trim().min(2, "Scholar name is required").max(100),
   email: z.string().email("A valid email is required"),
   country: z.string().trim().max(100).optional().or(z.literal("")),
+  sendEmail: z.boolean(),
+  markOnboardingCompleted: z.boolean(),
 });
 
 type FormValues = z.infer<typeof schema>;
@@ -41,11 +45,27 @@ async function action(
     name: formData.get("name"),
     email: formData.get("email"),
     country: formData.get("country"),
+    sendEmail: formData.get("sendEmail") === "true",
+    markOnboardingCompleted: formData.get("markOnboardingCompleted") === "true",
   });
 }
 
-export function ScholarEnrollForm({ cohortId }: { cohortId: string }) {
+interface ScholarEnrollFormProps {
+  cohortId: string;
+  cohortStatus?: string;
+  isHistorical?: boolean;
+}
+
+export function ScholarEnrollForm({
+  cohortId,
+  cohortStatus,
+  isHistorical = false,
+}: ScholarEnrollFormProps) {
+  const isPast = isHistorical || cohortStatus === "completed";
   const [open, setOpen] = useState(false);
+  const [sendEmail, setSendEmail] = useState(!isPast);
+  const [markOnboardingCompleted, setMarkOnboardingCompleted] = useState(isPast);
+
   const [state, formAction, isPending] = useActionState(
     action.bind(null, cohortId),
     null,
@@ -58,7 +78,13 @@ export function ScholarEnrollForm({ cohortId }: { cohortId: string }) {
 
   const form = useForm<FormValues>({
     resolver: zodResolver(schema),
-    defaultValues: { name: "", email: "", country: "" },
+    defaultValues: {
+      name: "",
+      email: "",
+      country: "",
+      sendEmail: !isPast,
+      markOnboardingCompleted: isPast,
+    },
   });
 
   useEffect(() => {
@@ -79,6 +105,8 @@ export function ScholarEnrollForm({ cohortId }: { cohortId: string }) {
     formData.set("name", data.name);
     formData.set("email", data.email);
     formData.set("country", data.country ?? "");
+    formData.set("sendEmail", sendEmail ? "true" : "false");
+    formData.set("markOnboardingCompleted", markOnboardingCompleted ? "true" : "false");
     startTransition(() => {
       formAction(formData);
     });
@@ -95,37 +123,59 @@ export function ScholarEnrollForm({ cohortId }: { cohortId: string }) {
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogTrigger
         render={
-          <Button>
+          <Button variant="outline">
             <PlusIcon className="mr-1.5 size-4" />
-            Enrol Scholar
+            Enrol Single Scholar
           </Button>
         }
       />
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>
-          <DialogTitle>Enrol a new scholar</DialogTitle>
+          <DialogTitle>Enrol a scholar</DialogTitle>
           <DialogDescription>
-            Enrol a scholar in this cohort and send their invitation email with login credentials.
+            Enrol an individual scholar into this cohort intake.
           </DialogDescription>
         </DialogHeader>
 
+        {isPast ? (
+          <div className="flex items-start gap-2.5 rounded-lg bg-amber-500/10 p-3 text-xs text-amber-800 dark:text-amber-300 border border-amber-500/20">
+            <History className="size-4 shrink-0 text-amber-600 dark:text-amber-400 mt-0.5" />
+            <div>
+              <span className="font-semibold">Historical Entry Mode:</span> Notifications to scholars and coaches are suppressed by default for this past cohort.
+            </div>
+          </div>
+        ) : (
+          <div className="flex items-start gap-2.5 rounded-lg bg-emerald-500/10 p-3 text-xs text-emerald-800 dark:text-emerald-300 border border-emerald-500/20">
+            <Mail className="size-4 shrink-0 text-emerald-600 dark:text-emerald-400 mt-0.5" />
+            <div>
+              <span className="font-semibold">Current Entry Mode:</span> Active cohort enrolment. Scholar will receive an invitation email.
+            </div>
+          </div>
+        )}
+
         {enrolled ? (
           <div className="flex flex-col gap-4 py-2">
-            <div className="rounded-lg bg-slate-50 p-4 text-sm space-y-2">
-              <p className="font-semibold">Scholar enrolled successfully!</p>
-              <p>
-                An invitation email has been dispatched to <span className="font-medium">{enrolled.email}</span>.
-              </p>
+            <div className="rounded-lg bg-muted/50 p-4 text-sm space-y-2 border">
+              <p className="font-semibold text-foreground">Scholar enrolled successfully!</p>
+              {enrolled.emailSent ? (
+                <p className="text-muted-foreground">
+                  An invitation email has been dispatched to <span className="font-medium text-foreground">{enrolled.email}</span>.
+                </p>
+              ) : (
+                <p className="text-muted-foreground text-xs">
+                  Notification email suppressed (no email was sent to the scholar or coach).
+                </p>
+              )}
               {enrolled.tempPassword ? (
-                <div>
+                <div className="pt-2">
                   <p className="mt-1">
                     Temporary password:{" "}
-                    <code className="font-mono font-semibold bg-slate-800 px-1.5 py-0.5 rounded text-white">
+                    <code className="font-mono font-semibold bg-primary/10 text-primary px-1.5 py-0.5 rounded border border-primary/20">
                       {enrolled.tempPassword}
                     </code>
                   </p>
-                  <p className="mt-1 text-xs opacity-90">
-                    You can also share this password securely with the scholar; it is only displayed once.
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    You can share this password securely with the scholar if needed; it is displayed once.
                   </p>
                 </div>
               ) : null}
@@ -159,6 +209,42 @@ export function ScholarEnrollForm({ cohortId }: { cohortId: string }) {
                 <Input {...form.register("country")} placeholder="Ghana" />
                 <FieldError errors={[form.formState.errors.country]} />
               </Field>
+            </div>
+
+            <div className="flex flex-col gap-3 pt-2 border-t">
+              <div className="flex items-center justify-between gap-2">
+                <div className="space-y-0.5">
+                  <div className="flex items-center gap-1.5 text-xs font-medium text-foreground">
+                    <Mail className="size-3.5 text-muted-foreground" />
+                    <Label htmlFor="send-email-switch">Send invitation email</Label>
+                  </div>
+                  <p className="text-[11px] text-muted-foreground">
+                    Dispatches account login email. Leave off for past/historical scholars.
+                  </p>
+                </div>
+                <Switch
+                  id="send-email-switch"
+                  checked={sendEmail}
+                  onCheckedChange={setSendEmail}
+                />
+              </div>
+
+              <div className="flex items-center justify-between gap-2">
+                <div className="space-y-0.5">
+                  <div className="flex items-center gap-1.5 text-xs font-medium text-foreground">
+                    <CheckCircle2 className="size-3.5 text-muted-foreground" />
+                    <Label htmlFor="onboarding-switch">Mark onboarding as completed</Label>
+                  </div>
+                  <p className="text-[11px] text-muted-foreground">
+                    Pre-completes scholar onboarding. Ideal for historical scholars.
+                  </p>
+                </div>
+                <Switch
+                  id="onboarding-switch"
+                  checked={markOnboardingCompleted}
+                  onCheckedChange={setMarkOnboardingCompleted}
+                />
+              </div>
             </div>
 
             <DialogFooter className="mt-2">

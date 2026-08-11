@@ -7,6 +7,8 @@ import { z } from "zod";
 import { toast } from "sonner";
 import { PlusIcon } from "lucide-react";
 
+import { History, Calendar } from "lucide-react";
+
 import { Button } from "@/components/ui/button";
 import { Field, FieldLabel, FieldError } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
@@ -38,18 +40,6 @@ const schema = z
     endsAt: z.string().optional().or(z.literal("")),
     status: z.enum(["draft", "active", "completed"]),
   })
-  .refine(
-    (data) => {
-      if (!data.startsAt) return true;
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-      return new Date(data.startsAt) >= today;
-    },
-    {
-      message: "Start date cannot be in the past",
-      path: ["startsAt"],
-    }
-  )
   .refine(
     (data) => {
       if (!data.startsAt || !data.endsAt) return true;
@@ -85,6 +75,16 @@ export function CohortCreateForm() {
   });
 
   const startsAtValue = form.watch("startsAt");
+  const endsAtValue = form.watch("endsAt");
+  const statusValue = form.watch("status");
+
+  const startsAtDate = startsAtValue ? new Date(startsAtValue) : null;
+  const endsAtDate = endsAtValue ? new Date(endsAtValue) : null;
+
+  const isHistoric =
+    statusValue === "completed" ||
+    (startsAtDate !== null && startsAtDate < new Date() && statusValue !== "active") ||
+    (endsAtDate !== null && endsAtDate < new Date());
 
   useEffect(() => {
     if (state?.ok) {
@@ -106,8 +106,6 @@ export function CohortCreateForm() {
     });
   }
 
-  const now = new Date();
-
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger
@@ -122,7 +120,7 @@ export function CohortCreateForm() {
         <DialogHeader>
           <DialogTitle>Create a new cohort</DialogTitle>
           <DialogDescription>
-            Add a new cohort intake to track scholars and coaching sessions.
+            Add a new active or historical cohort intake to track scholars and coaching sessions.
           </DialogDescription>
         </DialogHeader>
 
@@ -130,6 +128,21 @@ export function CohortCreateForm() {
           onSubmit={form.handleSubmit(onSubmit)}
           className="flex flex-col gap-4 py-2"
         >
+          {isHistoric ? (
+            <div className="flex items-start gap-2.5 rounded-lg bg-amber-500/10 p-3 text-xs text-amber-800 dark:text-amber-300 border border-amber-500/20">
+              <History className="size-4 shrink-0 text-amber-600 dark:text-amber-400 mt-0.5" />
+              <div>
+                <span className="font-semibold">Historic Cohort Entry Mode:</span> Creating a past cohort. Notifications to scholars & coaches will be suppressed by default when adding scholars.
+              </div>
+            </div>
+          ) : (
+            <div className="flex items-start gap-2.5 rounded-lg bg-emerald-500/10 p-3 text-xs text-emerald-800 dark:text-emerald-300 border border-emerald-500/20">
+              <Calendar className="size-4 shrink-0 text-emerald-600 dark:text-emerald-400 mt-0.5" />
+              <div>
+                <span className="font-semibold">Current Cohort Entry Mode:</span> Creating an active/upcoming intake.
+              </div>
+            </div>
+          )}
           <Field>
             <FieldLabel>Name</FieldLabel>
             <Input {...form.register("name")} placeholder="2026 Intake 2" />
@@ -147,7 +160,6 @@ export function CohortCreateForm() {
                     value={field.value}
                     onChange={field.onChange}
                     showTime={false}
-                    minDate={now}
                     placeholder="Select start date"
                   />
                 )}
@@ -164,7 +176,7 @@ export function CohortCreateForm() {
                     value={field.value}
                     onChange={field.onChange}
                     showTime={false}
-                    minDate={startsAtValue ? new Date(startsAtValue) : now}
+                    minDate={startsAtValue ? new Date(startsAtValue) : undefined}
                     placeholder="Select end date"
                   />
                 )}

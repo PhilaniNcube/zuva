@@ -52,13 +52,15 @@ export async function updateCohort(
 const enrollSchema = z.object({
   cohortId: z.string().min(1),
   name: z.string().trim().min(2, "Scholar name is required").max(100),
-  email: z.email("A valid email is required"),
+  email: z.string().email("A valid email is required"),
   country: z.string().trim().max(100).optional().or(z.literal("")),
+  sendEmail: z.boolean().optional().default(true),
+  markOnboardingCompleted: z.boolean().optional().default(false),
 });
 
 /**
  * Provisions a scholar account (or enrols an existing scholar) into the cohort.
- * Sends an invitation & enrolment email with account details and login link.
+ * Sends an invitation & enrolment email with account details and login link if sendEmail is true.
  */
 export async function enrollScholar(
   input: unknown,
@@ -68,7 +70,7 @@ export async function enrollScholar(
   if (!parsed.success) {
     return { ok: false, error: parsed.error.issues[0].message };
   }
-  const { cohortId, name, email, country } = parsed.data;
+  const { cohortId, name, email, country, sendEmail, markOnboardingCompleted } = parsed.data;
 
   const [existingUser] = await db
     .select()
@@ -98,13 +100,21 @@ export async function enrollScholar(
       }
       await db
         .update(scholarProfile)
-        .set({ cohortId })
+        .set({
+          cohortId,
+          country: country || existingProfile.country,
+          onboardingCompletedAt:
+            markOnboardingCompleted && !existingProfile.onboardingCompletedAt
+              ? new Date()
+              : existingProfile.onboardingCompletedAt,
+        })
         .where(eq(scholarProfile.id, existingProfile.id));
     } else {
       await db.insert(scholarProfile).values({
         userId,
         cohortId,
         country: country || null,
+        onboardingCompletedAt: markOnboardingCompleted ? new Date() : null,
       });
     }
   } else {
@@ -126,21 +136,151 @@ export async function enrollScholar(
       userId,
       cohortId,
       country: country || null,
+      onboardingCompletedAt: markOnboardingCompleted ? new Date() : null,
     });
   }
 
-  const { sendScholarEnrolledEmail } = await import("@/lib/email");
-  const emailRes = await sendScholarEnrolledEmail({
-    to: email,
-    scholarName: existingUser ? existingUser.name : name,
-    tempPassword,
-    userId,
-  });
+  let emailSent = false;
+  if (sendEmail) {
+    const { sendScholarEnrolledEmail } = await import("@/lib/email");
+    const emailRes = await sendScholarEnrolledEmail({
+      to: email,
+      scholarName: existingUser ? existingUser.name : name,
+      tempPassword,
+      userId,
+    });
+    emailSent = emailRes.sent;
+  }
 
   refresh();
   return {
     ok: true,
-    data: { tempPassword: tempPassword ?? "", emailSent: emailRes.sent },
+    data: { tempPassword: tempPassword ?? "", emailSent },
+  };
+}
+
+const bulkScholarItemSchema = z.object({
+  name: z.string().trim().min(2, "Scholar name is required").max(100),
+  email: z.string().email("A valid email is required"),
+  country: z.string().trim().max(100).optional().or(z.literal("")),
+  degree: z.string().trim().max(100).optional().or(z.literal("")),
+});
+
+const bulkEnrollSchema = z.object({
+  cohortId: z.string().min(1, "Cohort ID is required"),
+  scholars: z.array(bulkScholarItemSchema).min(1, "At least one scholar is required"),
+  sendEmail: z.boolean().optional().default(false),
+  markOnboardingCompleted: z.boolean().optional().default(true),
+});
+
+export async function bulkEnrollScholars(
+  input: unknown,
+): Promise<
+  ActionResult<{ enrolledCount: number; skippedCount: number; errors: string[] }>
+> {
+  await requireRole("admin");
+  const parsed = bulkEnrollSchema.safeParse(input);
+  if (!parsed.success) {
+    return { ok: false, error: parsed.error.issues[0].message };
+  }
+
+  const { cohortId, scholars, sendEmail, markOnboardingCompleted } = parsed.data;
+  let enrolledCount = 0;
+  let skippedCount = 0;
+  const errors: string[] = [];
+
+  let sendScholarEnrolledEmailFn:
+    | typeof import("@/lib/email")["sendScholarEnrolledEmail"]
+    | undefined;
+
+  if (sendEmail) {
+    const emailModule = await import("@/lib/email");
+    sendScholarEnrolledEmailFn = emailModule.sendScholarEnrolledEmail;
+  }
+
+  for (const s of scholars) {
+    try {
+      const [existingUser] = await db
+        .select()
+        .from(user)
+        .where(eq(user.email, s.email));
+
+      let userId: string;
+      let tempPassword: string | undefined = undefined;
+
+      if (existingUser) {
+        if (existingUser.role !== "scholar") {
+          errors.push(`${s.email}: User exists but is not a scholar account.`);
+          skippedCount++;
+          continue;
+        }
+        userId = existingUser.id;
+
+        const [existingProfile] = await db
+          .select()
+          .from(scholarProfile)
+          .where(eq(scholarProfile.userId, userId));
+
+        if (existingProfile) {
+          await db
+            .update(scholarProfile)
+            .set({
+              cohortId,
+              country: s.country || existingProfile.country,
+              degree: s.degree || existingProfile.degree,
+              onboardingCompletedAt:
+                markOnboardingCompleted && !existingProfile.onboardingCompletedAt
+                  ? new Date()
+                  : existingProfile.onboardingCompletedAt,
+            })
+            .where(eq(scholarProfile.id, existingProfile.id));
+        } else {
+          await db.insert(scholarProfile).values({
+            userId,
+            cohortId,
+            country: s.country || null,
+            degree: s.degree || null,
+            onboardingCompletedAt: markOnboardingCompleted ? new Date() : null,
+          });
+        }
+        enrolledCount++;
+      } else {
+        tempPassword = `zuva-${randomBytes(4).toString("hex")}`;
+        const result = await auth.api.signUpEmail({
+          body: { name: s.name, email: s.email, password: tempPassword },
+        });
+        userId = result.user.id;
+
+        await db.update(user).set({ role: "scholar" }).where(eq(user.id, userId));
+        await db.insert(scholarProfile).values({
+          userId,
+          cohortId,
+          country: s.country || null,
+          degree: s.degree || null,
+          onboardingCompletedAt: markOnboardingCompleted ? new Date() : null,
+        });
+
+        if (sendEmail && sendScholarEnrolledEmailFn) {
+          await sendScholarEnrolledEmailFn({
+            to: s.email,
+            scholarName: s.name,
+            tempPassword,
+            userId,
+          });
+        }
+        enrolledCount++;
+      }
+    } catch (err: unknown) {
+      const errMsg = err instanceof Error ? err.message : "Failed to enrol";
+      errors.push(`${s.email}: ${errMsg}`);
+      skippedCount++;
+    }
+  }
+
+  refresh();
+  return {
+    ok: true,
+    data: { enrolledCount, skippedCount, errors },
   };
 }
 
