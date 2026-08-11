@@ -216,7 +216,6 @@ export function ScholarEnrollForm({
                 <FieldError errors={[form.formState.errors.email]} />
               </Field>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <Field>
                 <FieldLabel>Country (optional)</FieldLabel>
                 <Input {...form.register("country")} placeholder="Ghana" />
@@ -228,7 +227,6 @@ export function ScholarEnrollForm({
                 <Input {...form.register("whatsappNumber")} placeholder="+233 24 123 4567" />
                 <FieldError errors={[form.formState.errors.whatsappNumber]} />
               </Field>
-            </div>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
