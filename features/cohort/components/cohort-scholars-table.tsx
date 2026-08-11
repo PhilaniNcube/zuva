@@ -24,7 +24,15 @@ import {
   Filter,
 } from "lucide-react";
 
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import {
   Select,
   SelectContent,
@@ -43,6 +51,12 @@ import {
 import { DeleteUserDialog } from "@/features/user/components/delete-user-dialog";
 import { UnenrollScholarDialog } from "./unenroll-scholar-dialog";
 import { waLink } from "@/lib/whatsapp";
+import {
+  MoreHorizontal,
+  User,
+  UserMinus,
+  Trash2,
+} from "lucide-react";
 
 export interface CohortScholarItem {
   id: string;
@@ -118,89 +132,90 @@ export function CohortScholarsTable({
         cell: ({ row }) => {
           const s = row.original;
           return (
-            <Link
-              href={`/admin/scholars/${s.id}`}
-              className="group flex items-center gap-3"
-            >
-              <div className="flex items-center justify-center text-primary font-bold text-xs shrink-0 group-hover:bg-primary/20 transition-colors">
-                {getInitials(s.name)}
+            <div className="flex items-center gap-3 py-0.5 min-w-[200px]">
+              <Avatar className="size-9 shrink-0">
+                <AvatarFallback className="bg-primary/10 text-primary font-bold text-xs">
+                  {getInitials(s.name)}
+                </AvatarFallback>
+              </Avatar>
+              <div className="min-w-0">
+                <Link
+                  href={`/admin/scholars/${s.id}`}
+                  className="font-medium text-foreground text-sm hover:text-primary hover:underline underline-offset-4 transition-colors truncate block"
+                >
+                  {s.name}
+                </Link>
+                <div className="text-xs text-muted-foreground truncate">{s.email}</div>
               </div>
-              <span className="font-medium text-foreground text-sm group-hover:text-primary group-hover:underline underline-offset-4 transition-colors">
-                {s.name}
-              </span>
-            </Link>
+            </div>
           );
         },
-      },
-      {
-        accessorKey: "email",
-        header: "Email",
-        cell: ({ row }) => (
-          <span className="text-sm text-muted-foreground">{row.original.email}</span>
-        ),
       },
       {
         accessorKey: "country",
-        header: "Country",
-        cell: ({ row }) => (
-          <span className="text-sm">{row.original.country ?? "—"}</span>
-        ),
-      },
-      {
-        accessorKey: "degree",
-        header: "Degree",
-        cell: ({ row }) => (
-          <span className="text-sm">{row.original.degree ?? "—"}</span>
-        ),
-      },
-      {
-        accessorKey: "whatsappNumber",
-        header: "WhatsApp",
+        header: "Academic Info",
         cell: ({ row }) => {
-          const phone = row.original.whatsappNumber;
-          if (!phone) return <span className="text-xs text-muted-foreground">—</span>;
-          const link = waLink(
-            phone,
-            `Hi ${row.original.name}, reaching out regarding ZUVA programme.`
-          );
+          const s = row.original;
           return (
-            <a
-              href={link}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-1.5 text-xs font-medium text-emerald-600 hover:text-emerald-700 dark:text-emerald-400 hover:underline"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <MessageCircle className="size-3.5 text-emerald-600 dark:text-emerald-400 shrink-0" />
-              <span>{phone}</span>
-            </a>
+            <div className="space-y-0.5 text-xs">
+              <div className="font-medium text-foreground">{s.country ?? "—"}</div>
+              {s.degree && (
+                <div className="text-muted-foreground truncate max-w-[160px]" title={s.degree}>
+                  {s.degree}
+                </div>
+              )}
+            </div>
           );
         },
       },
       {
-        accessorKey: "linkedinUrl",
-        header: "LinkedIn",
+        id: "contact",
+        header: "Contact & Links",
         cell: ({ row }) => {
-          const url = row.original.linkedinUrl;
-          if (!url) return <span className="text-xs text-muted-foreground">—</span>;
-          const href = url.startsWith("http") ? url : `https://${url}`;
+          const s = row.original;
+          const phone = s.whatsappNumber;
+          const linkedin = s.linkedinUrl;
+
+          if (!phone && !linkedin) {
+            return <span className="text-xs text-muted-foreground">—</span>;
+          }
+
           return (
-            <a
-              href={href}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-1.5 text-xs font-medium text-sky-600 hover:text-sky-700 dark:text-sky-400 hover:underline"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <ExternalLink className="size-3.5 shrink-0" />
-              <span>Profile</span>
-            </a>
+            <div className="flex flex-wrap items-center gap-2">
+              {phone && (
+                <a
+                  href={waLink(
+                    phone,
+                    `Hi ${s.name}, reaching out regarding ZUVA programme.`
+                  )}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1 text-xs font-medium text-emerald-600 hover:text-emerald-700 dark:text-emerald-400 hover:underline"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <MessageCircle className="size-3.5 shrink-0 text-emerald-600 dark:text-emerald-400" />
+                  <span>WhatsApp</span>
+                </a>
+              )}
+              {linkedin && (
+                <a
+                  href={linkedin.startsWith("http") ? linkedin : `https://${linkedin}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1 text-xs font-medium text-sky-600 hover:text-sky-700 dark:text-sky-400 hover:underline"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <ExternalLink className="size-3.5 shrink-0" />
+                  <span>LinkedIn</span>
+                </a>
+              )}
+            </div>
           );
         },
       },
       {
         accessorKey: "onboardedAt",
-        header: "Onboarding Status",
+        header: "Status",
         cell: ({ row }) =>
           row.original.onboardedAt ? (
             <span className="inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20">
@@ -215,20 +230,59 @@ export function CohortScholarsTable({
       {
         id: "actions",
         header: () => <div className="text-right">Actions</div>,
-        cell: ({ row }) => (
-          <div className="flex items-center justify-end gap-2">
-            <UnenrollScholarDialog
-              scholarId={row.original.id}
-              scholarName={row.original.name}
-              cohortId={cohortId}
-            />
-            <DeleteUserDialog
-              userId={row.original.id}
-              userName={row.original.name}
-              userEmail={row.original.email}
-            />
-          </div>
-        ),
+        cell: ({ row }) => {
+          const s = row.original;
+          return (
+            <div className="text-right">
+              <DropdownMenu>
+                <DropdownMenuTrigger
+                  render={
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="size-8 text-muted-foreground hover:text-foreground"
+                    >
+                      <MoreHorizontal className="size-4" />
+                      <span className="sr-only">Open menu</span>
+                    </Button>
+                  }
+                />
+                <DropdownMenuContent align="end" className="w-44">
+                  <DropdownMenuItem render={<Link href={`/admin/scholars/${s.id}`} />}>
+                    <User className="size-3.5 mr-2 text-muted-foreground" />
+                    View Profile
+                  </DropdownMenuItem>
+
+                  <DropdownMenuSeparator />
+
+                  <UnenrollScholarDialog
+                    scholarId={s.id}
+                    scholarName={s.name}
+                    cohortId={cohortId}
+                    trigger={
+                      <DropdownMenuItem variant="default" className="cursor-pointer text-amber-600 dark:text-amber-400">
+                        <UserMinus className="size-3.5 mr-2" />
+                        Unenroll
+                      </DropdownMenuItem>
+                    }
+                  />
+
+                  <DeleteUserDialog
+                    userId={s.id}
+                    userName={s.name}
+                    userEmail={s.email}
+                    trigger={
+                      <DropdownMenuItem variant="destructive" className="cursor-pointer">
+                        <Trash2 className="size-3.5 mr-2" />
+                        Delete Account
+                      </DropdownMenuItem>
+                    }
+                  />
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
+          );
+        },
       },
     ],
     [cohortId]

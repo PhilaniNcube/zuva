@@ -41,12 +41,14 @@ interface UnenrollScholarDialogProps {
   scholarId: string;
   scholarName: string;
   cohortId: string;
+  trigger?: React.ReactElement;
 }
 
 export function UnenrollScholarDialog({
   scholarId,
   scholarName,
   cohortId,
+  trigger,
 }: UnenrollScholarDialogProps) {
   const [open, setOpen] = useState(false);
   const [state, formAction, isPending] = useActionState(action, null);
@@ -78,20 +80,20 @@ export function UnenrollScholarDialog({
     });
   }
 
+  const defaultTrigger = (
+    <Button
+      variant="outline"
+      size="sm"
+      className="gap-1 text-xs text-muted-foreground hover:text-foreground"
+    >
+      <UserMinus className="size-3.5" />
+      Unenroll
+    </Button>
+  );
+
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger
-        render={
-          <Button
-            variant="outline"
-            size="sm"
-            className="gap-1 text-xs text-muted-foreground hover:text-foreground"
-          >
-            <UserMinus className="size-3.5" />
-            Unenroll
-          </Button>
-        }
-      />
+      <DialogTrigger render={trigger ?? defaultTrigger} />
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">

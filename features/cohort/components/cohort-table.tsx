@@ -19,10 +19,20 @@ import {
   Calendar,
   X,
   Loader2,
+  MoreHorizontal,
+  Eye,
+  Trash2,
 } from "lucide-react";
 
 import { format, isValid, parseISO } from "date-fns";
 import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import {
   Select,
   SelectContent,
@@ -139,13 +149,15 @@ export function CohortTable({
       },
       {
         accessorKey: "startsAt",
-        header: "Starts",
-        cell: ({ row }) => formatDate(row.original.startsAt),
-      },
-      {
-        accessorKey: "endsAt",
-        header: "Ends",
-        cell: ({ row }) => formatDate(row.original.endsAt),
+        header: "Dates",
+        cell: ({ row }) => (
+          <div className="text-xs space-y-0.5">
+            <span className="text-foreground font-medium">{formatDate(row.original.startsAt)}</span>
+            <span className="text-muted-foreground block text-[11px]">
+              to {formatDate(row.original.endsAt)}
+            </span>
+          </div>
+        ),
       },
       {
         accessorKey: "status",
@@ -178,14 +190,46 @@ export function CohortTable({
       {
         id: "actions",
         header: () => <div className="text-right">Actions</div>,
-        cell: ({ row }) => (
-          <div className="text-right">
-            <DeleteCohortDialog
-              cohortId={row.original.id}
-              cohortName={row.original.name}
-            />
-          </div>
-        ),
+        cell: ({ row }) => {
+          const c = row.original;
+          return (
+            <div className="text-right">
+              <DropdownMenu>
+                <DropdownMenuTrigger
+                  render={
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="size-8 text-muted-foreground hover:text-foreground"
+                    >
+                      <MoreHorizontal className="size-4" />
+                      <span className="sr-only">Open menu</span>
+                    </Button>
+                  }
+                />
+                <DropdownMenuContent align="end" className="w-44">
+                  <DropdownMenuItem render={<Link href={`/cohorts/${c.id}`} />}>
+                    <Eye className="size-3.5 mr-2 text-muted-foreground" />
+                    View Details
+                  </DropdownMenuItem>
+
+                  <DropdownMenuSeparator />
+
+                  <DeleteCohortDialog
+                    cohortId={c.id}
+                    cohortName={c.name}
+                    trigger={
+                      <DropdownMenuItem variant="destructive" className="cursor-pointer">
+                        <Trash2 className="size-3.5 mr-2" />
+                        Delete Cohort
+                      </DropdownMenuItem>
+                    }
+                  />
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
+          );
+        },
       },
     ],
     []
