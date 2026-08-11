@@ -1,7 +1,7 @@
 "use client";
 
 import { useActionState, useEffect, useState, startTransition } from "react";
-import { useForm } from "react-hook-form";
+import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { toast } from "sonner";
@@ -19,6 +19,13 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import type { ActionResult } from "@/lib/action-result";
 import { adminUpdateScholarProfile } from "@/features/user/user-actions";
 
@@ -31,9 +38,16 @@ const schema = z.object({
   linkedinUrl: z.string().trim().max(300).optional().or(z.literal("")),
   bio: z.string().trim().max(2000).optional().or(z.literal("")),
   mtpText: z.string().trim().max(500).optional().or(z.literal("")),
+  cohortId: z.string().trim().optional().or(z.literal("")),
 });
 
 type FormValues = z.infer<typeof schema>;
+
+export interface CohortOption {
+  id: string;
+  name: string;
+  status?: string;
+}
 
 export interface ScholarProfileData {
   id: string; // user id
@@ -51,6 +65,7 @@ export interface ScholarProfileData {
 
 interface EditScholarDialogProps {
   scholar: ScholarProfileData;
+  cohorts?: CohortOption[];
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }
@@ -70,11 +85,13 @@ async function action(
     linkedinUrl: formData.get("linkedinUrl"),
     bio: formData.get("bio"),
     mtpText: formData.get("mtpText"),
+    cohortId: formData.get("cohortId"),
   });
 }
 
 export function EditScholarDialog({
   scholar,
+  cohorts = [],
   open,
   onOpenChange,
 }: EditScholarDialogProps) {
@@ -94,6 +111,7 @@ export function EditScholarDialog({
       linkedinUrl: scholar.linkedinUrl || "",
       bio: scholar.bio || "",
       mtpText: scholar.mtpText || "",
+      cohortId: scholar.cohortId || "",
     },
   });
 
@@ -107,6 +125,7 @@ export function EditScholarDialog({
       linkedinUrl: scholar.linkedinUrl || "",
       bio: scholar.bio || "",
       mtpText: scholar.mtpText || "",
+      cohortId: scholar.cohortId || "",
     });
   }, [scholar, form]);
 
@@ -130,6 +149,7 @@ export function EditScholarDialog({
     formData.set("linkedinUrl", data.linkedinUrl || "");
     formData.set("bio", data.bio || "");
     formData.set("mtpText", data.mtpText || "");
+    formData.set("cohortId", data.cohortId || "");
 
     startTransition(() => {
       formAction(formData);
@@ -201,6 +221,38 @@ export function EditScholarDialog({
               />
             </Field>
           </div>
+
+          {cohorts.length > 0 && (
+            <Field>
+              <FieldLabel className="flex items-center gap-1.5">
+                <GraduationCap className="size-3.5 text-primary" />
+                Assigned Cohort Intake
+              </FieldLabel>
+              <Controller
+                control={form.control}
+                name="cohortId"
+                render={({ field }) => (
+                  <Select
+                    value={field.value || "none"}
+                    onValueChange={(val) => field.onChange(val === "none" ? "" : val)}
+                    disabled={isPending}
+                  >
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Select cohort intake..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">Unassigned (No Cohort)</SelectItem>
+                      {cohorts.map((c) => (
+                        <SelectItem key={c.id} value={c.id}>
+                          {c.name} {c.status ? `(${c.status})` : ""}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+              />
+            </Field>
+          )}
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <Field>

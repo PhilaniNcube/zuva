@@ -69,7 +69,7 @@ import {
 import type { ActionResult } from "@/lib/action-result";
 import type { Role } from "@/lib/roles";
 import { waLink } from "@/lib/whatsapp";
-import { EditScholarDialog } from "./edit-scholar-dialog";
+import { EditScholarDialog, type CohortOption } from "./edit-scholar-dialog";
 
 export interface UserItem {
   id: string;
@@ -91,6 +91,7 @@ export interface UserItem {
 
 interface UserManagementTableProps {
   users: UserItem[];
+  cohorts?: CohortOption[];
   totalCount?: number;
   pageCount?: number;
   page?: number;
@@ -240,6 +241,7 @@ function formatDate(d: Date | string | null | undefined) {
 
 export function UserManagementTable({
   users,
+  cohorts = [],
   totalCount = users.length,
   pageCount = 1,
   page: serverPage = 1,
@@ -798,6 +800,7 @@ export function UserManagementTable({
       {editingScholar && (
         <EditScholarDialog
           scholar={editingScholar}
+          cohorts={cohorts}
           open={Boolean(editingScholar)}
           onOpenChange={(open) => {
             if (!open) setEditingScholar(null);

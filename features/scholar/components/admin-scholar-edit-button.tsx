@@ -3,9 +3,15 @@
 import { useState } from "react";
 import { UserPen } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { EditScholarDialog, type ScholarProfileData } from "@/features/user/components/edit-scholar-dialog";
+import { EditScholarDialog, type CohortOption, type ScholarProfileData } from "@/features/user/components/edit-scholar-dialog";
 
-export function AdminScholarEditButton({ scholar }: { scholar: ScholarProfileData }) {
+export function AdminScholarEditButton({
+  scholar,
+  cohorts = [],
+}: {
+  scholar: ScholarProfileData;
+  cohorts?: CohortOption[];
+}) {
   const [open, setOpen] = useState(false);
 
   return (
@@ -22,6 +28,7 @@ export function AdminScholarEditButton({ scholar }: { scholar: ScholarProfileDat
       {open && (
         <EditScholarDialog
           scholar={scholar}
+          cohorts={cohorts}
           open={open}
           onOpenChange={setOpen}
         />

@@ -49,7 +49,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { DeleteUserDialog } from "@/features/user/components/delete-user-dialog";
-import { EditScholarDialog } from "@/features/user/components/edit-scholar-dialog";
+import { EditScholarDialog, type CohortOption } from "@/features/user/components/edit-scholar-dialog";
 import { UnenrollScholarDialog } from "./unenroll-scholar-dialog";
 import { waLink } from "@/lib/whatsapp";
 import {
@@ -75,6 +75,7 @@ export interface CohortScholarItem {
 interface CohortScholarsTableProps {
   cohortId: string;
   scholars: CohortScholarItem[];
+  cohorts?: CohortOption[];
   totalCount: number;
   pageCount: number;
   page: number;
@@ -93,6 +94,7 @@ function getInitials(name: string): string {
 export function CohortScholarsTable({
   cohortId,
   scholars,
+  cohorts = [],
   totalCount,
   pageCount,
   page: serverPage,
@@ -547,7 +549,8 @@ export function CohortScholarsTable({
       {/* Edit Scholar Dialog */}
       {editingScholar && (
         <EditScholarDialog
-          scholar={editingScholar}
+          scholar={{ ...editingScholar, cohortId }}
+          cohorts={cohorts}
           open={Boolean(editingScholar)}
           onOpenChange={(open) => {
             if (!open) setEditingScholar(null);

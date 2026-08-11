@@ -493,33 +493,29 @@ export async function adminUpdateScholarProfile(input: unknown): Promise<ActionR
     .from(scholarProfile)
     .where(eq(scholarProfile.userId, v.userId));
 
-  const cohortIdVal = v.cohortId && v.cohortId !== "" ? v.cohortId : null;
+  const updateData: Partial<typeof scholarProfile.$inferInsert> = {
+    country: v.country || null,
+    degree: v.degree || null,
+    institution: v.institution || null,
+    whatsappNumber: v.whatsappNumber || null,
+    linkedinUrl: v.linkedinUrl || null,
+    bio: v.bio || null,
+    mtpText: v.mtpText || null,
+  };
+
+  if (v.cohortId !== undefined) {
+    updateData.cohortId = v.cohortId === "" ? null : v.cohortId;
+  }
 
   if (existingProfile) {
     await db
       .update(scholarProfile)
-      .set({
-        country: v.country || null,
-        degree: v.degree || null,
-        institution: v.institution || null,
-        whatsappNumber: v.whatsappNumber || null,
-        linkedinUrl: v.linkedinUrl || null,
-        bio: v.bio || null,
-        mtpText: v.mtpText || null,
-        ...(cohortIdVal !== undefined && { cohortId: cohortIdVal }),
-      })
+      .set(updateData)
       .where(eq(scholarProfile.id, existingProfile.id));
   } else {
     await db.insert(scholarProfile).values({
       userId: v.userId,
-      country: v.country || null,
-      degree: v.degree || null,
-      institution: v.institution || null,
-      whatsappNumber: v.whatsappNumber || null,
-      linkedinUrl: v.linkedinUrl || null,
-      bio: v.bio || null,
-      mtpText: v.mtpText || null,
-      cohortId: cohortIdVal,
+      ...updateData,
     });
   }
 

@@ -1,5 +1,6 @@
 import { requireRole } from "@/lib/rbac";
 import { getUsersForAdminPaginated } from "@/features/user/user-queries";
+import { listCohorts } from "@/features/cohort/cohort-queries";
 import {
   UserManagementTable,
   UserManagementTableSkeleton,
@@ -23,19 +24,23 @@ export async function UsersContent({
   onboardingStatus,
 }: UsersContentProps = {}) {
   const session = await requireRole("admin");
-  const { users, totalCount, pageCount, availableCountries } =
-    await getUsersForAdminPaginated({
-      page,
-      pageSize,
-      country,
-      role,
-      search,
-      onboardingStatus,
-    });
+  const [{ users, totalCount, pageCount, availableCountries }, cohorts] =
+    await Promise.all([
+      getUsersForAdminPaginated({
+        page,
+        pageSize,
+        country,
+        role,
+        search,
+        onboardingStatus,
+      }),
+      listCohorts(),
+    ]);
 
   return (
     <UserManagementTable
       users={users}
+      cohorts={cohorts}
       totalCount={totalCount}
       pageCount={pageCount}
       page={page}

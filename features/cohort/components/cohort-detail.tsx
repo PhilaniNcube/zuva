@@ -2,7 +2,7 @@ import { notFound } from "next/navigation";
 import { format, isValid } from "date-fns";
 import { History, Calendar } from "lucide-react";
 
-import { getCohort, listCohortScholarsPaginated } from "../cohort-queries";
+import { getCohort, listCohortScholarsPaginated, listCohorts } from "../cohort-queries";
 import { CohortEditForm } from "./cohort-edit-form";
 import { CohortScholarsTable } from "./cohort-scholars-table";
 import { DeleteCohortDialog } from "./delete-cohort-dialog";
@@ -25,7 +25,7 @@ export async function CohortDetail({
   onboardingStatus,
 }: CohortDetailProps) {
   const cohortId = typeof id === "string" ? id : await id;
-  const [cohort, scholarData] = await Promise.all([
+  const [cohort, scholarData, cohorts] = await Promise.all([
     getCohort(cohortId),
     listCohortScholarsPaginated({
       cohortId,
@@ -34,6 +34,7 @@ export async function CohortDetail({
       country,
       onboardingStatus,
     }),
+    listCohorts(),
   ]);
   if (!cohort) notFound();
 
@@ -113,6 +114,7 @@ export async function CohortDetail({
         <CohortScholarsTable
           cohortId={cohort.id}
           scholars={scholars}
+          cohorts={cohorts}
           totalCount={totalCount}
           pageCount={pageCount}
           page={page}

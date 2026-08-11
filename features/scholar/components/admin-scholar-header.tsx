@@ -15,7 +15,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { getCohort } from "@/features/cohort/cohort-queries";
+import { getCohort, listCohorts } from "@/features/cohort/cohort-queries";
 import { getUser, getScholarProfile } from "@/features/user/user-queries";
 import { waLink } from "@/lib/whatsapp";
 import { AdminScholarEditButton } from "./admin-scholar-edit-button";
@@ -27,9 +27,10 @@ function getInitials(name: string): string {
 }
 
 export async function AdminScholarHeader({ scholarId }: { scholarId: string }) {
-  const [user, profile] = await Promise.all([
+  const [user, profile, cohorts] = await Promise.all([
     getUser(scholarId),
     getScholarProfile(scholarId),
+    listCohorts(),
   ]);
   if (!user || user.role !== "scholar") notFound();
 
@@ -96,6 +97,7 @@ export async function AdminScholarHeader({ scholarId }: { scholarId: string }) {
                     mtpText: profile?.mtpText,
                     cohortId: profile?.cohortId,
                   }}
+                  cohorts={cohorts}
                 />
               </div>
             </div>
