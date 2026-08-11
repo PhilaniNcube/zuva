@@ -131,9 +131,7 @@ export function CohortTable({
           const c = row.original;
           return (
             <div className="flex items-center gap-3 py-1">
-              <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center text-primary font-bold text-sm shrink-0">
-                {c.name.slice(0, 1).toUpperCase()}
-              </div>
+
               <div>
                 <Link
                   href={`/cohorts/${c.id}`}
@@ -166,9 +164,8 @@ export function CohortTable({
           const status = row.original.status;
           return (
             <span
-              className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium capitalize ${
-                STATUS_STYLES[status] ?? STATUS_STYLES.draft
-              }`}
+              className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium capitalize ${STATUS_STYLES[status] ?? STATUS_STYLES.draft
+                }`}
             >
               {status}
             </span>
@@ -330,9 +327,9 @@ export function CohortTable({
                     {header.isPlaceholder
                       ? null
                       : flexRender(
-                          header.column.columnDef.header,
-                          header.getContext()
-                        )}
+                        header.column.columnDef.header,
+                        header.getContext()
+                      )}
                   </TableHead>
                 ))}
               </TableRow>
