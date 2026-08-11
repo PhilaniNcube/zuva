@@ -29,6 +29,7 @@ const schema = z.object({
   name: z.string().trim().min(2, "Scholar name is required").max(100),
   email: z.string().email("A valid email is required"),
   country: z.string().trim().max(100).optional().or(z.literal("")),
+  whatsappNumber: z.string().trim().max(30).optional().or(z.literal("")),
   degree: z.string().trim().max(150).optional().or(z.literal("")),
   institution: z.string().trim().max(150).optional().or(z.literal("")),
   sendEmail: z.boolean(),
@@ -47,6 +48,7 @@ async function action(
     name: formData.get("name"),
     email: formData.get("email"),
     country: formData.get("country"),
+    whatsappNumber: formData.get("whatsappNumber"),
     degree: formData.get("degree"),
     institution: formData.get("institution"),
     sendEmail: formData.get("sendEmail") === "true",
@@ -86,6 +88,7 @@ export function ScholarEnrollForm({
       name: "",
       email: "",
       country: "",
+      whatsappNumber: "",
       degree: "",
       institution: "",
       sendEmail: !isPast,
@@ -111,6 +114,7 @@ export function ScholarEnrollForm({
     formData.set("name", data.name);
     formData.set("email", data.email);
     formData.set("country", data.country ?? "");
+    formData.set("whatsappNumber", data.whatsappNumber ?? "");
     formData.set("degree", data.degree ?? "");
     formData.set("institution", data.institution ?? "");
     formData.set("sendEmail", sendEmail ? "true" : "false");
@@ -212,11 +216,19 @@ export function ScholarEnrollForm({
                 <FieldError errors={[form.formState.errors.email]} />
               </Field>
 
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <Field>
                 <FieldLabel>Country (optional)</FieldLabel>
                 <Input {...form.register("country")} placeholder="Ghana" />
                 <FieldError errors={[form.formState.errors.country]} />
               </Field>
+
+              <Field>
+                <FieldLabel>WhatsApp / Phone (optional)</FieldLabel>
+                <Input {...form.register("whatsappNumber")} placeholder="+233 24 123 4567" />
+                <FieldError errors={[form.formState.errors.whatsappNumber]} />
+              </Field>
+            </div>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">

@@ -56,6 +56,7 @@ const enrollSchema = z.object({
   country: z.string().trim().max(100).optional().or(z.literal("")),
   degree: z.string().trim().max(150).optional().or(z.literal("")),
   institution: z.string().trim().max(150).optional().or(z.literal("")),
+  whatsappNumber: z.string().trim().max(30).optional().or(z.literal("")),
   sendEmail: z.boolean().optional().default(true),
   markOnboardingCompleted: z.boolean().optional().default(false),
 });
@@ -72,7 +73,7 @@ export async function enrollScholar(
   if (!parsed.success) {
     return { ok: false, error: parsed.error.issues[0].message };
   }
-  const { cohortId, name, email, country, degree, institution, sendEmail, markOnboardingCompleted } = parsed.data;
+  const { cohortId, name, email, country, degree, institution, whatsappNumber, sendEmail, markOnboardingCompleted } = parsed.data;
 
   const [existingUser] = await db
     .select()
@@ -107,6 +108,7 @@ export async function enrollScholar(
           country: country || existingProfile.country,
           degree: degree || existingProfile.degree,
           institution: institution || existingProfile.institution,
+          whatsappNumber: whatsappNumber || existingProfile.whatsappNumber,
           onboardingCompletedAt:
             markOnboardingCompleted && !existingProfile.onboardingCompletedAt
               ? new Date()
@@ -120,6 +122,7 @@ export async function enrollScholar(
         country: country || null,
         degree: degree || null,
         institution: institution || null,
+        whatsappNumber: whatsappNumber || null,
         onboardingCompletedAt: markOnboardingCompleted ? new Date() : null,
       });
     }
@@ -144,6 +147,7 @@ export async function enrollScholar(
       country: country || null,
       degree: degree || null,
       institution: institution || null,
+      whatsappNumber: whatsappNumber || null,
       onboardingCompletedAt: markOnboardingCompleted ? new Date() : null,
     });
   }
