@@ -19,6 +19,7 @@ import {
   ShieldAlert,
   ShieldCheck,
   UserCheck,
+  UserPen,
   Clock,
   Globe,
   ChevronLeft,
@@ -68,6 +69,7 @@ import {
 import type { ActionResult } from "@/lib/action-result";
 import type { Role } from "@/lib/roles";
 import { waLink } from "@/lib/whatsapp";
+import { EditScholarDialog } from "./edit-scholar-dialog";
 
 export interface UserItem {
   id: string;
@@ -77,6 +79,7 @@ export interface UserItem {
   image: string | null;
   country?: string | null;
   degree?: string | null;
+  institution?: string | null;
   whatsappNumber?: string | null;
   linkedinUrl?: string | null;
   onboardedAt?: Date | string | null;
@@ -249,6 +252,7 @@ export function UserManagementTable({
   currentUserId,
 }: UserManagementTableProps) {
   const [isPending, startTransition] = useTransition();
+  const [editingScholar, setEditingScholar] = useState<UserItem | null>(null);
 
   const [page, setPage] = useQueryState(
     "page",
@@ -349,12 +353,27 @@ export function UserManagementTable({
       },
       {
         accessorKey: "degree",
-        header: "Degree",
-        cell: ({ row }) => (
-          <span className="text-xs text-muted-foreground font-mono">
-            {row.original.degree ?? "—"}
-          </span>
-        ),
+        header: "Degree / Institute",
+        cell: ({ row }) => {
+          const u = row.original;
+          if (!u.degree && !u.institution) {
+            return <span className="text-xs text-muted-foreground">—</span>;
+          }
+          return (
+            <div className="space-y-0.5 text-xs">
+              {u.institution && (
+                <div className="font-medium text-foreground truncate max-w-[160px]" title={u.institution}>
+                  {u.institution}
+                </div>
+              )}
+              {u.degree && (
+                <div className="text-muted-foreground truncate max-w-[160px]" title={u.degree}>
+                  {u.degree}
+                </div>
+              )}
+            </div>
+          );
+        },
       },
       {
         accessorKey: "whatsappNumber",
@@ -476,6 +495,17 @@ export function UserManagementTable({
 
           return (
             <div className="flex items-center justify-end gap-2">
+              {isScholar && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="gap-1 text-xs"
+                  onClick={() => setEditingScholar(u)}
+                >
+                  <UserPen className="size-3.5" />
+                  Edit
+                </Button>
+              )}
               {!isAdmin && <PromoteAdminDialog user={u} disabled={isScholar} />}
               {!isSelf && (
                 <DeleteUserDialog
@@ -762,6 +792,17 @@ export function UserManagementTable({
             </div>
           </div>
         </div>
+      )}
+
+      {/* Edit Scholar Dialog */}
+      {editingScholar && (
+        <EditScholarDialog
+          scholar={editingScholar}
+          open={Boolean(editingScholar)}
+          onOpenChange={(open) => {
+            if (!open) setEditingScholar(null);
+          }}
+        />
       )}
     </div>
   );

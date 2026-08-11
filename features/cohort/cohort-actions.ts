@@ -54,6 +54,8 @@ const enrollSchema = z.object({
   name: z.string().trim().min(2, "Scholar name is required").max(100),
   email: z.string().email("A valid email is required"),
   country: z.string().trim().max(100).optional().or(z.literal("")),
+  degree: z.string().trim().max(150).optional().or(z.literal("")),
+  institution: z.string().trim().max(150).optional().or(z.literal("")),
   sendEmail: z.boolean().optional().default(true),
   markOnboardingCompleted: z.boolean().optional().default(false),
 });
@@ -70,7 +72,7 @@ export async function enrollScholar(
   if (!parsed.success) {
     return { ok: false, error: parsed.error.issues[0].message };
   }
-  const { cohortId, name, email, country, sendEmail, markOnboardingCompleted } = parsed.data;
+  const { cohortId, name, email, country, degree, institution, sendEmail, markOnboardingCompleted } = parsed.data;
 
   const [existingUser] = await db
     .select()
@@ -103,6 +105,8 @@ export async function enrollScholar(
         .set({
           cohortId,
           country: country || existingProfile.country,
+          degree: degree || existingProfile.degree,
+          institution: institution || existingProfile.institution,
           onboardingCompletedAt:
             markOnboardingCompleted && !existingProfile.onboardingCompletedAt
               ? new Date()
@@ -114,6 +118,8 @@ export async function enrollScholar(
         userId,
         cohortId,
         country: country || null,
+        degree: degree || null,
+        institution: institution || null,
         onboardingCompletedAt: markOnboardingCompleted ? new Date() : null,
       });
     }
@@ -136,6 +142,8 @@ export async function enrollScholar(
       userId,
       cohortId,
       country: country || null,
+      degree: degree || null,
+      institution: institution || null,
       onboardingCompletedAt: markOnboardingCompleted ? new Date() : null,
     });
   }
@@ -163,7 +171,8 @@ const bulkScholarItemSchema = z.object({
   name: z.string().trim().min(2, "Scholar name is required").max(100),
   email: z.string().email("A valid email is required"),
   country: z.string().trim().max(100).optional().or(z.literal("")),
-  degree: z.string().trim().max(100).optional().or(z.literal("")),
+  degree: z.string().trim().max(150).optional().or(z.literal("")),
+  institution: z.string().trim().max(150).optional().or(z.literal("")),
 });
 
 const bulkEnrollSchema = z.object({
@@ -228,6 +237,7 @@ export async function bulkEnrollScholars(
               cohortId,
               country: s.country || existingProfile.country,
               degree: s.degree || existingProfile.degree,
+              institution: s.institution || existingProfile.institution,
               onboardingCompletedAt:
                 markOnboardingCompleted && !existingProfile.onboardingCompletedAt
                   ? new Date()
@@ -240,6 +250,7 @@ export async function bulkEnrollScholars(
             cohortId,
             country: s.country || null,
             degree: s.degree || null,
+            institution: s.institution || null,
             onboardingCompletedAt: markOnboardingCompleted ? new Date() : null,
           });
         }
@@ -257,6 +268,7 @@ export async function bulkEnrollScholars(
           cohortId,
           country: s.country || null,
           degree: s.degree || null,
+          institution: s.institution || null,
           onboardingCompletedAt: markOnboardingCompleted ? new Date() : null,
         });
 

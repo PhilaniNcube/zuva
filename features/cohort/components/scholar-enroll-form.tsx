@@ -29,6 +29,8 @@ const schema = z.object({
   name: z.string().trim().min(2, "Scholar name is required").max(100),
   email: z.string().email("A valid email is required"),
   country: z.string().trim().max(100).optional().or(z.literal("")),
+  degree: z.string().trim().max(150).optional().or(z.literal("")),
+  institution: z.string().trim().max(150).optional().or(z.literal("")),
   sendEmail: z.boolean(),
   markOnboardingCompleted: z.boolean(),
 });
@@ -45,6 +47,8 @@ async function action(
     name: formData.get("name"),
     email: formData.get("email"),
     country: formData.get("country"),
+    degree: formData.get("degree"),
+    institution: formData.get("institution"),
     sendEmail: formData.get("sendEmail") === "true",
     markOnboardingCompleted: formData.get("markOnboardingCompleted") === "true",
   });
@@ -82,6 +86,8 @@ export function ScholarEnrollForm({
       name: "",
       email: "",
       country: "",
+      degree: "",
+      institution: "",
       sendEmail: !isPast,
       markOnboardingCompleted: isPast,
     },
@@ -105,6 +111,8 @@ export function ScholarEnrollForm({
     formData.set("name", data.name);
     formData.set("email", data.email);
     formData.set("country", data.country ?? "");
+    formData.set("degree", data.degree ?? "");
+    formData.set("institution", data.institution ?? "");
     formData.set("sendEmail", sendEmail ? "true" : "false");
     formData.set("markOnboardingCompleted", markOnboardingCompleted ? "true" : "false");
     startTransition(() => {
@@ -208,6 +216,20 @@ export function ScholarEnrollForm({
                 <FieldLabel>Country (optional)</FieldLabel>
                 <Input {...form.register("country")} placeholder="Ghana" />
                 <FieldError errors={[form.formState.errors.country]} />
+              </Field>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <Field>
+                <FieldLabel>Institution / University (optional)</FieldLabel>
+                <Input {...form.register("institution")} placeholder="University of Ghana" />
+                <FieldError errors={[form.formState.errors.institution]} />
+              </Field>
+
+              <Field>
+                <FieldLabel>Degree (optional)</FieldLabel>
+                <Input {...form.register("degree")} placeholder="MSc Computer Science" />
+                <FieldError errors={[form.formState.errors.degree]} />
               </Field>
             </div>
 

@@ -12,6 +12,7 @@ import {
   EyeOff,
   Save,
   ShieldCheck,
+  Building2,
   Globe,
   Phone,
   FileText,
@@ -41,6 +42,7 @@ const detailsSchema = z.object({
   name: z.string().trim().min(2, "Full name must be at least 2 characters").max(100),
   country: z.string().trim().max(100).optional().or(z.literal("")),
   degree: z.string().trim().max(150).optional().or(z.literal("")),
+  institution: z.string().trim().max(150).optional().or(z.literal("")),
   whatsappNumber: z.string().trim().max(30).optional().or(z.literal("")),
   linkedinUrl: z.string().trim().max(300).optional().or(z.literal("")),
   bio: z.string().trim().max(2000).optional().or(z.literal("")),
@@ -74,6 +76,7 @@ async function submitDetailsAction(
     name: formData.get("name"),
     country: formData.get("country"),
     degree: formData.get("degree"),
+    institution: formData.get("institution"),
     whatsappNumber: formData.get("whatsappNumber"),
     linkedinUrl: formData.get("linkedinUrl"),
     bio: formData.get("bio"),
@@ -116,6 +119,7 @@ export function ProfileEditForm({ user, scholarProfileData }: ProfileEditFormPro
       name: user.name || "",
       country: scholarProfileData?.country || "",
       degree: scholarProfileData?.degree || "",
+      institution: scholarProfileData?.institution || "",
       whatsappNumber: scholarProfileData?.whatsappNumber || "",
       linkedinUrl: scholarProfileData?.linkedinUrl || "",
       bio: scholarProfileData?.bio || "",
@@ -137,6 +141,7 @@ export function ProfileEditForm({ user, scholarProfileData }: ProfileEditFormPro
     formData.set("name", data.name);
     formData.set("country", data.country ?? "");
     formData.set("degree", data.degree ?? "");
+    formData.set("institution", data.institution ?? "");
     formData.set("whatsappNumber", data.whatsappNumber ?? "");
     formData.set("linkedinUrl", data.linkedinUrl ?? "");
     formData.set("bio", data.bio ?? "");
@@ -247,7 +252,7 @@ export function ProfileEditForm({ user, scholarProfileData }: ProfileEditFormPro
 
               {user.role === "scholar" && (
                 <>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-2">
                     <Field>
                       <FieldLabel htmlFor="country" className="flex items-center gap-1.5">
                         <Globe className="size-3.5" />
@@ -259,6 +264,19 @@ export function ProfileEditForm({ user, scholarProfileData }: ProfileEditFormPro
                         placeholder="e.g. Kenya, Zimbabwe, Nigeria"
                       />
                       <FieldError errors={[detailsForm.formState.errors.country]} />
+                    </Field>
+
+                    <Field>
+                      <FieldLabel htmlFor="institution" className="flex items-center gap-1.5">
+                        <Building2 className="size-3.5" />
+                        Institution / University
+                      </FieldLabel>
+                      <Input
+                        id="institution"
+                        {...detailsForm.register("institution")}
+                        placeholder="e.g. University of Cape Town"
+                      />
+                      <FieldError errors={[detailsForm.formState.errors.institution]} />
                     </Field>
 
                     <Field>

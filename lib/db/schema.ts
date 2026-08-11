@@ -120,6 +120,7 @@ export const scholarProfile = sqliteTable(
     }),
     country: text("country"),
     degree: text("degree"),
+    institution: text("institution"),
     whatsappNumber: text("whatsapp_number"),
     linkedinUrl: text("linkedin_url"),
     bio: text("bio"),

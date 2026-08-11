@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useTransition } from "react";
+import { useMemo, useState, useTransition } from "react";
 import { parseAsInteger, parseAsString, useQueryState } from "nuqs";
 import {
   ColumnDef,
@@ -49,11 +49,13 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { DeleteUserDialog } from "@/features/user/components/delete-user-dialog";
+import { EditScholarDialog } from "@/features/user/components/edit-scholar-dialog";
 import { UnenrollScholarDialog } from "./unenroll-scholar-dialog";
 import { waLink } from "@/lib/whatsapp";
 import {
   MoreHorizontal,
   User,
+  UserPen,
   UserMinus,
   Trash2,
 } from "lucide-react";
@@ -64,6 +66,7 @@ export interface CohortScholarItem {
   email: string;
   country: string | null;
   degree?: string | null;
+  institution?: string | null;
   whatsappNumber?: string | null;
   linkedinUrl?: string | null;
   onboardedAt: Date | string | null;
@@ -99,6 +102,7 @@ export function CohortScholarsTable({
   availableCountries,
 }: CohortScholarsTableProps) {
   const [isPending, startTransition] = useTransition();
+  const [editingScholar, setEditingScholar] = useState<CohortScholarItem | null>(null);
 
   const [page, setPage] = useQueryState(
     "page",
@@ -159,8 +163,13 @@ export function CohortScholarsTable({
           return (
             <div className="space-y-0.5 text-xs">
               <div className="font-medium text-foreground">{s.country ?? "—"}</div>
+              {s.institution && (
+                <div className="text-muted-foreground font-medium truncate max-w-[180px]" title={s.institution}>
+                  {s.institution}
+                </div>
+              )}
               {s.degree && (
-                <div className="text-muted-foreground truncate max-w-[160px]" title={s.degree}>
+                <div className="text-muted-foreground/80 truncate max-w-[180px]" title={s.degree}>
                   {s.degree}
                 </div>
               )}
@@ -251,6 +260,14 @@ export function CohortScholarsTable({
                   <DropdownMenuItem render={<Link href={`/admin/scholars/${s.id}`} />}>
                     <User className="size-3.5 mr-2 text-muted-foreground" />
                     View Profile
+                  </DropdownMenuItem>
+
+                  <DropdownMenuItem
+                    className="cursor-pointer"
+                    onClick={() => setEditingScholar(s)}
+                  >
+                    <UserPen className="size-3.5 mr-2 text-muted-foreground" />
+                    Edit Details
                   </DropdownMenuItem>
 
                   <DropdownMenuSeparator />
@@ -526,6 +543,16 @@ export function CohortScholarsTable({
             </div>
           </div>
         </div>
+      )}
+      {/* Edit Scholar Dialog */}
+      {editingScholar && (
+        <EditScholarDialog
+          scholar={editingScholar}
+          open={Boolean(editingScholar)}
+          onOpenChange={(open) => {
+            if (!open) setEditingScholar(null);
+          }}
+        />
       )}
     </div>
   );

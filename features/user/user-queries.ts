@@ -138,6 +138,7 @@ export const getUsersForAdminPaginated = cache(
         image: user.image,
         country: scholarProfile.country,
         degree: scholarProfile.degree,
+        institution: scholarProfile.institution,
         whatsappNumber: scholarProfile.whatsappNumber,
         linkedinUrl: scholarProfile.linkedinUrl,
         onboardedAt: scholarProfile.onboardingCompletedAt,

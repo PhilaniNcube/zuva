@@ -23,6 +23,12 @@ const schema = z.object({
     .max(150)
     .optional()
     .or(z.literal("")),
+  institution: z
+    .string()
+    .trim()
+    .max(150)
+    .optional()
+    .or(z.literal("")),
   whatsappNumber: z
     .string()
     .trim()
@@ -48,6 +54,7 @@ async function action(
   return completeOnboarding({
     country: formData.get("country"),
     degree: formData.get("degree"),
+    institution: formData.get("institution"),
     whatsappNumber: formData.get("whatsappNumber"),
     linkedinUrl: formData.get("linkedinUrl"),
     bio: formData.get("bio"),
@@ -58,6 +65,7 @@ async function action(
 type InitialValues = {
   country: string;
   degree?: string;
+  institution?: string;
   whatsappNumber: string;
   linkedinUrl?: string;
   bio: string;
@@ -89,6 +97,7 @@ export function OnboardingWizard({ initial }: { initial: InitialValues }) {
     const formData = new FormData();
     formData.set("country", data.country);
     formData.set("degree", data.degree ?? "");
+    formData.set("institution", data.institution ?? "");
     formData.set("whatsappNumber", data.whatsappNumber ?? "");
     formData.set("linkedinUrl", data.linkedinUrl ?? "");
     formData.set("bio", data.bio);
@@ -158,6 +167,12 @@ export function OnboardingWizard({ initial }: { initial: InitialValues }) {
             <FieldLabel>Country</FieldLabel>
             <Input {...form.register("country")} placeholder="e.g. Zimbabwe" />
             <FieldError errors={[form.formState.errors.country]} />
+          </Field>
+
+          <Field>
+            <FieldLabel>Institution / University (optional)</FieldLabel>
+            <Input {...form.register("institution")} placeholder="e.g. University of Cape Town" />
+            <FieldError errors={[form.formState.errors.institution]} />
           </Field>
 
           <Field>

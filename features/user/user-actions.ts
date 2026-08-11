@@ -20,6 +20,12 @@ const onboardingSchema = z.object({
     .max(150, "Degree title is too long")
     .optional()
     .or(z.literal("")),
+  institution: z
+    .string()
+    .trim()
+    .max(150, "Institution name is too long")
+    .optional()
+    .or(z.literal("")),
   whatsappNumber: z
     .string()
     .trim()
@@ -64,6 +70,7 @@ export async function completeOnboarding(input: unknown): Promise<ActionResult> 
       .set({
         country: v.country,
         degree: v.degree || null,
+        institution: v.institution || null,
         whatsappNumber: v.whatsappNumber || null,
         linkedinUrl: v.linkedinUrl || null,
         bio: v.bio,
@@ -76,6 +83,7 @@ export async function completeOnboarding(input: unknown): Promise<ActionResult> 
       userId: user.id,
       country: v.country,
       degree: v.degree || null,
+      institution: v.institution || null,
       whatsappNumber: v.whatsappNumber || null,
       linkedinUrl: v.linkedinUrl || null,
       bio: v.bio,
@@ -92,6 +100,7 @@ const updateProfileSchema = z.object({
   name: z.string().trim().min(2, "Full name must be at least 2 characters").max(100),
   country: z.string().trim().max(100).optional().or(z.literal("")),
   degree: z.string().trim().max(150).optional().or(z.literal("")),
+  institution: z.string().trim().max(150).optional().or(z.literal("")),
   whatsappNumber: z.string().trim().max(30).optional().or(z.literal("")),
   linkedinUrl: z.string().trim().max(300).optional().or(z.literal("")),
   bio: z.string().trim().max(2000).optional().or(z.literal("")),
@@ -127,6 +136,7 @@ export async function updateProfileDetails(input: unknown): Promise<ActionResult
         .set({
           country: v.country || existing.country,
           degree: v.degree ?? existing.degree,
+          institution: v.institution ?? existing.institution,
           whatsappNumber: v.whatsappNumber ?? existing.whatsappNumber,
           linkedinUrl: v.linkedinUrl ?? existing.linkedinUrl,
           bio: v.bio ?? existing.bio,
@@ -138,6 +148,7 @@ export async function updateProfileDetails(input: unknown): Promise<ActionResult
         userId: currentUser.id,
         country: v.country,
         degree: v.degree || null,
+        institution: v.institution || null,
         whatsappNumber: v.whatsappNumber || null,
         linkedinUrl: v.linkedinUrl || null,
         bio: v.bio,
@@ -440,6 +451,82 @@ export async function updateScholarBioRewriteStatus(
   refresh();
   return { ok: true, data: undefined };
 }
+
+const adminUpdateScholarSchema = z.object({
+  userId: z.string().trim().min(1, "Scholar User ID is required"),
+  name: z.string().trim().min(2, "Full name is required").max(100),
+  country: z.string().trim().max(100).optional().or(z.literal("")),
+  degree: z.string().trim().max(150).optional().or(z.literal("")),
+  institution: z.string().trim().max(150).optional().or(z.literal("")),
+  whatsappNumber: z.string().trim().max(30).optional().or(z.literal("")),
+  linkedinUrl: z.string().trim().max(300).optional().or(z.literal("")),
+  bio: z.string().trim().max(2000).optional().or(z.literal("")),
+  mtpText: z.string().trim().max(500).optional().or(z.literal("")),
+  cohortId: z.string().trim().optional().or(z.literal("")),
+});
+
+export async function adminUpdateScholarProfile(input: unknown): Promise<ActionResult> {
+  await requireRole("admin");
+  const parsed = adminUpdateScholarSchema.safeParse(input);
+  if (!parsed.success) {
+    return { ok: false, error: parsed.error.issues[0].message };
+  }
+  const v = parsed.data;
+
+  const [existingUser] = await db
+    .select()
+    .from(userTable)
+    .where(eq(userTable.id, v.userId));
+
+  if (!existingUser) {
+    return { ok: false, error: "User not found" };
+  }
+
+  // Update user name
+  await db
+    .update(userTable)
+    .set({ name: v.name })
+    .where(eq(userTable.id, v.userId));
+
+  const [existingProfile] = await db
+    .select()
+    .from(scholarProfile)
+    .where(eq(scholarProfile.userId, v.userId));
+
+  const cohortIdVal = v.cohortId && v.cohortId !== "" ? v.cohortId : null;
+
+  if (existingProfile) {
+    await db
+      .update(scholarProfile)
+      .set({
+        country: v.country || null,
+        degree: v.degree || null,
+        institution: v.institution || null,
+        whatsappNumber: v.whatsappNumber || null,
+        linkedinUrl: v.linkedinUrl || null,
+        bio: v.bio || null,
+        mtpText: v.mtpText || null,
+        ...(cohortIdVal !== undefined && { cohortId: cohortIdVal }),
+      })
+      .where(eq(scholarProfile.id, existingProfile.id));
+  } else {
+    await db.insert(scholarProfile).values({
+      userId: v.userId,
+      country: v.country || null,
+      degree: v.degree || null,
+      institution: v.institution || null,
+      whatsappNumber: v.whatsappNumber || null,
+      linkedinUrl: v.linkedinUrl || null,
+      bio: v.bio || null,
+      mtpText: v.mtpText || null,
+      cohortId: cohortIdVal,
+    });
+  }
+
+  refresh();
+  return { ok: true, data: undefined };
+}
+
 
 
 

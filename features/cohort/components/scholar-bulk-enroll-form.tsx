@@ -36,6 +36,7 @@ interface ScholarItem {
   email: string;
   country?: string;
   degree?: string;
+  institution?: string;
 }
 
 interface ScholarBulkEnrollFormProps {
@@ -71,9 +72,10 @@ export function ScholarBulkEnrollForm({
     const email = parts[1];
     const country = parts[2] || undefined;
     const degree = parts[3] || undefined;
+    const institution = parts[4] || undefined;
 
     if (!name || !email || !email.includes("@")) return null;
-    return { name, email, country, degree };
+    return { name, email, country, degree, institution };
   }
 
   function handleTextChange(val: string) {
@@ -223,12 +225,12 @@ export function ScholarBulkEnrollForm({
               <TabsContent value="paste" className="pt-3">
                 <Field>
                   <FieldLabel className="text-xs">
-                    Paste scholar entries (Format: <code className="font-mono text-primary">Name, Email, Country, Degree</code>)
+                    Paste scholar entries (Format: <code className="font-mono text-primary">Name, Email, Country, Degree, Institution</code>)
                   </FieldLabel>
                   <Textarea
                     value={rawText}
                     onChange={(e) => handleTextChange(e.target.value)}
-                    placeholder={`Ama Mensah, ama@example.com, Ghana, Master of Science\nKofi Baah, kofi@example.com, Nigeria, PhD Economics`}
+                    placeholder={`Ama Mensah, ama@example.com, Ghana, Master of Science, University of Ghana\nKofi Baah, kofi@example.com, Nigeria, PhD Economics, University of Lagos`}
                     rows={5}
                     className="font-mono text-xs"
                   />
@@ -265,6 +267,7 @@ export function ScholarBulkEnrollForm({
                         <TableHead>Email</TableHead>
                         <TableHead>Country</TableHead>
                         <TableHead>Degree</TableHead>
+                        <TableHead>Institution</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -274,6 +277,7 @@ export function ScholarBulkEnrollForm({
                           <TableCell>{s.email}</TableCell>
                           <TableCell>{s.country || "—"}</TableCell>
                           <TableCell>{s.degree || "—"}</TableCell>
+                          <TableCell>{s.institution || "—"}</TableCell>
                         </TableRow>
                       ))}
                     </TableBody>
