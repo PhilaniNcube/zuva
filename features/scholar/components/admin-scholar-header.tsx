@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import {
+  Building2,
   Clock,
   ExternalLink,
   Globe,
@@ -17,6 +18,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { getCohort } from "@/features/cohort/cohort-queries";
 import { getUser, getScholarProfile } from "@/features/user/user-queries";
 import { waLink } from "@/lib/whatsapp";
+import { AdminScholarEditButton } from "./admin-scholar-edit-button";
 
 function getInitials(name: string): string {
   const parts = name.trim().split(/\s+/);
@@ -66,25 +68,47 @@ export async function AdminScholarHeader({ scholarId }: { scholarId: string }) {
                 </p>
               </div>
 
-              {cohortRow ? (
-                <Link
-                  href={`/cohorts/${cohortRow.id}`}
-                  className="inline-flex items-center gap-1.5 self-center rounded-lg border border-border bg-muted/40 px-3 py-1.5 text-xs font-medium hover:bg-muted transition-colors"
-                >
-                  <GraduationCap className="size-3.5 text-primary" />
-                  {cohortRow.name}
-                </Link>
-              ) : (
-                <span className="inline-flex items-center gap-1.5 self-center rounded-lg border border-border bg-muted/40 px-3 py-1.5 text-xs font-medium text-muted-foreground">
-                  <GraduationCap className="size-3.5" /> No cohort
-                </span>
-              )}
+              <div className="flex items-center gap-2 self-center sm:self-auto">
+                {cohortRow ? (
+                  <Link
+                    href={`/cohorts/${cohortRow.id}`}
+                    className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-muted/40 px-3 py-1.5 text-xs font-medium hover:bg-muted transition-colors"
+                  >
+                    <GraduationCap className="size-3.5 text-primary" />
+                    {cohortRow.name}
+                  </Link>
+                ) : (
+                  <span className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-muted/40 px-3 py-1.5 text-xs font-medium text-muted-foreground">
+                    <GraduationCap className="size-3.5" /> No cohort
+                  </span>
+                )}
+                <AdminScholarEditButton
+                  scholar={{
+                    id: user.id,
+                    name: user.name,
+                    email: user.email,
+                    country: profile?.country,
+                    degree: profile?.degree,
+                    institution: profile?.institution,
+                    whatsappNumber: profile?.whatsappNumber,
+                    linkedinUrl: profile?.linkedinUrl,
+                    bio: profile?.bio,
+                    mtpText: profile?.mtpText,
+                    cohortId: profile?.cohortId,
+                  }}
+                />
+              </div>
             </div>
 
             <div className="flex flex-wrap items-center justify-center sm:justify-start gap-4 text-xs text-muted-foreground pt-3 border-t border-border">
               {profile?.country ? (
                 <span className="inline-flex items-center gap-1">
                   <Globe className="size-3.5" /> {profile.country}
+                </span>
+              ) : null}
+              {profile?.institution ? (
+                <span className="inline-flex items-center gap-1 font-medium text-foreground">
+                  <Building2 className="size-3.5 text-primary" /> {profile.institution}
                 </span>
               ) : null}
               {profile?.degree ? (
