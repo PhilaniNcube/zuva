@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation";
-import { format } from "date-fns";
+import { format, isValid } from "date-fns";
 import { History, Calendar } from "lucide-react";
 
 import { getCohort, listCohortScholarsPaginated } from "../cohort-queries";
@@ -10,7 +10,7 @@ import { ScholarEnrollForm } from "./scholar-enroll-form";
 import { ScholarBulkEnrollForm } from "./scholar-bulk-enroll-form";
 
 interface CohortDetailProps {
-  id: Promise<string>;
+  id: string | Promise<string>;
   page?: number;
   pageSize?: number;
   country?: string;
@@ -24,7 +24,7 @@ export async function CohortDetail({
   country,
   onboardingStatus,
 }: CohortDetailProps) {
-  const cohortId = await id;
+  const cohortId = typeof id === "string" ? id : await id;
   const [cohort, scholarData] = await Promise.all([
     getCohort(cohortId),
     listCohortScholarsPaginated({
@@ -62,10 +62,8 @@ export async function CohortDetail({
               )}
             </div>
             <p className="text-sm text-muted-foreground mt-1">
-              {cohort.status} · starts {format(cohort.startsAt, "dd MMM yyyy")}
-              {cohort.endsAt
-                ? ` · ends ${format(cohort.endsAt, "dd MMM yyyy")}`
-                : ""}
+              {cohort.status} · starts {formatDate(cohort.startsAt)}
+              {cohort.endsAt ? ` · ends ${formatDate(cohort.endsAt)}` : ""}
             </p>
           </div>
           <DeleteCohortDialog
@@ -137,6 +135,16 @@ export function CohortDetailSkeleton() {
   );
 }
 
-function toDateInputValue(d: Date) {
-  return format(d, "yyyy-MM-dd");
+function formatDate(d: Date | string | number | null | undefined) {
+  if (!d) return "";
+  const parsed = typeof d === "string" || typeof d === "number" ? new Date(d) : d;
+  if (!isValid(parsed)) return "";
+  return format(parsed, "dd MMM yyyy");
+}
+
+function toDateInputValue(d: Date | string | number | null | undefined) {
+  if (!d) return "";
+  const parsed = typeof d === "string" || typeof d === "number" ? new Date(d) : d;
+  if (!isValid(parsed)) return "";
+  return format(parsed, "yyyy-MM-dd");
 }

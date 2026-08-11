@@ -16,16 +16,18 @@ const searchParamsCache = createSearchParamsCache({
 export default async function CohortDetailPage({
   params,
   searchParams,
-}: PageProps<"/cohorts/[id]"> & {
+}: {
+  params: Promise<{ id: string }>;
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
+  const { id } = await params;
   const { page, pageSize, country, onboardingStatus } =
     await searchParamsCache.parse(searchParams);
 
   return (
-    <Suspense fallback={<CohortDetailSkeleton />}>
+    <Suspense key={`${id}-${page}-${pageSize}-${country}-${onboardingStatus}`} fallback={<CohortDetailSkeleton />}>
       <CohortDetail
-        id={params.then((p) => p.id)}
+        id={id}
         page={page}
         pageSize={pageSize}
         country={country}
