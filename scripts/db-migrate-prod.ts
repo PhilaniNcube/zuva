@@ -146,6 +146,10 @@ async function main() {
     console.log("Adding missing column 'bio_rewrite_completed_by' to scholar_profile...");
     await client.execute(`ALTER TABLE \`scholar_profile\` ADD COLUMN \`bio_rewrite_completed_by\` text;`);
   }
+  if (!scholarCols.has("institution")) {
+    console.log("Adding missing column 'institution' to scholar_profile...");
+    await client.execute(`ALTER TABLE \`scholar_profile\` ADD COLUMN \`institution\` text;`);
+  }
 
   console.log("7. Verifying production tables...");
   const tablesRes = await client.execute(
