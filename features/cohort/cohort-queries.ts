@@ -20,7 +20,7 @@ export const listCohorts = cache(async () => {
     .from(cohort)
     .leftJoin(scholarProfile, eq(scholarProfile.cohortId, cohort.id))
     .groupBy(cohort.id)
-    .orderBy(desc(cohort.createdAt));
+    .orderBy(desc(cohort.startsAt));
 });
 
 export const listCohortsPaginated = cache(
@@ -77,7 +77,7 @@ export const listCohortsPaginated = cache(
       .leftJoin(scholarProfile, eq(scholarProfile.cohortId, cohort.id))
       .where(whereClause)
       .groupBy(cohort.id)
-      .orderBy(desc(cohort.createdAt))
+      .orderBy(desc(cohort.startsAt))
       .limit(validPageSize)
       .offset(offset);
 
