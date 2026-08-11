@@ -21,6 +21,7 @@ export interface DatePickerProps {
   disabled?: boolean;
   minDate?: Date;
   showTime?: boolean;
+  fixedWeeks?: boolean;
   className?: string;
 }
 
@@ -45,6 +46,7 @@ export function DatePicker({
   disabled = false,
   minDate,
   showTime = true,
+  fixedWeeks = true,
   className,
 }: DatePickerProps) {
   const date = value ? new Date(value) : undefined;
@@ -109,6 +111,7 @@ export function DatePicker({
           selected={isValidDate ? date : undefined}
           onSelect={handleDateSelect}
           disabled={startOfMinDate ? { before: startOfMinDate } : undefined}
+          fixedWeeks={fixedWeeks}
         />
         {showTime && (
           <div className="flex items-center justify-between border-t border-border pt-3 px-1 gap-2">
