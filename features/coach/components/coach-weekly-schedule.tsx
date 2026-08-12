@@ -245,7 +245,7 @@ export function CoachWeeklySchedule({
         {icalUrl && (
           <div className="flex items-center gap-1.5">
             <span className="size-3 rounded-full bg-amber-500/20 border border-amber-500/40" />
-            <span>iCal Busy</span>
+            <span>Busy (External Calendar)</span>
           </div>
         )}
         <div className="flex items-center gap-1.5">
@@ -407,7 +407,7 @@ export function CoachWeeklySchedule({
                             className="rounded-lg p-1.5 text-[11px] bg-amber-500/10 text-amber-900 dark:text-amber-200 border border-amber-500/25 break-words whitespace-normal min-w-0"
                           >
                             <div className="font-medium break-words">
-                              {b.summary ? b.summary : "Busy (Google Calendar)"}
+                              Busy (External Calendar)
                             </div>
                             <div className="text-[10px] text-amber-700 dark:text-amber-400">
                               {format(new Date(b.start), "HH:mm")} – {format(new Date(b.end), "HH:mm")}
