@@ -13,6 +13,7 @@
     "db:migrate:prod": "tsx scripts/db-migrate-prod.ts",
     "db:generate": "drizzle-kit generate",
     "db:seed": "tsx scripts/seed.ts",
+    "db:migrate-multi-cohort": "tsx scripts/migrate-multi-cohort.ts",
     "db:seed:session-types:prod": "tsx scripts/seed-prod-session-types.ts",
     "test": "vitest",
     "test:run": "vitest run",

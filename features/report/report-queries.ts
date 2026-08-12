@@ -11,7 +11,7 @@ import {
   feedbackSubmission,
   programmeSession,
   sessionType,
-  scholarProfile,
+  scholarEnrollment,
   submission,
   user,
 } from "@/lib/db/schema";
@@ -32,16 +32,18 @@ export const listCohortOverview = cache(async () => {
     // Scholar count
     const [scholarCount] = await db
       .select({ count: sql<number>`count(*)` })
-      .from(scholarProfile)
-      .where(eq(scholarProfile.cohortId, c.id));
+      .from(scholarEnrollment)
+      .where(eq(scholarEnrollment.cohortId, c.id));
 
     // Feedback count
     const [feedbackCount] = await db
       .select({ count: sql<number>`count(*)` })
       .from(feedbackSubmission)
-      .innerJoin(user, eq(user.id, feedbackSubmission.scholarId))
-      .innerJoin(scholarProfile, eq(scholarProfile.userId, user.id))
-      .where(eq(scholarProfile.cohortId, c.id));
+      .innerJoin(
+        programmeSession,
+        eq(programmeSession.id, feedbackSubmission.sessionId),
+      )
+      .where(eq(programmeSession.cohortId, c.id));
 
     // Certificate counts
     const [certCounts] = await db

@@ -5,7 +5,7 @@ import { endOfDay, isValid, parseISO, startOfDay } from "date-fns";
 import { and, asc, count, desc, eq, gte, isNotNull, isNull, lte } from "drizzle-orm";
 
 import { db } from "@/lib/db";
-import { cohort, scholarProfile, user } from "@/lib/db/schema";
+import { cohort, scholarEnrollment, scholarProfile, user } from "@/lib/db/schema";
 
 export const listCohorts = cache(async () => {
   return db
@@ -15,10 +15,10 @@ export const listCohorts = cache(async () => {
       startsAt: cohort.startsAt,
       endsAt: cohort.endsAt,
       status: cohort.status,
-      scholarCount: count(scholarProfile.id),
+      scholarCount: count(scholarEnrollment.id),
     })
     .from(cohort)
-    .leftJoin(scholarProfile, eq(scholarProfile.cohortId, cohort.id))
+    .leftJoin(scholarEnrollment, eq(scholarEnrollment.cohortId, cohort.id))
     .groupBy(cohort.id)
     .orderBy(desc(cohort.startsAt));
 });
@@ -71,10 +71,10 @@ export const listCohortsPaginated = cache(
         startsAt: cohort.startsAt,
         endsAt: cohort.endsAt,
         status: cohort.status,
-        scholarCount: count(scholarProfile.id),
+        scholarCount: count(scholarEnrollment.id),
       })
       .from(cohort)
-      .leftJoin(scholarProfile, eq(scholarProfile.cohortId, cohort.id))
+      .leftJoin(scholarEnrollment, eq(scholarEnrollment.cohortId, cohort.id))
       .where(whereClause)
       .groupBy(cohort.id)
       .orderBy(desc(cohort.startsAt))
@@ -109,9 +109,10 @@ export const listCohortScholars = cache(async (cohortId: string) => {
       linkedinUrl: scholarProfile.linkedinUrl,
       onboardedAt: scholarProfile.onboardingCompletedAt,
     })
-    .from(scholarProfile)
-    .innerJoin(user, eq(user.id, scholarProfile.userId))
-    .where(eq(scholarProfile.cohortId, cohortId))
+    .from(scholarEnrollment)
+    .innerJoin(user, eq(user.id, scholarEnrollment.scholarId))
+    .leftJoin(scholarProfile, eq(scholarProfile.userId, user.id))
+    .where(eq(scholarEnrollment.cohortId, cohortId))
     .orderBy(asc(user.name));
 });
 
@@ -133,7 +134,7 @@ export const listCohortScholarsPaginated = cache(
     const validPageSize = Math.max(1, Math.min(100, pageSize));
     const offset = (validPage - 1) * validPageSize;
 
-    const conditions = [eq(scholarProfile.cohortId, cohortId)];
+    const conditions = [eq(scholarEnrollment.cohortId, cohortId)];
 
     if (country && country.trim() !== "" && country !== "all") {
       conditions.push(eq(scholarProfile.country, country.trim()));
@@ -149,10 +150,11 @@ export const listCohortScholarsPaginated = cache(
 
     const availableCountriesResult = await db
       .selectDistinct({ country: scholarProfile.country })
-      .from(scholarProfile)
+      .from(scholarEnrollment)
+      .innerJoin(scholarProfile, eq(scholarProfile.userId, scholarEnrollment.scholarId))
       .where(
         and(
-          eq(scholarProfile.cohortId, cohortId),
+          eq(scholarEnrollment.cohortId, cohortId),
           isNotNull(scholarProfile.country)
         )
       )
@@ -164,7 +166,8 @@ export const listCohortScholarsPaginated = cache(
 
     const [totalResult] = await db
       .select({ total: count() })
-      .from(scholarProfile)
+      .from(scholarEnrollment)
+      .leftJoin(scholarProfile, eq(scholarProfile.userId, scholarEnrollment.scholarId))
       .where(whereClause);
 
     const totalCount = totalResult?.total ?? 0;
@@ -182,8 +185,9 @@ export const listCohortScholarsPaginated = cache(
         linkedinUrl: scholarProfile.linkedinUrl,
         onboardedAt: scholarProfile.onboardingCompletedAt,
       })
-      .from(scholarProfile)
-      .innerJoin(user, eq(user.id, scholarProfile.userId))
+      .from(scholarEnrollment)
+      .innerJoin(user, eq(user.id, scholarEnrollment.scholarId))
+      .leftJoin(scholarProfile, eq(scholarProfile.userId, user.id))
       .where(whereClause)
       .orderBy(asc(user.name))
       .limit(validPageSize)
@@ -208,9 +212,8 @@ export const listScholars = cache(async () => {
       name: user.name,
       cohortName: cohort.name,
     })
-    .from(scholarProfile)
-    .innerJoin(user, eq(user.id, scholarProfile.userId))
-    .innerJoin(cohort, eq(cohort.id, scholarProfile.cohortId))
-    .where(isNotNull(scholarProfile.cohortId))
+    .from(scholarEnrollment)
+    .innerJoin(user, eq(user.id, scholarEnrollment.scholarId))
+    .innerJoin(cohort, eq(cohort.id, scholarEnrollment.cohortId))
     .orderBy(asc(user.name));
 });

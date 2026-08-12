@@ -151,7 +151,45 @@ async function main() {
     await client.execute(`ALTER TABLE \`scholar_profile\` ADD COLUMN \`institution\` text;`);
   }
 
-  console.log("7. Verifying production tables...");
+  console.log("7. Ensuring scholar_enrollment table exists and backfilling cohort_id entries...");
+  await client.execute(`
+    CREATE TABLE IF NOT EXISTS \`scholar_enrollment\` (
+      \`id\` text PRIMARY KEY NOT NULL,
+      \`scholar_id\` text NOT NULL REFERENCES \`user\`(\`id\`) ON DELETE CASCADE,
+      \`cohort_id\` text NOT NULL REFERENCES \`cohort\`(\`id\`) ON DELETE CASCADE,
+      \`enrolled_at\` integer NOT NULL
+    );
+  `);
+
+  await client.execute(`
+    CREATE UNIQUE INDEX IF NOT EXISTS \`scholar_enrollment_scholar_cohort_idx\`
+    ON \`scholar_enrollment\` (\`scholar_id\`, \`cohort_id\`);
+  `);
+  await client.execute(`
+    CREATE INDEX IF NOT EXISTS \`scholar_enrollment_scholar_idx\`
+    ON \`scholar_enrollment\` (\`scholar_id\`);
+  `);
+  await client.execute(`
+    CREATE INDEX IF NOT EXISTS \`scholar_enrollment_cohort_idx\`
+    ON \`scholar_enrollment\` (\`cohort_id\`);
+  `);
+
+  const backfillRes = await client.execute(`
+    INSERT INTO \`scholar_enrollment\` (\`id\`, \`scholar_id\`, \`cohort_id\`, \`enrolled_at\`)
+    SELECT lower(hex(randomblob(16))), \`user_id\`, \`cohort_id\`, coalesce(\`created_at\`, unixepoch())
+    FROM \`scholar_profile\`
+    WHERE \`cohort_id\` IS NOT NULL
+    ON CONFLICT (\`scholar_id\`, \`cohort_id\`) DO NOTHING;
+  `);
+  console.log(`Backfilled production scholar enrollments (rows affected: ${backfillRes.rowsAffected}).`);
+
+  await client.execute(`DROP INDEX IF EXISTS \`certificate_scholar_idx\`;`);
+  await client.execute(`
+    CREATE UNIQUE INDEX IF NOT EXISTS \`certificate_scholar_cohort_idx\`
+    ON \`certificate\` (\`scholar_id\`, \`cohort_id\`);
+  `);
+
+  console.log("8. Verifying production tables...");
   const tablesRes = await client.execute(
     "SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%' AND name NOT LIKE '__drizzle_%'"
   );

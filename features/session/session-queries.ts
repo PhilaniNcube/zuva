@@ -8,6 +8,7 @@ import {
   eq,
   gt,
   gte,
+  inArray,
   lte,
   ne,
   or,
@@ -23,6 +24,7 @@ import {
   coachProfile,
   cohort,
   programmeSession,
+  scholarEnrollment,
   sessionType,
   user,
 } from "@/lib/db/schema";
@@ -158,6 +160,46 @@ export const listCohortSessions = cache(
   },
 );
 
+/**
+ * All sessions a scholar sees across all their enrolled cohorts.
+ */
+export const listScholarCohortSessions = cache(
+  async (scholarId: string) => {
+    return db
+      .select({
+        id: programmeSession.id,
+        kind: sessionType.kind,
+        format: sessionType.format,
+        typeName: sessionType.name,
+        title: programmeSession.title,
+        startsAt: programmeSession.startsAt,
+        endsAt: programmeSession.endsAt,
+        status: programmeSession.status,
+        meetLink: programmeSession.meetLink,
+        coachName: user.name,
+        cohortName: cohort.name,
+      })
+      .from(programmeSession)
+      .innerJoin(
+        sessionType,
+        eq(sessionType.id, programmeSession.sessionTypeId),
+      )
+      .innerJoin(cohort, eq(cohort.id, programmeSession.cohortId))
+      .innerJoin(scholarEnrollment, eq(scholarEnrollment.cohortId, programmeSession.cohortId))
+      .leftJoin(user, eq(user.id, programmeSession.coachId))
+      .where(
+        and(
+          eq(scholarEnrollment.scholarId, scholarId),
+          or(
+            eq(sessionType.format, "group"),
+            eq(programmeSession.scholarId, scholarId),
+          ),
+        ),
+      )
+      .orderBy(asc(programmeSession.startsAt));
+  },
+);
+
 /** Group sessions a coach leads (masterclasses / orientations). */
 export const listCoachSessions = cache(async (coachId: string) => {
   return db
@@ -267,11 +309,17 @@ export const listAdminSessions = cache(async () => {
  * onboarding 1:1s targeted at them, and coaching 1:1s they've booked.
  */
 export const listScholarUpcomingSessions = cache(
-  async (scholarId: string, cohortId: string | null) => {
+  async (scholarId: string, cohortId: string | string[] | null) => {
+    const cohortIds = Array.isArray(cohortId)
+      ? cohortId
+      : cohortId
+        ? [cohortId]
+        : [];
+
     const visibility = [
-      cohortId
+      cohortIds.length > 0
         ? and(
-            eq(programmeSession.cohortId, cohortId),
+            inArray(programmeSession.cohortId, cohortIds),
             eq(sessionType.format, "group"),
           )
         : undefined,
@@ -284,7 +332,7 @@ export const listScholarUpcomingSessions = cache(
         eq(booking.status, "confirmed"),
         eq(sessionType.kind, "coaching"),
       ),
-    ];
+    ].filter((v): v is NonNullable<typeof v> => Boolean(v));
 
     return db
       .select({
@@ -312,7 +360,7 @@ export const listScholarUpcomingSessions = cache(
         and(
           eq(programmeSession.status, "scheduled"),
           gte(programmeSession.startsAt, new Date()),
-          or(...visibility),
+          visibility.length > 0 ? or(...visibility) : undefined,
         ),
       )
       .orderBy(asc(programmeSession.startsAt));
@@ -348,8 +396,13 @@ export const listScholarAttendedSessions = cache(
  * sessions). Cancelled sessions are excluded from the denominator.
  */
 export const getScholarAttendanceStats = cache(
-  async (scholarId: string, cohortId: string | null) => {
+  async (scholarId: string, cohortId: string | string[] | null) => {
     const now = new Date();
+    const cohortIds = Array.isArray(cohortId)
+      ? cohortId
+      : cohortId
+        ? [cohortId]
+        : [];
 
     const [attendedRow] = await db
       .select({ count: sql<number>`count(*)` })
@@ -358,9 +411,9 @@ export const getScholarAttendanceStats = cache(
     const attendedCount = attendedRow?.count ?? 0;
 
     const visibility = [
-      cohortId
+      cohortIds.length > 0
         ? and(
-            eq(programmeSession.cohortId, cohortId),
+            inArray(programmeSession.cohortId, cohortIds),
             eq(sessionType.format, "group"),
           )
         : undefined,
@@ -373,7 +426,7 @@ export const getScholarAttendanceStats = cache(
         eq(booking.status, "confirmed"),
         eq(sessionType.kind, "coaching"),
       ),
-    ];
+    ].filter((v): v is NonNullable<typeof v> => Boolean(v));
 
     const [eligibleRow] = await db
       .select({
@@ -393,7 +446,7 @@ export const getScholarAttendanceStats = cache(
         and(
           lte(programmeSession.endsAt, now),
           ne(programmeSession.status, "cancelled"),
-          or(...visibility),
+          visibility.length > 0 ? or(...visibility) : undefined,
         ),
       );
     const eligibleCompletedCount = eligibleRow?.count ?? 0;

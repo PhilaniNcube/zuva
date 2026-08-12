@@ -16,9 +16,25 @@ import {
 } from "drizzle-orm";
 
 import { db } from "@/lib/db";
-import { scholarProfile, user } from "@/lib/db/schema";
+import { cohort, scholarEnrollment, scholarProfile, user } from "@/lib/db/schema";
 import { requireRole } from "@/lib/rbac";
 import type { Role } from "@/lib/roles";
+
+export const getScholarCohorts = cache(async (scholarId: string) => {
+  return db
+    .select({
+      id: cohort.id,
+      name: cohort.name,
+      startsAt: cohort.startsAt,
+      endsAt: cohort.endsAt,
+      status: cohort.status,
+      enrolledAt: scholarEnrollment.enrolledAt,
+    })
+    .from(scholarEnrollment)
+    .innerJoin(cohort, eq(cohort.id, scholarEnrollment.cohortId))
+    .where(eq(scholarEnrollment.scholarId, scholarId))
+    .orderBy(desc(cohort.startsAt));
+});
 
 export const getScholarProfile = cache(async (userId: string) => {
   const [row] = await db
@@ -129,14 +145,13 @@ export const getUsersForAdminPaginated = cache(
     const totalCount = totalResult?.total ?? 0;
     const pageCount = Math.ceil(totalCount / validPageSize);
 
-    const users = await db
+    const rawUsers = await db
       .select({
         id: user.id,
         name: user.name,
         email: user.email,
         role: user.role,
         image: user.image,
-        cohortId: scholarProfile.cohortId,
         country: scholarProfile.country,
         degree: scholarProfile.degree,
         institution: scholarProfile.institution,
@@ -156,6 +171,40 @@ export const getUsersForAdminPaginated = cache(
       .orderBy(desc(user.createdAt))
       .limit(validPageSize)
       .offset(offset);
+
+    // Fetch cohort enrollments for scholar users in the result
+    const scholarIds = rawUsers
+      .filter((u) => u.role === "scholar")
+      .map((u) => u.id);
+
+    const enrollmentsByScholarId = new Map<string, { id: string; name: string }[]>();
+
+    if (scholarIds.length > 0) {
+      const enrollments = await db
+        .select({
+          scholarId: scholarEnrollment.scholarId,
+          cohortId: cohort.id,
+          cohortName: cohort.name,
+        })
+        .from(scholarEnrollment)
+        .innerJoin(cohort, eq(cohort.id, scholarEnrollment.cohortId))
+        .where(inArray(scholarEnrollment.scholarId, scholarIds));
+
+      for (const e of enrollments) {
+        const list = enrollmentsByScholarId.get(e.scholarId) ?? [];
+        list.push({ id: e.cohortId, name: e.cohortName });
+        enrollmentsByScholarId.set(e.scholarId, list);
+      }
+    }
+
+    const users = rawUsers.map((u) => {
+      const cohorts = enrollmentsByScholarId.get(u.id) ?? [];
+      return {
+        ...u,
+        cohorts,
+        cohortId: cohorts[0]?.id ?? null,
+      };
+    });
 
     return {
       users,

@@ -115,6 +115,7 @@ export const scholarProfile = sqliteTable(
     userId: text("user_id")
       .notNull()
       .references(() => user.id, { onDelete: "cascade" }),
+    // @deprecated Use scholarEnrollment table for scholar cohort memberships.
     cohortId: text("cohort_id").references(() => cohort.id, {
       onDelete: "set null",
     }),
@@ -145,6 +146,30 @@ export const scholarProfile = sqliteTable(
     ...timestamps,
   },
   (t) => [uniqueIndex("scholar_profile_user_id_idx").on(t.userId)],
+);
+
+export const scholarEnrollment = sqliteTable(
+  "scholar_enrollment",
+  {
+    id: id(),
+    scholarId: text("scholar_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    cohortId: text("cohort_id")
+      .notNull()
+      .references(() => cohort.id, { onDelete: "cascade" }),
+    enrolledAt: integer("enrolled_at", { mode: "timestamp" })
+      .notNull()
+      .$defaultFn(() => new Date()),
+  },
+  (t) => [
+    uniqueIndex("scholar_enrollment_scholar_cohort_idx").on(
+      t.scholarId,
+      t.cohortId
+    ),
+    index("scholar_enrollment_scholar_idx").on(t.scholarId),
+    index("scholar_enrollment_cohort_idx").on(t.cohortId),
+  ],
 );
 
 export const coachProfile = sqliteTable(
@@ -534,7 +559,7 @@ export const certificate = sqliteTable(
     ...timestamps,
   },
   (t) => [
-    uniqueIndex("certificate_scholar_idx").on(t.scholarId),
+    uniqueIndex("certificate_scholar_cohort_idx").on(t.scholarId, t.cohortId),
     index("certificate_status_idx").on(t.status),
   ],
 );

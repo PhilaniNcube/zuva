@@ -10,7 +10,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { listCohortSessions } from "../session-queries";
+import { listCohortSessions, listScholarCohortSessions } from "../session-queries";
 
 const KIND_STYLES: Record<string, string> = {
   orientation: "bg-purple-500/10 text-purple-700 dark:text-purple-400 border border-purple-500/20",
@@ -22,10 +22,14 @@ export async function CohortSessions({
   cohortId,
   scholarId,
 }: {
-  cohortId: string;
+  cohortId?: string;
   scholarId?: string;
 }) {
-  const sessions = await listCohortSessions(cohortId, scholarId);
+  const sessions = scholarId
+    ? await listScholarCohortSessions(scholarId)
+    : cohortId
+      ? await listCohortSessions(cohortId)
+      : [];
 
   if (sessions.length === 0) {
     return (
@@ -54,12 +58,19 @@ export async function CohortSessions({
                 <div className="w-10 h-10 rounded-lg bg-blue-500/10 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0">
                   <CalendarDays className="size-5" />
                 </div>
-                <Link
-                  href={`/sessions/${s.id}`}
-                  className="font-medium text-foreground hover:text-primary transition-colors text-sm"
-                >
-                  {s.title}
-                </Link>
+                <div>
+                  <Link
+                    href={`/sessions/${s.id}`}
+                    className="font-medium text-foreground hover:text-primary transition-colors text-sm"
+                  >
+                    {s.title}
+                  </Link>
+                  {"cohortName" in s && typeof (s as { cohortName?: string }).cohortName === "string" ? (
+                    <p className="text-xs text-muted-foreground">
+                      {(s as { cohortName?: string }).cohortName}
+                    </p>
+                  ) : null}
+                </div>
               </div>
             </TableCell>
             <TableCell>

@@ -24,7 +24,7 @@ export default async function ResourcesPage() {
         </p>
       </div>
       <Suspense fallback={<ResourceListSkeleton />}>
-        <ResourceList cohortId={profile?.cohortId ?? null} />
+        <ResourceList scholarId={user.id} />
       </Suspense>
     </main>
   );

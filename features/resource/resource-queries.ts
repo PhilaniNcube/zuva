@@ -1,7 +1,7 @@
 import "server-only";
 
 import { cache } from "react";
-import { and, desc, eq, isNull, or } from "drizzle-orm";
+import { and, desc, eq, inArray, isNull, or } from "drizzle-orm";
 
 import { db } from "@/lib/db";
 import {
@@ -9,6 +9,7 @@ import {
   programmeSession,
   resource,
   resourceEngagement,
+  scholarEnrollment,
   scholarProfile,
   sessionType,
   user,
@@ -85,6 +86,38 @@ export const listResourcesForSession = cache(
     }));
   },
 );
+
+/** Resources for a given scholar across all enrolled cohorts (plus global ones where cohortId is null). */
+export const listScholarResources = cache(async (scholarId: string) => {
+  const enrollments = await db
+    .select({ cohortId: scholarEnrollment.cohortId })
+    .from(scholarEnrollment)
+    .where(eq(scholarEnrollment.scholarId, scholarId));
+
+  const cohortIds = enrollments.map((e) => e.cohortId);
+
+  const cohortConditions = cohortIds.length > 0
+    ? or(inArray(resource.cohortId, cohortIds), isNull(resource.cohortId))
+    : isNull(resource.cohortId);
+
+  return db
+    .select({
+      id: resource.id,
+      title: resource.title,
+      description: resource.description,
+      type: resource.type,
+      fileKey: resource.fileKey,
+      url: resource.url,
+      cohortId: resource.cohortId,
+      sessionId: resource.sessionId,
+      createdAt: resource.createdAt,
+      uploadedByName: user.name,
+    })
+    .from(resource)
+    .leftJoin(user, eq(user.id, resource.uploadedBy))
+    .where(cohortConditions)
+    .orderBy(desc(resource.createdAt));
+});
 
 /** Resources for a given cohort (including global ones where cohortId is null). */
 export const listResourcesForCohort = cache(async (cohortId: string) => {
@@ -199,8 +232,8 @@ export const getSessionResourceEngagementStats = cache(
       scholarUsers = await db
         .select({ id: user.id, name: user.name, email: user.email })
         .from(user)
-        .innerJoin(scholarProfile, eq(scholarProfile.userId, user.id))
-        .where(eq(scholarProfile.cohortId, sess.cohortId));
+        .innerJoin(scholarEnrollment, eq(scholarEnrollment.scholarId, user.id))
+        .where(eq(scholarEnrollment.cohortId, sess.cohortId));
     }
 
     if (scholarUsers.length === 0) return { resources, scholars: [] };

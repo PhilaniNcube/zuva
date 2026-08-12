@@ -5,7 +5,7 @@
  *   npm run db:push   # create tables first
  *   npm run db:seed
  */
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 
 try {
   process.loadEnvFile(".env.local");
@@ -23,6 +23,7 @@ async function main() {
     user,
     cohort,
     scholarProfile,
+    scholarEnrollment,
     coachProfile,
     pathwayStep,
     availabilitySlot,
@@ -58,7 +59,23 @@ async function main() {
   }
   console.log("Session types ready");
 
-  // --- Cohort -------------------------------------------------------------
+  // --- Cohorts -------------------------------------------------------------
+  let [oldCohort] = await db
+    .select()
+    .from(cohort)
+    .where(eq(cohort.name, "2025 Intake"));
+  if (!oldCohort) {
+    [oldCohort] = await db
+      .insert(cohort)
+      .values({
+        name: "2025 Intake",
+        startsAt: new Date("2025-01-15"),
+        status: "completed",
+      })
+      .returning();
+    console.log("Created old cohort:", oldCohort.name);
+  }
+
   let [theCohort] = await db
     .select()
     .from(cohort)
@@ -176,6 +193,7 @@ async function main() {
       linkedinUrl: "https://linkedin.com/in/tendai-scholar",
       bio: "Public health researcher focused on maternal health outcomes in rural districts.",
       mtp: "To ensure no mother in rural Zimbabwe dies from a preventable cause.",
+      multiCohort: true,
     },
     {
       name: "Scholar Amina",
@@ -185,6 +203,7 @@ async function main() {
       linkedinUrl: "https://linkedin.com/in/amina-scholar",
       bio: "Climate adaptation specialist working with smallholder farming communities.",
       mtp: "To make African smallholder farmers resilient to a changing climate.",
+      multiCohort: false,
     },
     {
       name: "Scholar Chidi",
@@ -194,6 +213,7 @@ async function main() {
       linkedinUrl: "https://linkedin.com/in/chidi-scholar",
       bio: "Education technologist building offline-first learning tools for low-connectivity schools.",
       mtp: "To give every Nigerian child access to quality learning, online or offline.",
+      multiCohort: false,
     },
   ] as const;
 
@@ -206,7 +226,6 @@ async function main() {
     if (!existing) {
       await db.insert(scholarProfile).values({
         userId: u.id,
-        cohortId: theCohort.id,
         country: s.country,
         degree: s.degree,
         linkedinUrl: s.linkedinUrl,
@@ -214,8 +233,44 @@ async function main() {
         mtpText: s.mtp,
       });
     }
+
+    // Enroll in the main cohort
+    const [mainEnrollment] = await db
+      .select()
+      .from(scholarEnrollment)
+      .where(
+        and(
+          eq(scholarEnrollment.scholarId, u.id),
+          eq(scholarEnrollment.cohortId, theCohort.id)
+        )
+      );
+    if (!mainEnrollment) {
+      await db.insert(scholarEnrollment).values({
+        scholarId: u.id,
+        cohortId: theCohort.id,
+      });
+    }
+
+    // If multiCohort, also enroll in oldCohort
+    if (s.multiCohort && oldCohort) {
+      const [oldEnrollment] = await db
+        .select()
+        .from(scholarEnrollment)
+        .where(
+          and(
+            eq(scholarEnrollment.scholarId, u.id),
+            eq(scholarEnrollment.cohortId, oldCohort.id)
+          )
+        );
+      if (!oldEnrollment) {
+        await db.insert(scholarEnrollment).values({
+          scholarId: u.id,
+          cohortId: oldCohort.id,
+        });
+      }
+    }
   }
-  console.log("Scholar profiles ready");
+  console.log("Scholar profiles and enrollments ready");
 
   // --- Availability slots & a masterclass ---------------------------------
   const day = 24 * 60 * 60 * 1000;

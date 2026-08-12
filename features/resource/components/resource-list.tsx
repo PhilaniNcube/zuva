@@ -1,19 +1,23 @@
 import { Download, ExternalLink, FileText, Globe, Video } from "lucide-react";
 import { LocalTime } from "@/components/local-time";
 
-import { listAllResources, listResourcesForCohort } from "../resource-queries";
+import { listAllResources, listResourcesForCohort, listScholarResources } from "../resource-queries";
 import { DeleteResourceButton } from "./delete-resource-button";
 
 export async function ResourceList({
   cohortId,
+  scholarId,
   adminControls = false,
 }: {
-  cohortId: string | null;
+  cohortId?: string | null;
+  scholarId?: string;
   adminControls?: boolean;
 }) {
-  const resources = cohortId
-    ? await listResourcesForCohort(cohortId)
-    : await listAllResources();
+  const resources = scholarId
+    ? await listScholarResources(scholarId)
+    : cohortId
+      ? await listResourcesForCohort(cohortId)
+      : await listAllResources();
 
   if (resources.length === 0) {
     return (

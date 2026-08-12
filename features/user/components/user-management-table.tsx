@@ -77,6 +77,8 @@ export interface UserItem {
   email: string;
   role: Role;
   image: string | null;
+  cohorts?: { id: string; name: string }[];
+  cohortId?: string | null;
   country?: string | null;
   degree?: string | null;
   institution?: string | null;

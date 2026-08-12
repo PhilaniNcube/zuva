@@ -19,12 +19,12 @@ import {
   MyBookings,
   MyBookingsSkeleton,
 } from "@/features/session/components/my-bookings";
-import { getScholarProfile } from "@/features/user/user-queries";
+import { getScholarCohorts } from "@/features/user/user-queries";
 import { requireRole } from "@/lib/rbac";
 
 export default async function SessionsPage() {
   const { user } = await requireRole("scholar");
-  const profile = await getScholarProfile(user.id);
+  const enrolledCohorts = await getScholarCohorts(user.id);
 
   return (
     <main className="flex min-h-screen flex-col gap-8 p-8">
@@ -40,11 +40,11 @@ export default async function SessionsPage() {
         <FeedbackPrompt scholarId={user.id} />
       </Suspense>
 
-      {profile?.cohortId ? (
+      {enrolledCohorts.length > 0 ? (
         <section className="flex flex-col gap-3">
           <h2 className="text-lg font-semibold">Cohort sessions</h2>
           <Suspense fallback={<CohortSessionsSkeleton />}>
-            <CohortSessions cohortId={profile.cohortId} scholarId={user.id} />
+            <CohortSessions scholarId={user.id} />
           </Suspense>
         </section>
       ) : null}

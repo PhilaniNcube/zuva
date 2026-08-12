@@ -16,7 +16,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { getCohort, listCohorts } from "@/features/cohort/cohort-queries";
-import { getUser, getScholarProfile } from "@/features/user/user-queries";
+import { getUser, getScholarProfile, getScholarCohorts } from "@/features/user/user-queries";
 import { waLink } from "@/lib/whatsapp";
 import { AdminScholarEditButton } from "./admin-scholar-edit-button";
 
@@ -27,14 +27,13 @@ function getInitials(name: string): string {
 }
 
 export async function AdminScholarHeader({ scholarId }: { scholarId: string }) {
-  const [user, profile, cohorts] = await Promise.all([
+  const [user, profile, enrolledCohorts, cohorts] = await Promise.all([
     getUser(scholarId),
     getScholarProfile(scholarId),
+    getScholarCohorts(scholarId),
     listCohorts(),
   ]);
   if (!user || user.role !== "scholar") notFound();
-
-  const cohortRow = profile?.cohortId ? await getCohort(profile.cohortId) : null;
 
   return (
     <Card className="border-border shadow-sm">
@@ -69,15 +68,18 @@ export async function AdminScholarHeader({ scholarId }: { scholarId: string }) {
                 </p>
               </div>
 
-              <div className="flex items-center gap-2 self-center sm:self-auto">
-                {cohortRow ? (
-                  <Link
-                    href={`/cohorts/${cohortRow.id}`}
-                    className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-muted/40 px-3 py-1.5 text-xs font-medium hover:bg-muted transition-colors"
-                  >
-                    <GraduationCap className="size-3.5 text-primary" />
-                    {cohortRow.name}
-                  </Link>
+              <div className="flex flex-wrap items-center justify-center sm:justify-end gap-2 self-center sm:self-auto">
+                {enrolledCohorts.length > 0 ? (
+                  enrolledCohorts.map((c) => (
+                    <Link
+                      key={c.id}
+                      href={`/cohorts/${c.id}`}
+                      className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-muted/40 px-3 py-1.5 text-xs font-medium hover:bg-muted transition-colors"
+                    >
+                      <GraduationCap className="size-3.5 text-primary" />
+                      {c.name}
+                    </Link>
+                  ))
                 ) : (
                   <span className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-muted/40 px-3 py-1.5 text-xs font-medium text-muted-foreground">
                     <GraduationCap className="size-3.5" /> No cohort
@@ -95,7 +97,7 @@ export async function AdminScholarHeader({ scholarId }: { scholarId: string }) {
                     linkedinUrl: profile?.linkedinUrl,
                     bio: profile?.bio,
                     mtpText: profile?.mtpText,
-                    cohortId: profile?.cohortId,
+                    cohortId: enrolledCohorts[0]?.id,
                   }}
                   cohorts={cohorts}
                 />

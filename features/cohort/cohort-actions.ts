@@ -3,13 +3,13 @@
 import { randomBytes } from "node:crypto";
 
 import { refresh } from "next/cache";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { z } from "zod";
 
 import type { ActionResult } from "@/lib/action-result";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { cohort, scholarProfile, user } from "@/lib/db/schema";
+import { cohort, scholarEnrollment, scholarProfile, user } from "@/lib/db/schema";
 import { requireRole } from "@/lib/rbac";
 
 const optionalDate = z.preprocess(
@@ -92,19 +92,30 @@ export async function enrollScholar(
     }
     userId = existingUser.id;
 
+    // Check existing enrollment in this specific cohort
+    const [existingEnrollment] = await db
+      .select()
+      .from(scholarEnrollment)
+      .where(
+        and(
+          eq(scholarEnrollment.scholarId, userId),
+          eq(scholarEnrollment.cohortId, cohortId)
+        )
+      );
+
+    if (existingEnrollment) {
+      return { ok: false, error: "Scholar is already enrolled in this cohort." };
+    }
+
     const [existingProfile] = await db
       .select()
       .from(scholarProfile)
       .where(eq(scholarProfile.userId, userId));
 
     if (existingProfile) {
-      if (existingProfile.cohortId === cohortId) {
-        return { ok: false, error: "Scholar is already enrolled in this cohort." };
-      }
       await db
         .update(scholarProfile)
         .set({
-          cohortId,
           country: country || existingProfile.country,
           degree: degree || existingProfile.degree,
           institution: institution || existingProfile.institution,
@@ -118,7 +129,6 @@ export async function enrollScholar(
     } else {
       await db.insert(scholarProfile).values({
         userId,
-        cohortId,
         country: country || null,
         degree: degree || null,
         institution: institution || null,
@@ -126,6 +136,11 @@ export async function enrollScholar(
         onboardingCompletedAt: markOnboardingCompleted ? new Date() : null,
       });
     }
+
+    await db.insert(scholarEnrollment).values({
+      scholarId: userId,
+      cohortId,
+    });
   } else {
     tempPassword = `zuva-${randomBytes(4).toString("hex")}`;
     try {
@@ -143,12 +158,15 @@ export async function enrollScholar(
     await db.update(user).set({ role: "scholar" }).where(eq(user.id, userId));
     await db.insert(scholarProfile).values({
       userId,
-      cohortId,
       country: country || null,
       degree: degree || null,
       institution: institution || null,
       whatsappNumber: whatsappNumber || null,
       onboardingCompletedAt: markOnboardingCompleted ? new Date() : null,
+    });
+    await db.insert(scholarEnrollment).values({
+      scholarId: userId,
+      cohortId,
     });
   }
 
@@ -229,6 +247,21 @@ export async function bulkEnrollScholars(
         }
         userId = existingUser.id;
 
+        const [existingEnrollment] = await db
+          .select()
+          .from(scholarEnrollment)
+          .where(
+            and(
+              eq(scholarEnrollment.scholarId, userId),
+              eq(scholarEnrollment.cohortId, cohortId)
+            )
+          );
+
+        if (existingEnrollment) {
+          skippedCount++;
+          continue;
+        }
+
         const [existingProfile] = await db
           .select()
           .from(scholarProfile)
@@ -238,7 +271,6 @@ export async function bulkEnrollScholars(
           await db
             .update(scholarProfile)
             .set({
-              cohortId,
               country: s.country || existingProfile.country,
               degree: s.degree || existingProfile.degree,
               institution: s.institution || existingProfile.institution,
@@ -251,13 +283,17 @@ export async function bulkEnrollScholars(
         } else {
           await db.insert(scholarProfile).values({
             userId,
-            cohortId,
             country: s.country || null,
             degree: s.degree || null,
             institution: s.institution || null,
             onboardingCompletedAt: markOnboardingCompleted ? new Date() : null,
           });
         }
+
+        await db.insert(scholarEnrollment).values({
+          scholarId: userId,
+          cohortId,
+        });
         enrolledCount++;
       } else {
         tempPassword = `zuva-${randomBytes(4).toString("hex")}`;
@@ -269,11 +305,15 @@ export async function bulkEnrollScholars(
         await db.update(user).set({ role: "scholar" }).where(eq(user.id, userId));
         await db.insert(scholarProfile).values({
           userId,
-          cohortId,
           country: s.country || null,
           degree: s.degree || null,
           institution: s.institution || null,
           onboardingCompletedAt: markOnboardingCompleted ? new Date() : null,
+        });
+
+        await db.insert(scholarEnrollment).values({
+          scholarId: userId,
+          cohortId,
         });
 
         if (sendEmail && sendScholarEnrolledEmailFn) {
@@ -340,19 +380,23 @@ export async function unenrollScholar(input: unknown): Promise<ActionResult> {
   }
   const { scholarId, cohortId } = parsed.data;
 
-  const [profile] = await db
+  const [enrollment] = await db
     .select()
-    .from(scholarProfile)
-    .where(eq(scholarProfile.userId, scholarId));
+    .from(scholarEnrollment)
+    .where(
+      and(
+        eq(scholarEnrollment.scholarId, scholarId),
+        eq(scholarEnrollment.cohortId, cohortId)
+      )
+    );
 
-  if (!profile || profile.cohortId !== cohortId) {
+  if (!enrollment) {
     return { ok: false, error: "Scholar is not enrolled in this cohort" };
   }
 
   await db
-    .update(scholarProfile)
-    .set({ cohortId: null })
-    .where(eq(scholarProfile.id, profile.id));
+    .delete(scholarEnrollment)
+    .where(eq(scholarEnrollment.id, enrollment.id));
 
   refresh();
   return { ok: true, data: undefined };
