@@ -16,7 +16,10 @@ import {
   DEFAULT_WORKING_HOURS,
   type WorkingHoursInput,
 } from "@/features/coach/working-hours";
-import { saveCoachWorkingHours } from "@/features/coach/coach-sync-actions";
+import {
+  adminSaveCoachWorkingHours,
+  saveCoachWorkingHours,
+} from "@/features/coach/coach-sync-actions";
 
 const DAYS_OF_WEEK = [
   { id: 1, label: "Mon" },
@@ -30,10 +33,14 @@ const DAYS_OF_WEEK = [
 
 interface CoachWorkingHoursFormProps {
   initialWorkingHours?: WorkingHoursInput | null;
+  coachUserId?: string;
+  onSuccess?: () => void;
 }
 
 export function CoachWorkingHoursForm({
   initialWorkingHours,
+  coachUserId,
+  onSuccess,
 }: CoachWorkingHoursFormProps) {
   const [isPending, startTransition] = useTransition();
 
@@ -154,7 +161,10 @@ export function CoachWorkingHoursForm({
     }
 
     startTransition(async () => {
-      const res = await saveCoachWorkingHours(workingHours);
+      const res = coachUserId
+        ? await adminSaveCoachWorkingHours({ coachUserId, workingHours })
+        : await saveCoachWorkingHours(workingHours);
+
       if (!res.ok) {
         toast.error(res.error);
         return;
@@ -164,6 +174,9 @@ export function CoachWorkingHoursForm({
           ? `Booking schedule saved! Generated ${res.data.slotsCreated} available slot(s).`
           : "Booking schedule saved successfully.",
       );
+      if (onSuccess) {
+        onSuccess();
+      }
     });
   };
 

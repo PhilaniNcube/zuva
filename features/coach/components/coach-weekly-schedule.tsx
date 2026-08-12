@@ -21,6 +21,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { AdminCoachSyncButton } from "./admin-coach-sync-button";
+import { AdminCoachWorkingHoursDialog } from "./admin-coach-working-hours-dialog";
 import type { WorkingHoursInput } from "../working-hours";
 
 export interface ScheduleSlot {
@@ -361,6 +362,10 @@ export function CoachWeeklySchedule({
             </button>
           </div>
 
+          <AdminCoachWorkingHoursDialog
+            coachUserId={coachUserId}
+            workingHours={workingHours}
+          />
           <AdminCoachSyncButton coachUserId={coachUserId} disabled={!icalUrl} />
         </div>
       </div>
@@ -368,15 +373,28 @@ export function CoachWeeklySchedule({
       {/* Unconfigured Working Hours Banner */}
       {!hasConfiguredWorkingHours && (
         <div className="rounded-xl border border-amber-500/20 bg-amber-500/10 p-4 text-amber-900 dark:text-amber-200">
-          <div className="flex items-start gap-3">
-            <AlertTriangle className="size-5 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
-            <div className="space-y-1">
-              <h4 className="text-sm font-semibold">
-                Accepted Booking Hours Not Configured
-              </h4>
-              <p className="text-xs text-amber-800 dark:text-amber-300">
-                {coachName} has not yet specified weekly working hours for 1:1 coaching bookings. Click "Sync Calendar Now" or update coach settings to generate open slots.
-              </p>
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="flex items-start gap-3">
+              <AlertTriangle className="size-5 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+              <div className="space-y-1">
+                <h4 className="text-sm font-semibold">
+                  Accepted Booking Hours Not Configured
+                </h4>
+                <p className="text-xs text-amber-800 dark:text-amber-300">
+                  {coachName} has not yet specified weekly working hours for 1:1 coaching bookings. Configure working hours to generate bookable slots.
+                </p>
+              </div>
+            </div>
+            <div className="shrink-0">
+              <AdminCoachWorkingHoursDialog
+                coachUserId={coachUserId}
+                workingHours={workingHours}
+                trigger={
+                  <Button size="sm" className="bg-amber-700 text-white hover:bg-amber-800 font-medium text-xs">
+                    Set Working Hours Now
+                  </Button>
+                }
+              />
             </div>
           </div>
         </div>

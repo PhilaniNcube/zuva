@@ -20,6 +20,7 @@ import { getCoachDetail } from "../coach-queries";
 import { SPECIALTIES } from "../specialties";
 import { CoachEditForm } from "./coach-edit-form";
 import { AdminCoachSyncButton } from "./admin-coach-sync-button";
+import { AdminCoachWorkingHoursDialog } from "./admin-coach-working-hours-dialog";
 import { CoachWeeklySchedule } from "./coach-weekly-schedule";
 
 interface CoachDetailProps {
@@ -83,7 +84,11 @@ export async function CoachDetail({ id }: CoachDetailProps) {
             </div>
           </div>
 
-          <div className="shrink-0 self-end sm:self-center">
+          <div className="shrink-0 self-end sm:self-center flex items-center gap-2 flex-wrap">
+            <AdminCoachWorkingHoursDialog
+              coachUserId={coach.id}
+              workingHours={coach.workingHours}
+            />
             <CoachEditForm
               coachUserId={coach.id}
               initial={{
