@@ -186,22 +186,20 @@ export function CoachWeeklySchedule({
             <button
               type="button"
               onClick={() => setDaysCount(5)}
-              className={`rounded-md px-2.5 py-1 text-xs font-medium transition-colors ${
-                daysCount === 5
-                  ? "bg-background text-foreground shadow-xs"
-                  : "text-muted-foreground hover:text-foreground"
-              }`}
+              className={`rounded-md px-2.5 py-1 text-xs font-medium transition-colors ${daysCount === 5
+                ? "bg-background text-foreground shadow-xs"
+                : "text-muted-foreground hover:text-foreground"
+                }`}
             >
               5 Days
             </button>
             <button
               type="button"
               onClick={() => setDaysCount(7)}
-              className={`rounded-md px-2.5 py-1 text-xs font-medium transition-colors ${
-                daysCount === 7
-                  ? "bg-background text-foreground shadow-xs"
-                  : "text-muted-foreground hover:text-foreground"
-              }`}
+              className={`rounded-md px-2.5 py-1 text-xs font-medium transition-colors ${daysCount === 7
+                ? "bg-background text-foreground shadow-xs"
+                : "text-muted-foreground hover:text-foreground"
+                }`}
             >
               7 Days
             </button>
@@ -268,19 +266,17 @@ export function CoachWeeklySchedule({
                 return (
                   <div
                     key={day.toISOString()}
-                    className={`p-3 text-center border-r last:border-r-0 min-w-0 ${
-                      isCurrent ? "bg-primary/5" : ""
-                    }`}
+                    className={`p-3 text-center border-r last:border-r-0 min-w-0 ${isCurrent ? "bg-primary/5" : ""
+                      }`}
                   >
                     <div className="text-xs font-medium text-muted-foreground">
                       {format(day, "EEE")}
                     </div>
                     <div
-                      className={`text-sm font-bold mt-0.5 inline-flex items-center justify-center rounded-full size-7 ${
-                        isCurrent
-                          ? "bg-primary text-primary-foreground"
-                          : "text-foreground"
-                      }`}
+                      className={`text-sm font-bold mt-0.5 inline-flex items-center justify-center rounded-full size-7 ${isCurrent
+                        ? "bg-primary text-primary-foreground"
+                        : "text-foreground"
+                        }`}
                     >
                       {format(day, "d")}
                     </div>
@@ -332,23 +328,21 @@ export function CoachWeeklySchedule({
                     return (
                       <div
                         key={day.toISOString()}
-                        className={`p-1 border-r last:border-r-0 transition-colors flex flex-col gap-1 min-w-0 ${
-                          !isWorking && !hasContent
-                            ? "bg-muted/25"
-                            : isWorking && !hasContent
+                        className={`p-1 border-r last:border-r-0 transition-colors flex flex-col gap-1 min-w-0 ${!isWorking && !hasContent
+                          ? "bg-muted/25"
+                          : isWorking && !hasContent
                             ? "bg-background/80 hover:bg-muted/10"
                             : "bg-background"
-                        }`}
+                          }`}
                       >
                         {/* Render Open & Booked Slots */}
                         {hourSlots.map((s) => (
                           <div
                             key={s.slotId}
-                            className={`rounded-lg p-2 text-xs transition-all border break-words whitespace-normal min-w-0 ${
-                              s.status === "booked"
-                                ? "bg-blue-500/10 text-blue-900 dark:text-blue-200 border-blue-500/25"
-                                : "bg-emerald-500/10 text-emerald-900 dark:text-emerald-200 border-emerald-500/25"
-                            }`}
+                            className={`rounded-lg p-2 text-xs transition-all border break-words whitespace-normal min-w-0 ${s.status === "booked"
+                              ? "bg-blue-100 text-blue-900 dark:text-blue-200 border-blue-200"
+                              : "bg-emerald-200 text-emerald-900 dark:text-emerald-200 border-emerald-200"
+                              }`}
                           >
                             <div className="flex flex-wrap items-center justify-between gap-1 font-semibold text-[11px]">
                               <span>
@@ -356,11 +350,10 @@ export function CoachWeeklySchedule({
                               </span>
                               <Badge
                                 variant="outline"
-                                className={`text-[10px] px-1 py-0 h-4 border-none capitalize ${
-                                  s.status === "booked"
-                                    ? "bg-blue-500/20 text-blue-700 dark:text-blue-300"
-                                    : "bg-emerald-500/20 text-emerald-700 dark:text-emerald-300"
-                                }`}
+                                className={`text-[10px] px-1 py-0 h-4 border-none capitalize ${s.status === "booked"
+                                  ? "bg-blue-200 text-blue-800 dark:text-blue-500"
+                                  : "bg-emerald-100 text-emerald-800 dark:text-emerald-300"
+                                  }`}
                               >
                                 {s.status === "open" ? "Available" : "Booked"}
                               </Badge>
