@@ -1,7 +1,7 @@
 "use server";
 
 import { and, eq, sql } from "drizzle-orm";
-import { refresh } from "next/cache";
+import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 
@@ -77,6 +77,6 @@ export async function submitFeedback(formData: FormData) {
     }
   }
 
-  refresh();
+  revalidatePath("/", "layout");
   redirect("/sessions?feedback=submitted");
 }

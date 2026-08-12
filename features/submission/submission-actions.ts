@@ -1,6 +1,6 @@
 "use server";
 
-import { refresh } from "next/cache";
+import { revalidatePath } from "next/cache";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
 
@@ -46,7 +46,7 @@ export async function createSubmission(
     changedBy: scholar.id,
   });
 
-  refresh();
+  revalidatePath("/", "layout");
   return { ok: true, data: undefined };
 }
 
@@ -91,7 +91,7 @@ export async function startCriticalReview(
     changedBy: admin.id,
   });
 
-  refresh();
+  revalidatePath("/", "layout");
   return { ok: true, data: undefined };
 }
 
@@ -135,7 +135,7 @@ export async function startLanguageEditing(
     changedBy: admin.id,
   });
 
-  refresh();
+  revalidatePath("/", "layout");
   return { ok: true, data: undefined };
 }
 
@@ -177,6 +177,6 @@ export async function returnSubmission(
     changedBy: admin.id,
   });
 
-  refresh();
+  revalidatePath("/", "layout");
   return { ok: true, data: undefined };
 }

@@ -2,7 +2,7 @@
 
 import { randomBytes } from "node:crypto";
 
-import { refresh } from "next/cache";
+import { revalidatePath } from "next/cache";
 import { and, eq } from "drizzle-orm";
 import { z } from "zod";
 
@@ -31,7 +31,7 @@ export async function createCohort(input: unknown): Promise<ActionResult> {
     return { ok: false, error: parsed.error.issues[0].message };
   }
   await db.insert(cohort).values(parsed.data);
-  refresh();
+  revalidatePath("/", "layout");
   return { ok: true, data: undefined };
 }
 
@@ -45,7 +45,7 @@ export async function updateCohort(
     return { ok: false, error: parsed.error.issues[0].message };
   }
   await db.update(cohort).set(parsed.data).where(eq(cohort.id, cohortId));
-  refresh();
+  revalidatePath("/", "layout");
   return { ok: true, data: undefined };
 }
 
@@ -182,7 +182,7 @@ export async function enrollScholar(
     emailSent = emailRes.sent;
   }
 
-  refresh();
+  revalidatePath("/", "layout");
   return {
     ok: true,
     data: { tempPassword: tempPassword ?? "", emailSent },
@@ -333,7 +333,7 @@ export async function bulkEnrollScholars(
     }
   }
 
-  refresh();
+  revalidatePath("/", "layout");
   return {
     ok: true,
     data: { enrolledCount, skippedCount, errors },
@@ -363,7 +363,7 @@ export async function deleteCohort(input: unknown): Promise<ActionResult> {
 
   await db.delete(cohort).where(eq(cohort.id, cohortId));
 
-  refresh();
+  revalidatePath("/", "layout");
   return { ok: true, data: undefined };
 }
 
@@ -398,7 +398,7 @@ export async function unenrollScholar(input: unknown): Promise<ActionResult> {
     .delete(scholarEnrollment)
     .where(eq(scholarEnrollment.id, enrollment.id));
 
-  refresh();
+  revalidatePath("/", "layout");
   return { ok: true, data: undefined };
 }
 

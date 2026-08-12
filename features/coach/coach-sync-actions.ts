@@ -1,8 +1,7 @@
 "use server";
 
-import { refresh } from "next/cache";
+import { revalidatePath } from "next/cache";
 import { and, eq, gte, lte } from "drizzle-orm";
-import { z } from "zod";
 
 import type { ActionResult } from "@/lib/action-result";
 import { db } from "@/lib/db";
@@ -14,61 +13,12 @@ import {
 import { fetchIcalCalendarSlots, type CalendarSlot } from "@/lib/ical-parser";
 import { requireRole } from "@/lib/rbac";
 import { getCoachProfile } from "./coach-queries";
-
-const icalSettingsSchema = z.object({
-  icalUrl: z
-    .string()
-    .trim()
-    .url("Must be a valid URL (https://... or http://...)"),
-});
-
-export const workingHoursSchema = z
-  .object({
-    days: z
-      .array(z.number().min(0).max(6))
-      .min(1, "Select at least one day of the week"),
-    start: z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/, "Format must be HH:MM"),
-    end: z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/, "Format must be HH:MM"),
-    slotDurationMinutes: z.number().int().min(15).max(240).default(60),
-    bufferMinutes: z.number().int().min(0).max(120).default(0),
-    overrides: z
-      .array(
-        z.object({
-          date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
-          isBlocked: z.boolean().optional(),
-          start: z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/).optional(),
-          end: z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/).optional(),
-        }),
-      )
-      .optional()
-      .default([]),
-    blockedRanges: z
-      .array(
-        z.object({
-          id: z.string(),
-          startDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
-          endDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
-          reason: z.string().optional(),
-        }),
-      )
-      .optional()
-      .default([]),
-  })
-  .refine((data) => data.end > data.start, {
-    message: "End time must be after start time",
-  });
-
-export type WorkingHoursInput = z.infer<typeof workingHoursSchema>;
-
-export const DEFAULT_WORKING_HOURS: WorkingHoursInput = {
-  days: [1, 2, 3, 4], // Monday, Tuesday, Wednesday, Thursday
-  start: "10:00",
-  end: "14:00",
-  slotDurationMinutes: 60,
-  bufferMinutes: 0,
-  overrides: [],
-  blockedRanges: [],
-};
+import {
+  DEFAULT_WORKING_HOURS,
+  icalSettingsSchema,
+  workingHoursSchema,
+  type WorkingHoursInput,
+} from "./working-hours";
 
 /**
  * Calculates candidate free slots and syncs availabilitySlot DB records for a coach.
@@ -302,7 +252,8 @@ export async function syncCoachAvailabilityForUser(
     .set({ lastSyncedAt: new Date() })
     .where(eq(coachProfile.userId, coachUserId));
 
-  refresh();
+  revalidatePath("/coaches");
+  revalidatePath(`/coaches/${coachUserId}`);
 
   return {
     ok: true,
@@ -326,7 +277,8 @@ export async function saveCoachWorkingHours(
     .where(eq(coachProfile.userId, coach.id));
 
   const syncResult = await syncCoachAvailabilityForUser(coach.id);
-  refresh();
+  revalidatePath("/coaches");
+  revalidatePath(`/coaches/${coach.id}`);
   return syncResult;
 }
 
@@ -348,7 +300,8 @@ export async function saveCoachIcalUrl(
     .where(eq(coachProfile.userId, coach.id));
 
   const syncResult = await syncCoachAvailabilityForUser(coach.id);
-  refresh();
+  revalidatePath("/coaches");
+  revalidatePath(`/coaches/${coach.id}`);
   return syncResult;
 }
 
@@ -387,7 +340,8 @@ export async function adminSaveCoachIcalUrl({
     .where(eq(coachProfile.userId, coachUserId));
 
   const syncResult = await syncCoachAvailabilityForUser(coachUserId);
-  refresh();
+  revalidatePath("/coaches");
+  revalidatePath(`/coaches/${coachUserId}`);
   return syncResult;
 }
 
@@ -410,11 +364,16 @@ export async function adminSaveCoachWorkingHours({
     .where(eq(coachProfile.userId, coachUserId));
 
   const syncResult = await syncCoachAvailabilityForUser(coachUserId);
-  refresh();
+  revalidatePath("/coaches");
+  revalidatePath(`/coaches/${coachUserId}`);
   return syncResult;
 }
 
 // Keep saveCoachIcalSettings alias for backwards compatibility
-export const saveCoachIcalSettings = saveCoachIcalUrl;
+export async function saveCoachIcalSettings(
+  input: unknown,
+): Promise<ActionResult<{ slotsCreated: number }>> {
+  return saveCoachIcalUrl(input);
+}
 
 

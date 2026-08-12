@@ -1,6 +1,6 @@
 "use server";
 
-import { refresh } from "next/cache";
+import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { and, asc, eq } from "drizzle-orm";
 import { z } from "zod";
@@ -47,7 +47,7 @@ export async function publishSlot(input: unknown): Promise<ActionResult> {
     startsAt: parsed.data.startsAt,
     endsAt: parsed.data.endsAt,
   });
-  refresh();
+  revalidatePath("/", "layout");
   return { ok: true, data: undefined };
 }
 
@@ -70,7 +70,7 @@ export async function cancelSlot(slotId: string): Promise<ActionResult> {
     .update(availabilitySlot)
     .set({ status: "cancelled" })
     .where(eq(availabilitySlot.id, slotId));
-  refresh();
+  revalidatePath("/", "layout");
   return { ok: true, data: undefined };
 }
 
@@ -164,7 +164,7 @@ export async function bookSlot(
     return { ok: false, error: "This slot was just taken — please pick another." };
   }
 
-  refresh();
+  revalidatePath("/", "layout");
   return { ok: true, data: undefined };
 }
 
@@ -207,7 +207,7 @@ export async function cancelBooking(bookingId: string): Promise<ActionResult> {
     await cancelMeetEvent(row.session.googleEventId);
   }
 
-  refresh();
+  revalidatePath("/", "layout");
   return { ok: true, data: undefined };
 }
 
@@ -276,7 +276,7 @@ export async function createCohortSession(
     meetLink: meet?.meetLink ?? null,
   });
 
-  refresh();
+  revalidatePath("/", "layout");
   return { ok: true, data: undefined };
 }
 
@@ -357,7 +357,7 @@ export async function createOnboardingSession(
     meetLink: meet?.meetLink ?? null,
   });
 
-  refresh();
+  revalidatePath("/", "layout");
   return { ok: true, data: undefined };
 }
 
@@ -379,7 +379,7 @@ export async function cancelCohortSession(
     await cancelMeetEvent(session.googleEventId);
   }
 
-  refresh();
+  revalidatePath("/", "layout");
   return { ok: true, data: undefined };
 }
 

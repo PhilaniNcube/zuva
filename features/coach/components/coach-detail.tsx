@@ -20,6 +20,7 @@ import { getCoachDetail } from "../coach-queries";
 import { SPECIALTIES } from "../specialties";
 import { CoachEditForm } from "./coach-edit-form";
 import { AdminCoachSyncButton } from "./admin-coach-sync-button";
+import { CoachWeeklySchedule } from "./coach-weekly-schedule";
 
 interface CoachDetailProps {
   id: Promise<string> | string;
@@ -162,54 +163,30 @@ export async function CoachDetail({ id }: CoachDetailProps) {
           </CardContent>
         </Card>
 
-        {/* Sessions Hosted */}
-        <Card className="md:col-span-2">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+        {/* Coach Weekly Schedule Section */}
+        <div className="md:col-span-2 space-y-3">
+          <div className="flex items-center justify-between">
             <div>
-              <CardTitle className="text-base">Recent Programme Sessions</CardTitle>
-              <CardDescription>Sessions assigned to or hosted by this coach</CardDescription>
-            </div>
-          </CardHeader>
-          <CardContent>
-            {coach.sessions.length === 0 ? (
-              <p className="text-xs text-muted-foreground py-4 text-center">
-                No sessions hosted by this coach yet.
+              <h2 className="text-base font-semibold tracking-tight text-foreground">
+                Weekly Schedule & Availability Grid
+              </h2>
+              <p className="text-xs text-muted-foreground">
+                Interactive 5 or 7 day calendar view showing open slots, 1:1 bookings, programme sessions, and iCal feed busy times
               </p>
-            ) : (
-              <div className="divide-y text-xs">
-                {coach.sessions.map((s) => (
-                  <div key={s.id} className="py-2.5 flex items-center justify-between gap-4">
-                    <div>
-                      <p className="font-medium text-foreground text-sm">{s.title}</p>
-                      <div className="flex items-center gap-2 text-muted-foreground mt-0.5">
-                        <Clock className="size-3" />
-                        <span>
-                          <LocalTime value={new Date(s.startsAt)} /> — <LocalTime value={new Date(s.endsAt)} />
-                        </span>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2 shrink-0">
-                      {s.meetLink && (
-                        <a
-                          href={s.meetLink}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="inline-flex items-center gap-1 text-xs text-primary hover:underline"
-                        >
-                          <Video className="size-3.5" />
-                          Meet
-                        </a>
-                      )}
-                      <Badge variant="outline" className="capitalize text-[11px]">
-                        {s.status}
-                      </Badge>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </CardContent>
-        </Card>
+            </div>
+          </div>
+
+          <CoachWeeklySchedule
+            coachUserId={coach.id}
+            coachName={coach.name}
+            workingHours={coach.workingHours}
+            slots={coach.slots}
+            sessions={coach.sessions}
+            icalBusyBlocks={coach.icalBusyBlocks}
+            icalUrl={coach.icalUrl}
+            lastSyncedAt={coach.lastSyncedAt}
+          />
+        </div>
       </div>
     </div>
   );

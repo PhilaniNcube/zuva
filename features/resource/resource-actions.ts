@@ -1,6 +1,6 @@
 "use server";
 
-import { refresh } from "next/cache";
+import { revalidatePath } from "next/cache";
 import { and, eq } from "drizzle-orm";
 import { z } from "zod";
 
@@ -62,7 +62,7 @@ export async function createResource(input: unknown): Promise<ActionResult> {
     uploadedBy: user.id,
   });
 
-  refresh();
+  revalidatePath("/", "layout");
   return { ok: true, data: undefined };
 }
 
@@ -98,7 +98,7 @@ export async function deleteResource(resourceId: string): Promise<ActionResult> 
   await db.delete(resource).where(eq(resource.id, resourceId));
   if (row.fileKey) await deleteObject(row.fileKey).catch(() => {});
 
-  refresh();
+  revalidatePath("/", "layout");
   return { ok: true, data: undefined };
 }
 
@@ -174,6 +174,6 @@ export async function trackResourceEngagement(input: unknown): Promise<ActionRes
     }
   }
 
-  refresh();
+  revalidatePath("/", "layout");
   return { ok: true, data: undefined };
 }

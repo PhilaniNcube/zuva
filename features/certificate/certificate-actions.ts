@@ -1,6 +1,6 @@
 "use server";
 
-import { refresh } from "next/cache";
+import { revalidatePath } from "next/cache";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
 
@@ -47,7 +47,7 @@ export async function advanceToApproval(
     })
     .where(eq(certificate.id, cert.id));
 
-  refresh();
+  revalidatePath("/", "layout");
   return { ok: true, data: undefined };
 }
 
@@ -138,6 +138,6 @@ export async function approveCertificate(
     }
   }
 
-  refresh();
+  revalidatePath("/", "layout");
   return { ok: true, data: undefined };
 }

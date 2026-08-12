@@ -14,9 +14,9 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import {
   DEFAULT_WORKING_HOURS,
-  saveCoachWorkingHours,
   type WorkingHoursInput,
-} from "@/features/coach/coach-sync-actions";
+} from "@/features/coach/working-hours";
+import { saveCoachWorkingHours } from "@/features/coach/coach-sync-actions";
 
 const DAYS_OF_WEEK = [
   { id: 1, label: "Mon" },

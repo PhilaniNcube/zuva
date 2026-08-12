@@ -4,7 +4,9 @@ import { cache } from "react";
 import { and, asc, count, desc, eq, like, or } from "drizzle-orm";
 
 import { db } from "@/lib/db";
-import { availabilitySlot, coachProfile, programmeSession, user } from "@/lib/db/schema";
+import { fetchIcalCalendarSlots, type CalendarSlot } from "@/lib/ical-parser";
+import { availabilitySlot, booking, coachProfile, programmeSession, user } from "@/lib/db/schema";
+import type { WorkingHoursInput } from "./working-hours";
 
 export const listCoaches = cache(async () => {
   return db
@@ -139,24 +141,47 @@ export const getCoachDetail = cache(async (coachUserId: string) => {
     .from(programmeSession)
     .where(eq(programmeSession.coachId, coachUserId))
     .orderBy(desc(programmeSession.startsAt))
-    .limit(10);
+    .limit(50);
 
   const slots = await db
     .select({
-      id: availabilitySlot.id,
+      slotId: availabilitySlot.id,
       startsAt: availabilitySlot.startsAt,
       endsAt: availabilitySlot.endsAt,
       status: availabilitySlot.status,
+      bookingId: booking.id,
+      scholarName: user.name,
+      sessionId: programmeSession.id,
+      meetLink: programmeSession.meetLink,
     })
     .from(availabilitySlot)
+    .leftJoin(
+      booking,
+      and(
+        eq(booking.slotId, availabilitySlot.id),
+        eq(booking.status, "confirmed"),
+      ),
+    )
+    .leftJoin(user, eq(user.id, booking.scholarId))
+    .leftJoin(programmeSession, eq(programmeSession.id, booking.sessionId))
     .where(eq(availabilitySlot.coachId, coachUserId))
-    .orderBy(desc(availabilitySlot.startsAt))
-    .limit(10);
+    .orderBy(asc(availabilitySlot.startsAt));
+
+  let icalBusyBlocks: CalendarSlot[] = [];
+  if (data.icalUrl) {
+    try {
+      icalBusyBlocks = await fetchIcalCalendarSlots(data.icalUrl);
+    } catch {
+      icalBusyBlocks = [];
+    }
+  }
 
   return {
     ...data,
+    workingHours: data.workingHours as WorkingHoursInput | null,
     sessions,
     slots,
+    icalBusyBlocks,
   };
 });
 

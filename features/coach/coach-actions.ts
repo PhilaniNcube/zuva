@@ -2,7 +2,7 @@
 
 import { randomBytes } from "node:crypto";
 
-import { refresh } from "next/cache";
+import { revalidatePath } from "next/cache";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
 
@@ -77,7 +77,7 @@ export async function createCoach(
     userId,
   });
 
-  refresh();
+  revalidatePath("/coaches");
   return {
     ok: true,
     data: {
@@ -128,7 +128,8 @@ export async function updateCoach(
     await syncCoachAvailabilityForUser(coachUserId);
   }
 
-  refresh();
+  revalidatePath("/coaches");
+  revalidatePath(`/coaches/${coachUserId}`);
   return { ok: true, data: undefined };
 }
 

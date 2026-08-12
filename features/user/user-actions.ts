@@ -1,6 +1,6 @@
 "use server";
 
-import { refresh } from "next/cache";
+import { revalidatePath } from "next/cache";
 import { headers } from "next/headers";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
@@ -92,7 +92,7 @@ export async function completeOnboarding(input: unknown): Promise<ActionResult> 
     });
   }
 
-  refresh();
+  revalidatePath("/", "layout");
   return { ok: true, data: undefined };
 }
 
@@ -157,7 +157,7 @@ export async function updateProfileDetails(input: unknown): Promise<ActionResult
     }
   }
 
-  refresh();
+  revalidatePath("/", "layout");
   return { ok: true, data: undefined };
 }
 
@@ -241,7 +241,7 @@ export async function promoteUserToAdmin(input: unknown): Promise<ActionResult> 
     .set({ role: "admin" })
     .where(eq(userTable.id, userId));
 
-  refresh();
+  revalidatePath("/", "layout");
   return { ok: true, data: undefined };
 }
 
@@ -275,7 +275,7 @@ export async function deleteUser(input: unknown): Promise<ActionResult> {
 
   await db.delete(userTable).where(eq(userTable.id, userId));
 
-  refresh();
+  revalidatePath("/", "layout");
   return { ok: true, data: undefined };
 }
 
@@ -325,7 +325,7 @@ export async function updateProfileImage(input: unknown): Promise<ActionResult> 
     .set({ image: imageUrl })
     .where(eq(userTable.id, currentUser.id));
 
-  refresh();
+  revalidatePath("/", "layout");
   return { ok: true, data: undefined };
 }
 
@@ -350,7 +350,7 @@ export async function removeProfileImage(): Promise<ActionResult> {
     .set({ image: null })
     .where(eq(userTable.id, currentUser.id));
 
-  refresh();
+  revalidatePath("/", "layout");
   return { ok: true, data: undefined };
 }
 
@@ -389,7 +389,7 @@ export async function markScholarBioReviewed(
     })
     .where(eq(scholarProfile.id, existingProfile.id));
 
-  refresh();
+  revalidatePath("/", "layout");
   return { ok: true, data: undefined };
 }
 
@@ -448,7 +448,7 @@ export async function updateScholarBioRewriteStatus(
     .set(updateData)
     .where(eq(scholarProfile.id, existingProfile.id));
 
-  refresh();
+  revalidatePath("/", "layout");
   return { ok: true, data: undefined };
 }
 
@@ -519,7 +519,7 @@ export async function adminUpdateScholarProfile(input: unknown): Promise<ActionR
     });
   }
 
-  refresh();
+  revalidatePath("/", "layout");
   return { ok: true, data: undefined };
 }
 
