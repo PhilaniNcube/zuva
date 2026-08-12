@@ -383,28 +383,28 @@ export function CoachWeeklySchedule({
       )}
 
       {/* Legend Bar */}
-      <div className="flex items-center gap-4 text-xs text-muted-foreground flex-wrap px-1">
+      <div className="flex items-center gap-4 text-xs font-medium text-foreground flex-wrap px-1">
         <div className="flex items-center gap-1.5">
-          <span className="size-3 rounded-full bg-emerald-500/20 border border-emerald-500/40" />
+          <span className="size-3 rounded-full bg-emerald-500 border border-emerald-600" />
           <span>Open Slot</span>
         </div>
         <div className="flex items-center gap-1.5">
-          <span className="size-3 rounded-full bg-blue-500/20 border border-blue-500/40" />
+          <span className="size-3 rounded-full bg-blue-500 border border-blue-600" />
           <span>Booked 1:1</span>
         </div>
         <div className="flex items-center gap-1.5">
-          <span className="size-3 rounded-full bg-violet-500/20 border border-violet-500/40" />
+          <span className="size-3 rounded-full bg-purple-500 border border-purple-600" />
           <span>Programme Session</span>
         </div>
         {icalUrl && (
           <div className="flex items-center gap-1.5">
-            <span className="size-3 rounded-full bg-amber-500/20 border border-amber-500/40" />
+            <span className="size-3 rounded-full bg-amber-500 border border-amber-600" />
             <span>Busy (External Calendar)</span>
           </div>
         )}
         <div className="flex items-center gap-1.5">
           <span className="size-3 rounded-full bg-muted border border-border" />
-          <span>Outside Working Hours</span>
+          <span className="text-muted-foreground">Outside Working Hours</span>
         </div>
       </div>
 
@@ -524,16 +524,16 @@ export function CoachWeeklySchedule({
                       let bgClass = "";
                       if (ev.type === "open_slot") {
                         bgClass =
-                          "bg-emerald-500/15 text-emerald-950 dark:text-emerald-100 border-emerald-500/30 hover:bg-emerald-500/20";
+                          "bg-emerald-100 dark:bg-emerald-950/90 text-emerald-950 dark:text-emerald-100 border-emerald-300 dark:border-emerald-700/80 hover:bg-emerald-200/80 dark:hover:bg-emerald-900/90";
                       } else if (ev.type === "booked_slot") {
                         bgClass =
-                          "bg-blue-500/15 text-blue-950 dark:text-blue-100 border-blue-500/30 hover:bg-blue-500/20";
+                          "bg-blue-100 dark:bg-blue-950/90 text-blue-950 dark:text-blue-100 border-blue-300 dark:border-blue-700/80 hover:bg-blue-200/80 dark:hover:bg-blue-900/90";
                       } else if (ev.type === "session") {
                         bgClass =
-                          "bg-violet-500/15 text-violet-950 dark:text-violet-100 border-violet-500/30 hover:bg-violet-500/20";
+                          "bg-purple-100 dark:bg-purple-950/90 text-purple-950 dark:text-purple-100 border-purple-300 dark:border-purple-700/80 hover:bg-purple-200/80 dark:hover:bg-purple-900/90";
                       } else {
                         bgClass =
-                          "bg-amber-500/15 text-amber-950 dark:text-amber-100 border-amber-500/30 hover:bg-amber-500/20";
+                          "bg-amber-100 dark:bg-amber-950/90 text-amber-950 dark:text-amber-100 border-amber-300 dark:border-amber-700/80 hover:bg-amber-200/80 dark:hover:bg-amber-900/90";
                       }
 
                       return (
@@ -548,14 +548,14 @@ export function CoachWeeklySchedule({
                           }}
                         >
                           <div className="min-w-0">
-                            <div className="flex flex-wrap items-center justify-between gap-1 text-[11px] font-semibold leading-tight">
+                            <div className="flex flex-wrap items-center justify-between gap-1 text-[11px] font-bold leading-tight">
                               <span className="truncate">
                                 {format(ev.startsAt, "HH:mm")} – {format(ev.endsAt, "HH:mm")}
                               </span>
                               {ev.type === "open_slot" && (
                                 <Badge
                                   variant="outline"
-                                  className="text-[9px] px-1 py-0 h-3.5 border-none bg-emerald-500/20 text-emerald-800 dark:text-emerald-200"
+                                  className="text-[9px] px-1 py-0 h-3.5 border-none bg-emerald-200 dark:bg-emerald-900 text-emerald-950 dark:text-emerald-100 font-bold"
                                 >
                                   Available
                                 </Badge>
@@ -563,7 +563,7 @@ export function CoachWeeklySchedule({
                               {ev.type === "booked_slot" && (
                                 <Badge
                                   variant="outline"
-                                  className="text-[9px] px-1 py-0 h-3.5 border-none bg-blue-500/20 text-blue-800 dark:text-blue-200"
+                                  className="text-[9px] px-1 py-0 h-3.5 border-none bg-blue-200 dark:bg-blue-900 text-blue-950 dark:text-blue-100 font-bold"
                                 >
                                   Booked
                                 </Badge>
@@ -572,20 +572,20 @@ export function CoachWeeklySchedule({
 
                             {/* Event details */}
                             {ev.type === "session" && (
-                              <div className="mt-0.5 font-medium text-[11px] break-words line-clamp-2 leading-tight">
+                              <div className="mt-0.5 font-bold text-[11px] break-words line-clamp-2 leading-tight text-purple-950 dark:text-purple-100">
                                 {ev.title}
                               </div>
                             )}
 
                             {ev.type === "booked_slot" && ev.scholarName && (
-                              <div className="mt-0.5 flex items-center gap-1 text-[11px] font-medium truncate">
-                                <User className="size-3 text-blue-600 dark:text-blue-400 shrink-0" />
+                              <div className="mt-0.5 flex items-center gap-1 text-[11px] font-semibold truncate text-blue-950 dark:text-blue-100">
+                                <User className="size-3 text-blue-700 dark:text-blue-300 shrink-0" />
                                 <span className="truncate">{ev.scholarName}</span>
                               </div>
                             )}
 
                             {ev.type === "ical" && (
-                              <div className="mt-0.5 font-medium text-[10px] truncate text-amber-800 dark:text-amber-300">
+                              <div className="mt-0.5 font-bold text-[10px] truncate text-amber-950 dark:text-amber-100">
                                 Busy (External)
                               </div>
                             )}
@@ -597,7 +597,7 @@ export function CoachWeeklySchedule({
                                 href={ev.meetLink}
                                 target="_blank"
                                 rel="noreferrer"
-                                className="inline-flex items-center gap-1 text-[10px] font-medium text-primary hover:underline"
+                                className="inline-flex items-center gap-1 text-[10px] font-bold text-primary hover:underline"
                               >
                                 <Video className="size-3" />
                                 Meet
