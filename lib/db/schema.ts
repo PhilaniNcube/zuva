@@ -191,6 +191,18 @@ export const coachProfile = sqliteTable(
       end: string;
       slotDurationMinutes: number;
       bufferMinutes: number;
+      overrides?: {
+        date: string; // "YYYY-MM-DD"
+        isBlocked?: boolean;
+        start?: string;
+        end?: string;
+      }[];
+      blockedRanges?: {
+        id: string;
+        startDate: string; // "YYYY-MM-DD"
+        endDate: string;   // "YYYY-MM-DD"
+        reason?: string;
+      }[];
     }>(),
     lastSyncedAt: integer("last_synced_at", { mode: "timestamp" }),
     ...timestamps,

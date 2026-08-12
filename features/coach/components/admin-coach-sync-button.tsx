@@ -24,8 +24,8 @@ export function AdminCoachSyncButton({
         return;
       }
       toast.success(
-        res.data?.slotsCreated
-          ? `Sync complete! Imported ${res.data.slotsCreated} new #zuva slot(s).`
+        res.data?.slotsCreated !== undefined
+          ? `Sync complete! Synced ${res.data.slotsCreated} available slot(s).`
           : "Sync complete! Coach calendar schedule is up to date.",
       );
     });

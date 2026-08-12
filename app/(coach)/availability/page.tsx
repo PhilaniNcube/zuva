@@ -6,6 +6,7 @@ export const metadata: Metadata = { title: "Availability" };
 import { getCoachProfile } from "@/features/coach/coach-queries";
 import { CoachSessions, CoachSessionsSkeleton } from "@/features/session/components/coach-sessions";
 import { CoachSlots, CoachSlotsSkeleton } from "@/features/session/components/coach-slots";
+import { CoachWorkingHoursForm } from "@/features/session/components/coach-working-hours-form";
 import { IcalConfigCard } from "@/features/session/components/ical-config-card";
 import { requireRole } from "@/lib/rbac";
 
@@ -18,9 +19,13 @@ export default async function AvailabilityPage() {
       <div>
         <h1 className="text-2xl font-semibold">My availability</h1>
         <p className="text-sm text-zinc-500">
-          Publish 1:1 slots for scholars to book, sync your external calendar feed, and join your calls from here.
+          Configure your accepted booking hours, set date overrides or vacations, and link your external calendar feed to prevent scheduling conflicts.
         </p>
       </div>
+
+      <CoachWorkingHoursForm
+        initialWorkingHours={profile?.workingHours as any}
+      />
 
       <IcalConfigCard
         icalUrl={profile?.icalUrl}
@@ -42,3 +47,4 @@ export default async function AvailabilityPage() {
     </main>
   );
 }
+

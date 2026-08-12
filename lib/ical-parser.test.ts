@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import { parseIcalText } from "./ical-parser";
 
 describe("iCal Parser", () => {
-  it("parses valid VEVENT entries and detects #zuva tagged slots", () => {
+  it("parses all valid VEVENT entries as busy slots", () => {
     const sampleIcal = `BEGIN:VCALENDAR
 VERSION:2.0
 PRODID:-//Example Corp.//EN
@@ -11,7 +11,7 @@ BEGIN:VEVENT
 UID:123456789
 DTSTART:20260801T090000Z
 DTEND:20260801T100000Z
-SUMMARY:ZUVA 1:1 Coaching Slot #zuva
+SUMMARY:ZUVA 1:1 Coaching Slot
 END:VEVENT
 BEGIN:VEVENT
 UID:987654321
@@ -23,9 +23,8 @@ END:VCALENDAR`;
 
     const slots = parseIcalText(sampleIcal);
     expect(slots).toHaveLength(2);
-    expect(slots[0].isZuvaSlot).toBe(true);
-    expect(slots[0].summary).toBe("ZUVA 1:1 Coaching Slot #zuva");
-    expect(slots[1].isZuvaSlot).toBe(false);
+    expect(slots[0].summary).toBe("ZUVA 1:1 Coaching Slot");
+    expect(slots[1].summary).toBe("Personal Doctor Appointment");
   });
 
   it("returns empty array for calendar without events", () => {
@@ -38,3 +37,4 @@ END:VCALENDAR`;
     expect(slots).toHaveLength(0);
   });
 });
+

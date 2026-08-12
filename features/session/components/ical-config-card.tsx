@@ -50,7 +50,7 @@ export function IcalConfigCard({
 
       toast.success(
         res.data?.slotsCreated
-          ? `Calendar synced! Created ${res.data.slotsCreated} open slot(s) tagged #zuva.`
+          ? `Calendar feed saved! Synced ${res.data.slotsCreated} available slot(s).`
           : "Calendar feed saved & synced successfully.",
       );
     });
@@ -64,8 +64,8 @@ export function IcalConfigCard({
         return;
       }
       toast.success(
-        res.data?.slotsCreated
-          ? `Sync complete! Imported ${res.data.slotsCreated} new #zuva slot(s).`
+        res.data?.slotsCreated !== undefined
+          ? `Sync complete! Synced ${res.data.slotsCreated} available slot(s).`
           : "Sync complete! Calendar schedule is up to date.",
       );
     });
@@ -83,14 +83,14 @@ export function IcalConfigCard({
             <div>
               <div className="flex items-center gap-2">
                 <h3 className="font-semibold text-zinc-900">
-                  Calendar iCal Feed
+                  External Calendar Feed (Busy-Time Integration)
                 </h3>
                 <span className="inline-flex items-center rounded-full bg-emerald-50 px-2.5 py-0.5 text-[10px] font-semibold text-emerald-700 border border-emerald-200">
-                  ★ Single Source of Truth
+                  ★ Conflict Prevention
                 </span>
               </div>
               <p className="text-xs text-zinc-500">
-                Manage your availability in your own calendar. Simply title events with <code className="font-semibold text-zinc-800">#zuva</code> or <code className="font-semibold text-zinc-800">ZUVA</code> to publish open 1:1 coaching slots.
+                Link your Google or Apple Calendar feed. ZUVA checks your external calendar for busy events and automatically blocks those times during your accepted booking windows.
               </p>
             </div>
           </div>

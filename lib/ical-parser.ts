@@ -48,7 +48,8 @@ export async function fetchIcalCalendarSlots(
 }
 
 /**
- * Parses raw iCal string data into calendar slots, marking #zuva tagged events.
+ * Parses raw iCal string data into busy calendar slots.
+ * All VEVENT entries represent times when the coach is busy.
  */
 export function parseIcalText(icalData: string): CalendarSlot[] {
   const parsed = ical.parseICS(icalData);
@@ -63,20 +64,10 @@ export function parseIcalText(icalData: string): CalendarSlot[] {
     if (ev && ev.type === "VEVENT" && ev.start && ev.end) {
       const start = new Date(ev.start);
       const end = new Date(ev.end);
-
       const summary = typeof ev.summary === "string" ? ev.summary : "";
-      const description = typeof ev.description === "string" ? ev.description : "";
-      const textToSearch = `${summary} ${description}`.toLowerCase();
-
-      // Event is recognized as a ZUVA availability slot if title or description contains "zuva" or "#zuva"
-      // Or if all events in dedicated calendar are imported
-      const isZuvaSlot =
-        textToSearch.includes("zuva") ||
-        textToSearch.includes("#zuva") ||
-        textToSearch.includes("coaching");
 
       if (!isNaN(start.getTime()) && !isNaN(end.getTime())) {
-        slots.push({ start, end, summary, isZuvaSlot });
+        slots.push({ start, end, summary, isZuvaSlot: true });
       }
 
       // Handle recurring rules (RRULE)
@@ -89,7 +80,7 @@ export function parseIcalText(icalData: string): CalendarSlot[] {
               start: occ,
               end: new Date(occ.getTime() + durationMs),
               summary,
-              isZuvaSlot,
+              isZuvaSlot: true,
             });
           }
         } catch {
@@ -101,3 +92,4 @@ export function parseIcalText(icalData: string): CalendarSlot[] {
 
   return slots;
 }
+

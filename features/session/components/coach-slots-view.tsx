@@ -65,9 +65,9 @@ export function CoachSlotsView({ slots }: { slots: SlotItem[] }) {
         <div className="mx-auto flex h-10 w-10 items-center justify-center rounded-full bg-zinc-100 mb-3">
           <CalendarIcon className="h-5 w-5 text-zinc-500" />
         </div>
-        <h4 className="text-sm font-medium text-zinc-900">No synced slots available</h4>
+        <h4 className="text-sm font-medium text-zinc-900">No open slots available</h4>
         <p className="mt-1 text-xs text-zinc-500 max-w-md mx-auto">
-          Add events titled <code className="font-semibold text-zinc-800">#zuva</code> or <code className="font-semibold text-zinc-800">ZUVA</code> to your linked calendar feed, then click <strong>"Sync Calendar Now"</strong> above.
+          Configure your accepted booking hours above, or click <strong>"Sync Calendar Now"</strong> to publish available slots.
         </p>
       </div>
     );
@@ -120,7 +120,7 @@ export function CoachSlotsView({ slots }: { slots: SlotItem[] }) {
                 }}
               />
               <p className="mt-2 border-t border-zinc-100 pt-2 text-center text-[11px] text-zinc-400">
-                Underlined dates have synced #zuva coaching slots
+                Underlined dates have available 1:1 coaching slots
               </p>
             </PopoverContent>
           </Popover>
@@ -182,12 +182,10 @@ export function CoachSlotsView({ slots }: { slots: SlotItem[] }) {
             <div className="my-4 rounded-lg border border-dashed border-zinc-200 bg-zinc-50/50 p-8 text-center">
               <Clock className="mx-auto mb-2 h-7 w-7 text-zinc-400" />
               <p className="text-xs font-medium text-zinc-700">
-                No slots synced for this date
+                No slots available for this date
               </p>
               <p className="mt-1 text-[11px] text-zinc-500">
-                Click the date picker above to pick an underlined date, or add a{" "}
-                <code className="font-semibold text-zinc-800">#zuva</code> event
-                to your calendar.
+                Pick an underlined date in the date picker above, or update your working hours schedule.
               </p>
             </div>
           ) : (
