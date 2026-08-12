@@ -259,7 +259,7 @@ export function CoachWeeklySchedule({
         <div className="overflow-x-auto">
           <div className="min-w-[700px]">
             {/* Column Headers (Days) */}
-            <div className="grid grid-cols-[60px_repeat(var(--days-count),1fr)] border-b bg-muted/30" style={{ "--days-count": daysCount } as any}>
+            <div className="grid grid-cols-[60px_repeat(var(--days-count),minmax(0,1fr))] border-b bg-muted/30" style={{ "--days-count": daysCount } as any}>
               <div className="p-3 text-center text-xs font-semibold text-muted-foreground border-r">
                 Time
               </div>
@@ -268,7 +268,7 @@ export function CoachWeeklySchedule({
                 return (
                   <div
                     key={day.toISOString()}
-                    className={`p-3 text-center border-r last:border-r-0 ${
+                    className={`p-3 text-center border-r last:border-r-0 min-w-0 ${
                       isCurrent ? "bg-primary/5" : ""
                     }`}
                   >
@@ -294,7 +294,7 @@ export function CoachWeeklySchedule({
               {HOURS.map((hour) => (
                 <div
                   key={hour}
-                  className="grid grid-cols-[60px_repeat(var(--days-count),1fr)] min-h-[64px]"
+                  className="grid grid-cols-[60px_repeat(var(--days-count),minmax(0,1fr))] min-h-[64px]"
                   style={{ "--days-count": daysCount } as any}
                 >
                   {/* Time Gutter Column */}
@@ -332,7 +332,7 @@ export function CoachWeeklySchedule({
                     return (
                       <div
                         key={day.toISOString()}
-                        className={`p-1 border-r last:border-r-0 transition-colors flex flex-col gap-1 ${
+                        className={`p-1 border-r last:border-r-0 transition-colors flex flex-col gap-1 min-w-0 ${
                           !isWorking && !hasContent
                             ? "bg-muted/25"
                             : isWorking && !hasContent
@@ -344,14 +344,14 @@ export function CoachWeeklySchedule({
                         {hourSlots.map((s) => (
                           <div
                             key={s.slotId}
-                            className={`rounded-lg p-2 text-xs transition-all border ${
+                            className={`rounded-lg p-2 text-xs transition-all border break-words whitespace-normal min-w-0 ${
                               s.status === "booked"
                                 ? "bg-blue-500/10 text-blue-900 dark:text-blue-200 border-blue-500/25"
                                 : "bg-emerald-500/10 text-emerald-900 dark:text-emerald-200 border-emerald-500/25"
                             }`}
                           >
-                            <div className="flex items-center justify-between gap-1 font-semibold text-[11px]">
-                              <span className="truncate">
+                            <div className="flex flex-wrap items-center justify-between gap-1 font-semibold text-[11px]">
+                              <span>
                                 {format(new Date(s.startsAt), "HH:mm")} – {format(new Date(s.endsAt), "HH:mm")}
                               </span>
                               <Badge
@@ -366,9 +366,9 @@ export function CoachWeeklySchedule({
                               </Badge>
                             </div>
                             {s.scholarName && (
-                              <div className="mt-1 flex items-center gap-1 text-[11px] font-medium truncate">
-                                <User className="size-3 text-blue-600 dark:text-blue-400 shrink-0" />
-                                <span className="truncate">{s.scholarName}</span>
+                              <div className="mt-1 flex items-start gap-1 text-[11px] font-medium break-words whitespace-normal">
+                                <User className="size-3 text-blue-600 dark:text-blue-400 shrink-0 mt-0.5" />
+                                <span className="break-words">{s.scholarName}</span>
                               </div>
                             )}
                           </div>
@@ -378,10 +378,10 @@ export function CoachWeeklySchedule({
                         {hourSessions.map((sess) => (
                           <div
                             key={sess.id}
-                            className="rounded-lg p-2 text-xs bg-violet-500/10 text-violet-900 dark:text-violet-200 border border-violet-500/25"
+                            className="rounded-lg p-2 text-xs bg-violet-500/10 text-violet-900 dark:text-violet-200 border border-violet-500/25 break-words whitespace-normal min-w-0"
                           >
-                            <div className="flex items-center justify-between gap-1 font-semibold text-[11px]">
-                              <span className="truncate">{sess.title}</span>
+                            <div className="flex flex-wrap items-center justify-between gap-1 font-semibold text-[11px]">
+                              <span className="break-words">{sess.title}</span>
                               {sess.meetLink && (
                                 <a
                                   href={sess.meetLink}
@@ -404,9 +404,9 @@ export function CoachWeeklySchedule({
                         {hourIcal.map((b, idx) => (
                           <div
                             key={idx}
-                            className="rounded-lg p-1.5 text-[11px] bg-amber-500/10 text-amber-900 dark:text-amber-200 border border-amber-500/25 truncate"
+                            className="rounded-lg p-1.5 text-[11px] bg-amber-500/10 text-amber-900 dark:text-amber-200 border border-amber-500/25 break-words whitespace-normal min-w-0"
                           >
-                            <div className="font-medium truncate">
+                            <div className="font-medium break-words">
                               {b.summary ? b.summary : "Busy (Google Calendar)"}
                             </div>
                             <div className="text-[10px] text-amber-700 dark:text-amber-400">
