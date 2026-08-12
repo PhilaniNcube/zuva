@@ -1,6 +1,5 @@
-import "server-only";
-
 import { Resend } from "resend";
+
 
 import { db } from "./db";
 import { emailLog } from "./db/schema";
