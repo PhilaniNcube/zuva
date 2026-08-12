@@ -341,22 +341,20 @@ export function CoachWeeklySchedule({
             <button
               type="button"
               onClick={() => setDaysCount(5)}
-              className={`rounded-md px-2.5 py-1 text-xs font-medium transition-colors ${
-                daysCount === 5
+              className={`rounded-md px-2.5 py-1 text-xs font-medium transition-colors ${daysCount === 5
                   ? "bg-background text-foreground shadow-xs"
                   : "text-muted-foreground hover:text-foreground"
-              }`}
+                }`}
             >
               5 Days
             </button>
             <button
               type="button"
               onClick={() => setDaysCount(7)}
-              className={`rounded-md px-2.5 py-1 text-xs font-medium transition-colors ${
-                daysCount === 7
+              className={`rounded-md px-2.5 py-1 text-xs font-medium transition-colors ${daysCount === 7
                   ? "bg-background text-foreground shadow-xs"
                   : "text-muted-foreground hover:text-foreground"
-              }`}
+                }`}
             >
               7 Days
             </button>
@@ -443,19 +441,17 @@ export function CoachWeeklySchedule({
                 return (
                   <div
                     key={day.toISOString()}
-                    className={`p-3 text-center border-r last:border-r-0 min-w-0 ${
-                      isCurrent ? "bg-primary/5" : ""
-                    }`}
+                    className={`p-3 text-center border-r last:border-r-0 min-w-0 ${isCurrent ? "bg-primary/5" : ""
+                      }`}
                   >
                     <div className="text-xs font-medium text-muted-foreground">
                       {format(day, "EEE")}
                     </div>
                     <div
-                      className={`text-sm font-bold mt-0.5 inline-flex items-center justify-center rounded-full size-7 ${
-                        isCurrent
+                      className={`text-sm font-bold mt-0.5 inline-flex items-center justify-center rounded-full size-7 ${isCurrent
                           ? "bg-primary text-primary-foreground"
                           : "text-foreground"
-                      }`}
+                        }`}
                     >
                       {format(day, "d")}
                     </div>
@@ -567,9 +563,7 @@ export function CoachWeeklySchedule({
                         >
                           <div className="min-w-0">
                             <div className="flex flex-wrap items-center justify-between gap-1 text-[11px] font-bold leading-tight">
-                              <span className="truncate">
-                                {format(ev.startsAt, "HH:mm")} – {format(ev.endsAt, "HH:mm")}
-                              </span>
+
                               {ev.type === "open_slot" && (
                                 <Badge
                                   variant="outline"
