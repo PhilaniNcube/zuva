@@ -88,7 +88,17 @@ export async function createCoach(
   };
 }
 
-const updateCoachSchema = coachInputSchema.omit({ email: true }).partial({ name: true });
+const updateCoachSchema = coachInputSchema
+  .omit({ email: true })
+  .partial({ name: true })
+  .extend({
+    icalUrl: z
+      .string()
+      .trim()
+      .url("Must be a valid URL (https://... or http://...)")
+      .optional()
+      .or(z.literal("")),
+  });
 
 export async function updateCoach(
   coachUserId: string,
@@ -99,15 +109,27 @@ export async function updateCoach(
   if (!parsed.success) {
     return { ok: false, error: parsed.error.issues[0].message };
   }
-  const { name, specialty, whatsappNumber, bio } = parsed.data;
+  const { name, specialty, whatsappNumber, bio, icalUrl } = parsed.data;
   if (name) {
     await db.update(user).set({ name }).where(eq(user.id, coachUserId));
   }
   await db
     .update(coachProfile)
-    .set({ specialty, whatsappNumber, bio: bio || null })
+    .set({
+      specialty,
+      whatsappNumber,
+      bio: bio || null,
+      ...(icalUrl !== undefined ? { icalUrl: icalUrl || null } : {}),
+    })
     .where(eq(coachProfile.userId, coachUserId));
+
+  if (icalUrl) {
+    const { syncCoachAvailabilityForUser } = await import("./coach-sync-actions");
+    await syncCoachAvailabilityForUser(coachUserId);
+  }
+
   refresh();
   return { ok: true, data: undefined };
 }
+
 

@@ -44,6 +44,12 @@ const schema = z.object({
     .min(7, "WhatsApp number is required")
     .max(30),
   bio: z.string().trim().max(2000).optional().or(z.literal("")),
+  icalUrl: z
+    .string()
+    .trim()
+    .url("Must be a valid URL (https://... or http://...)")
+    .optional()
+    .or(z.literal("")),
 });
 
 type FormValues = z.infer<typeof schema>;
@@ -58,6 +64,7 @@ async function action(
     specialty: formData.get("specialty"),
     whatsappNumber: formData.get("whatsappNumber"),
     bio: formData.get("bio"),
+    icalUrl: formData.get("icalUrl"),
   });
 }
 
@@ -67,7 +74,13 @@ export function CoachEditForm({
   trigger,
 }: {
   coachUserId: string;
-  initial: { name: string; specialty: Specialty; whatsappNumber: string; bio: string };
+  initial: {
+    name: string;
+    specialty: Specialty;
+    whatsappNumber: string;
+    bio: string;
+    icalUrl?: string | null;
+  };
   trigger?: ReactElement;
 }) {
   const [open, setOpen] = useState(false);
@@ -78,7 +91,10 @@ export function CoachEditForm({
 
   const form = useForm<FormValues>({
     resolver: zodResolver(schema),
-    defaultValues: initial,
+    defaultValues: {
+      ...initial,
+      icalUrl: initial.icalUrl ?? "",
+    },
   });
 
   useEffect(() => {
@@ -95,6 +111,7 @@ export function CoachEditForm({
     formData.set("specialty", data.specialty);
     formData.set("whatsappNumber", data.whatsappNumber);
     formData.set("bio", data.bio ?? "");
+    formData.set("icalUrl", data.icalUrl ?? "");
     startTransition(() => {
       formAction(formData);
     });
@@ -115,7 +132,7 @@ export function CoachEditForm({
         <DialogHeader>
           <DialogTitle>Edit Coach Profile</DialogTitle>
           <DialogDescription>
-            Update coach information and specialty preferences.
+            Update coach information, specialty preferences, and calendar feed.
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col gap-4 py-2">
@@ -166,6 +183,14 @@ export function CoachEditForm({
             <Input {...form.register("bio")} placeholder="Bio (optional)" />
             <FieldError errors={[form.formState.errors.bio]} />
           </Field>
+          <Field>
+            <FieldLabel>iCal Feed URL (.ics)</FieldLabel>
+            <Input
+              {...form.register("icalUrl")}
+              placeholder="https://calendar.google.com/calendar/ical/.../basic.ics"
+            />
+            <FieldError errors={[form.formState.errors.icalUrl]} />
+          </Field>
           <DialogFooter className="mt-2">
             <Button type="button" variant="outline" onClick={() => setOpen(false)}>
               Cancel
@@ -179,4 +204,5 @@ export function CoachEditForm({
     </Dialog>
   );
 }
+
 

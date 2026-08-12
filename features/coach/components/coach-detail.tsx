@@ -19,6 +19,7 @@ import { LocalTime } from "@/components/local-time";
 import { getCoachDetail } from "../coach-queries";
 import { SPECIALTIES } from "../specialties";
 import { CoachEditForm } from "./coach-edit-form";
+import { AdminCoachSyncButton } from "./admin-coach-sync-button";
 
 interface CoachDetailProps {
   id: Promise<string> | string;
@@ -89,6 +90,7 @@ export async function CoachDetail({ id }: CoachDetailProps) {
                 specialty: coach.specialty,
                 whatsappNumber: coach.whatsappNumber,
                 bio: coach.bio ?? "",
+                icalUrl: coach.icalUrl ?? "",
               }}
             />
           </div>
@@ -125,14 +127,25 @@ export async function CoachDetail({ id }: CoachDetailProps) {
               </span>
             </div>
 
-            <div className="pt-3 border-t">
-              <p className="text-xs font-medium text-muted-foreground mb-1.5">
-                Calendar Integration
-              </p>
+            <div className="pt-3 border-t space-y-2">
+              <div className="flex items-center justify-between gap-2 flex-wrap">
+                <p className="text-xs font-medium text-muted-foreground">
+                  Calendar Integration
+                </p>
+                <AdminCoachSyncButton
+                  coachUserId={coach.id}
+                  disabled={!coach.icalUrl}
+                />
+              </div>
               {coach.icalUrl ? (
-                <div className="flex items-center gap-1.5 text-xs text-emerald-600 dark:text-emerald-400">
-                  <CheckCircle2 className="size-3.5 shrink-0" />
-                  <span>iCal sync active</span>
+                <div>
+                  <div className="flex items-center gap-1.5 text-xs text-emerald-600 dark:text-emerald-400">
+                    <CheckCircle2 className="size-3.5 shrink-0" />
+                    <span>iCal sync active</span>
+                  </div>
+                  <p className="text-[11px] text-muted-foreground mt-1 truncate font-mono bg-muted/50 p-1.5 rounded">
+                    {coach.icalUrl}
+                  </p>
                 </div>
               ) : (
                 <div className="flex items-center gap-1.5 text-xs text-muted-foreground">

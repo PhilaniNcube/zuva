@@ -18,38 +18,15 @@ const icalSettingsSchema = z.object({
     .url("Must be a valid URL (https://... or http://...)"),
 });
 
-export async function saveCoachIcalUrl(
-  input: unknown,
+export async function syncCoachAvailabilityForUser(
+  coachUserId: string,
 ): Promise<ActionResult<{ slotsCreated: number }>> {
-  const { user: coach } = await requireRole("coach");
-  const parsed = icalSettingsSchema.safeParse(input);
-
-  if (!parsed.success) {
-    return { ok: false, error: parsed.error.issues[0].message };
-  }
-
-  const { icalUrl } = parsed.data;
-
-  await db
-    .update(coachProfile)
-    .set({ icalUrl })
-    .where(eq(coachProfile.userId, coach.id));
-
-  // Trigger sync immediately with new settings
-  const syncResult = await syncCoachAvailability();
-
-  refresh();
-  return syncResult;
-}
-
-export async function syncCoachAvailability(): Promise<ActionResult<{ slotsCreated: number }>> {
-  const { user: coach } = await requireRole("coach");
-  const profile = await getCoachProfile(coach.id);
+  const profile = await getCoachProfile(coachUserId);
 
   if (!profile || !profile.icalUrl) {
     return {
       ok: false,
-      error: "Please enter your calendar iCal feed URL first.",
+      error: "No calendar iCal feed URL configured for this coach.",
     };
   }
 
@@ -81,7 +58,7 @@ export async function syncCoachAvailability(): Promise<ActionResult<{ slotsCreat
     .from(availabilitySlot)
     .where(
       and(
-        eq(availabilitySlot.coachId, coach.id),
+        eq(availabilitySlot.coachId, coachUserId),
         gte(availabilitySlot.startsAt, now),
         lte(availabilitySlot.endsAt, horizonEnd),
       ),
@@ -98,7 +75,7 @@ export async function syncCoachAvailability(): Promise<ActionResult<{ slotsCreat
 
     if (!overlapsWithExisting) {
       candidateSlotsToInsert.push({
-        coachId: coach.id,
+        coachId: coachUserId,
         startsAt: slot.start,
         endsAt: slot.end,
       });
@@ -112,7 +89,7 @@ export async function syncCoachAvailability(): Promise<ActionResult<{ slotsCreat
   await db
     .update(coachProfile)
     .set({ lastSyncedAt: new Date() })
-    .where(eq(coachProfile.userId, coach.id));
+    .where(eq(coachProfile.userId, coachUserId));
 
   refresh();
 
@@ -122,5 +99,74 @@ export async function syncCoachAvailability(): Promise<ActionResult<{ slotsCreat
   };
 }
 
+export async function saveCoachIcalUrl(
+  input: unknown,
+): Promise<ActionResult<{ slotsCreated: number }>> {
+  const { user: coach } = await requireRole("coach");
+  const parsed = icalSettingsSchema.safeParse(input);
+
+  if (!parsed.success) {
+    return { ok: false, error: parsed.error.issues[0].message };
+  }
+
+  const { icalUrl } = parsed.data;
+
+  await db
+    .update(coachProfile)
+    .set({ icalUrl })
+    .where(eq(coachProfile.userId, coach.id));
+
+  // Trigger sync immediately with new settings
+  const syncResult = await syncCoachAvailabilityForUser(coach.id);
+
+  refresh();
+  return syncResult;
+}
+
+export async function syncCoachAvailability(): Promise<ActionResult<{ slotsCreated: number }>> {
+  const { user: coach } = await requireRole("coach");
+  return syncCoachAvailabilityForUser(coach.id);
+}
+
+export async function adminSyncCoachAvailability(
+  coachUserId: string,
+): Promise<ActionResult<{ slotsCreated: number }>> {
+  await requireRole("admin");
+  return syncCoachAvailabilityForUser(coachUserId);
+}
+
+export async function adminSaveCoachIcalUrl({
+  coachUserId,
+  icalUrl,
+}: {
+  coachUserId: string;
+  icalUrl: string;
+}): Promise<ActionResult<{ slotsCreated: number }>> {
+  await requireRole("admin");
+  const trimmedUrl = icalUrl.trim();
+
+  if (trimmedUrl !== "") {
+    const parsed = icalSettingsSchema.safeParse({ icalUrl: trimmedUrl });
+    if (!parsed.success) {
+      return { ok: false, error: parsed.error.issues[0].message };
+    }
+  }
+
+  await db
+    .update(coachProfile)
+    .set({ icalUrl: trimmedUrl || null })
+    .where(eq(coachProfile.userId, coachUserId));
+
+  if (!trimmedUrl) {
+    refresh();
+    return { ok: true, data: { slotsCreated: 0 } };
+  }
+
+  const syncResult = await syncCoachAvailabilityForUser(coachUserId);
+  refresh();
+  return syncResult;
+}
+
 // Keep saveCoachIcalSettings alias for backwards compatibility
 export const saveCoachIcalSettings = saveCoachIcalUrl;
+
