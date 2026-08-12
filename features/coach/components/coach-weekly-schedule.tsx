@@ -13,16 +13,13 @@ import {
   ChevronLeft,
   ChevronRight,
   Clock,
-  Info,
   User,
   Video,
   AlertTriangle,
-  RefreshCw,
 } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { LocalTime } from "@/components/local-time";
 import { AdminCoachSyncButton } from "./admin-coach-sync-button";
 import type { WorkingHoursInput } from "../working-hours";
 
@@ -63,7 +60,32 @@ interface CoachWeeklyScheduleProps {
   lastSyncedAt?: Date | null;
 }
 
-const HOURS = Array.from({ length: 13 }, (_, i) => i + 7); // 07:00 to 19:00
+interface CalendarEventItem {
+  id: string;
+  type: "open_slot" | "booked_slot" | "session" | "ical";
+  startsAt: Date;
+  endsAt: Date;
+  title: string;
+  scholarName?: string | null;
+  meetLink?: string | null;
+  status?: string;
+}
+
+interface PositionedEventItem extends CalendarEventItem {
+  topPx: number;
+  heightPx: number;
+  colIndex: number;
+  totalCols: number;
+}
+
+const GRID_START_HOUR = 7; // 07:00
+const GRID_END_HOUR = 19;  // 19:00
+const HOUR_HEIGHT_PX = 64; // 64px per hour -> 16px per 15 mins
+
+const HOURS = Array.from(
+  { length: GRID_END_HOUR - GRID_START_HOUR },
+  (_, i) => i + GRID_START_HOUR,
+);
 
 export function CoachWeeklySchedule({
   coachUserId,
@@ -104,33 +126,35 @@ export function CoachWeeklySchedule({
     Array.isArray(workingHours.days) &&
     workingHours.days.length > 0;
 
-  // Helper to check if a given day and hour falls within working hours
-  const isWorkingHour = (date: Date, hour: number) => {
-    if (!hasConfiguredWorkingHours || !workingHours) return false;
-    const dayOfWeek = date.getDay(); // 0 = Sun, 1 = Mon, ...
+  // Working hours range for a date
+  const getWorkingHoursForDate = (date: Date) => {
+    if (!hasConfiguredWorkingHours || !workingHours) return null;
+    const dayOfWeek = date.getDay();
     const dateYmd = format(date, "yyyy-MM-dd");
 
-    // Check date overrides / vacation ranges
     const isRangeBlocked = (workingHours.blockedRanges || []).some(
       (r) => dateYmd >= r.startDate && dateYmd <= r.endDate,
     );
-    if (isRangeBlocked) return false;
+    if (isRangeBlocked) return null;
 
     const override = (workingHours.overrides || []).find((o) => o.date === dateYmd);
-    if (override?.isBlocked) return false;
+    if (override?.isBlocked) return null;
 
-    let startHour = parseInt(workingHours.start.split(":")[0], 10);
-    let endHour = parseInt(workingHours.end.split(":")[0], 10);
+    let startStr = workingHours.start;
+    let endStr = workingHours.end;
     let isWorkingDay = workingHours.days.includes(dayOfWeek);
 
     if (override?.start && override?.end) {
-      startHour = parseInt(override.start.split(":")[0], 10);
-      endHour = parseInt(override.end.split(":")[0], 10);
+      startStr = override.start;
+      endStr = override.end;
       isWorkingDay = true;
     }
 
-    if (!isWorkingDay) return false;
-    return hour >= startHour && hour < endHour;
+    if (!isWorkingDay) return null;
+
+    const [sHour, sMin] = startStr.split(":").map(Number);
+    const [eHour, eMin] = endStr.split(":").map(Number);
+    return { startMin: sHour * 60 + sMin, endMin: eHour * 60 + eMin };
   };
 
   const formattedWeekLabel = useMemo(() => {
@@ -138,6 +162,136 @@ export function CoachWeeklySchedule({
     const endStr = format(addDays(currentWeekStart, daysCount - 1), "dd MMM yyyy");
     return `${startStr} – ${endStr}`;
   }, [currentWeekStart, daysCount]);
+
+  // Position & layout events for a given day column
+  const getPositionedEventsForDay = (day: Date): PositionedEventItem[] => {
+    const rawEvents: CalendarEventItem[] = [];
+
+    // Slots
+    for (const s of slots) {
+      const st = new Date(s.startsAt);
+      if (isSameDay(st, day)) {
+        rawEvents.push({
+          id: `slot-${s.slotId}`,
+          type: s.status === "booked" ? "booked_slot" : "open_slot",
+          startsAt: st,
+          endsAt: new Date(s.endsAt),
+          title: s.status === "booked" ? "1:1 Coaching Session" : "Available Slot",
+          scholarName: s.scholarName,
+          meetLink: s.meetLink,
+          status: s.status,
+        });
+      }
+    }
+
+    // Programme Sessions
+    for (const sess of sessions) {
+      const st = new Date(sess.startsAt);
+      if (isSameDay(st, day)) {
+        rawEvents.push({
+          id: `session-${sess.id}`,
+          type: "session",
+          startsAt: st,
+          endsAt: new Date(sess.endsAt),
+          title: sess.title,
+          meetLink: sess.meetLink,
+          status: sess.status,
+        });
+      }
+    }
+
+    // iCal Busy Blocks
+    for (let i = 0; i < icalBusyBlocks.length; i++) {
+      const b = icalBusyBlocks[i];
+      const st = new Date(b.start);
+      if (isSameDay(st, day)) {
+        rawEvents.push({
+          id: `ical-${i}-${st.getTime()}`,
+          type: "ical",
+          startsAt: st,
+          endsAt: new Date(b.end),
+          title: "Busy (External Calendar)",
+        });
+      }
+    }
+
+    if (rawEvents.length === 0) return [];
+
+    // Sort by start time, then duration
+    rawEvents.sort((a, b) => {
+      const diff = a.startsAt.getTime() - b.startsAt.getTime();
+      if (diff !== 0) return diff;
+      return (
+        b.endsAt.getTime() -
+        b.startsAt.getTime() -
+        (a.endsAt.getTime() - a.startsAt.getTime())
+      );
+    });
+
+    const gridStartMin = GRID_START_HOUR * 60;
+    const gridEndMin = GRID_END_HOUR * 60;
+
+    // Calculate initial top and height
+    const baseItems = rawEvents.map((ev) => {
+      const startMin = ev.startsAt.getHours() * 60 + ev.startsAt.getMinutes();
+      const endMin = ev.endsAt.getHours() * 60 + ev.endsAt.getMinutes();
+
+      const clampedStart = Math.max(gridStartMin, Math.min(gridEndMin, startMin));
+      const clampedEnd = Math.max(gridStartMin, Math.min(gridEndMin, endMin));
+
+      const topPx = ((clampedStart - gridStartMin) / 60) * HOUR_HEIGHT_PX;
+      const durationMin = Math.max(15, clampedEnd - clampedStart);
+      const heightPx = (durationMin / 60) * HOUR_HEIGHT_PX;
+
+      return {
+        ...ev,
+        topPx,
+        heightPx,
+        startMin,
+        endMin,
+        colIndex: 0,
+        totalCols: 1,
+      };
+    });
+
+    // Simple cluster tiling algorithm for overlapping events
+    const clusters: typeof baseItems[] = [];
+    let currentCluster: typeof baseItems = [];
+    let clusterMaxEnd = 0;
+
+    for (const item of baseItems) {
+      if (currentCluster.length === 0) {
+        currentCluster.push(item);
+        clusterMaxEnd = item.endMin;
+      } else if (item.startMin < clusterMaxEnd) {
+        currentCluster.push(item);
+        clusterMaxEnd = Math.max(clusterMaxEnd, item.endMin);
+      } else {
+        clusters.push(currentCluster);
+        currentCluster = [item];
+        clusterMaxEnd = item.endMin;
+      }
+    }
+    if (currentCluster.length > 0) {
+      clusters.push(currentCluster);
+    }
+
+    const result: PositionedEventItem[] = [];
+    for (const cluster of clusters) {
+      const totalCols = cluster.length;
+      cluster.forEach((item, colIndex) => {
+        result.push({
+          ...item,
+          colIndex,
+          totalCols,
+        });
+      });
+    }
+
+    return result;
+  };
+
+  const totalGridHeightPx = (GRID_END_HOUR - GRID_START_HOUR) * HOUR_HEIGHT_PX;
 
   return (
     <div className="flex flex-col gap-4">
@@ -186,20 +340,22 @@ export function CoachWeeklySchedule({
             <button
               type="button"
               onClick={() => setDaysCount(5)}
-              className={`rounded-md px-2.5 py-1 text-xs font-medium transition-colors ${daysCount === 5
-                ? "bg-background text-foreground shadow-xs"
-                : "text-muted-foreground hover:text-foreground"
-                }`}
+              className={`rounded-md px-2.5 py-1 text-xs font-medium transition-colors ${
+                daysCount === 5
+                  ? "bg-background text-foreground shadow-xs"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
             >
               5 Days
             </button>
             <button
               type="button"
               onClick={() => setDaysCount(7)}
-              className={`rounded-md px-2.5 py-1 text-xs font-medium transition-colors ${daysCount === 7
-                ? "bg-background text-foreground shadow-xs"
-                : "text-muted-foreground hover:text-foreground"
-                }`}
+              className={`rounded-md px-2.5 py-1 text-xs font-medium transition-colors ${
+                daysCount === 7
+                  ? "bg-background text-foreground shadow-xs"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
             >
               7 Days
             </button>
@@ -252,12 +408,15 @@ export function CoachWeeklySchedule({
         </div>
       </div>
 
-      {/* 5 / 7 Day Weekly Grid View */}
+      {/* Google Calendar Style Grid View */}
       <div className="rounded-xl border bg-card overflow-hidden shadow-xs">
         <div className="overflow-x-auto">
-          <div className="min-w-[700px]">
+          <div className="min-w-[750px]">
             {/* Column Headers (Days) */}
-            <div className="grid grid-cols-[60px_repeat(var(--days-count),minmax(0,1fr))] border-b bg-muted/30" style={{ "--days-count": daysCount } as any}>
+            <div
+              className="grid grid-cols-[60px_repeat(var(--days-count),minmax(0,1fr))] border-b bg-muted/30"
+              style={{ "--days-count": daysCount } as any}
+            >
               <div className="p-3 text-center text-xs font-semibold text-muted-foreground border-r">
                 Time
               </div>
@@ -266,17 +425,19 @@ export function CoachWeeklySchedule({
                 return (
                   <div
                     key={day.toISOString()}
-                    className={`p-3 text-center border-r last:border-r-0 min-w-0 ${isCurrent ? "bg-primary/5" : ""
-                      }`}
+                    className={`p-3 text-center border-r last:border-r-0 min-w-0 ${
+                      isCurrent ? "bg-primary/5" : ""
+                    }`}
                   >
                     <div className="text-xs font-medium text-muted-foreground">
                       {format(day, "EEE")}
                     </div>
                     <div
-                      className={`text-sm font-bold mt-0.5 inline-flex items-center justify-center rounded-full size-7 ${isCurrent
-                        ? "bg-primary text-primary-foreground"
-                        : "text-foreground"
-                        }`}
+                      className={`text-sm font-bold mt-0.5 inline-flex items-center justify-center rounded-full size-7 ${
+                        isCurrent
+                          ? "bg-primary text-primary-foreground"
+                          : "text-foreground"
+                      }`}
                     >
                       {format(day, "d")}
                     </div>
@@ -285,133 +446,170 @@ export function CoachWeeklySchedule({
               })}
             </div>
 
-            {/* Grid Hours Rows */}
-            <div className="divide-y">
-              {HOURS.map((hour) => (
-                <div
-                  key={hour}
-                  className="grid grid-cols-[60px_repeat(var(--days-count),minmax(0,1fr))] min-h-[64px]"
-                  style={{ "--days-count": daysCount } as any}
-                >
-                  {/* Time Gutter Column */}
-                  <div className="p-2 text-right text-[11px] font-medium text-muted-foreground border-r bg-muted/20 shrink-0">
+            {/* Grid Body: Time Gutter + Days Columns */}
+            <div
+              className="grid grid-cols-[60px_repeat(var(--days-count),minmax(0,1fr))] relative"
+              style={{
+                "--days-count": daysCount,
+                height: `${totalGridHeightPx}px`,
+              } as any}
+            >
+              {/* Left Time Gutter */}
+              <div className="border-r bg-muted/20 relative select-none">
+                {HOURS.map((hour, idx) => (
+                  <div
+                    key={hour}
+                    className="absolute w-full pr-2 text-right text-[11px] font-medium text-muted-foreground -mt-2"
+                    style={{ top: `${idx * HOUR_HEIGHT_PX}px` }}
+                  >
                     {String(hour).padStart(2, "0")}:00
                   </div>
+                ))}
+              </div>
 
-                  {/* Day Cells for this Hour */}
-                  {daysToRender.map((day) => {
-                    const isWorking = isWorkingHour(day, hour);
+              {/* Day Columns */}
+              {daysToRender.map((day) => {
+                const wh = getWorkingHoursForDate(day);
+                const events = getPositionedEventsForDay(day);
 
-                    // Filter availability slots in this hour
-                    const hourSlots = slots.filter((s) => {
-                      const st = new Date(s.startsAt);
-                      return isSameDay(st, day) && st.getHours() === hour;
-                    });
+                // Calculate working hours top and height
+                let whTopPx: number | null = null;
+                let whHeightPx: number | null = null;
+                if (wh) {
+                  const gStart = GRID_START_HOUR * 60;
+                  const gEnd = GRID_END_HOUR * 60;
+                  const cStart = Math.max(gStart, Math.min(gEnd, wh.startMin));
+                  const cEnd = Math.max(gStart, Math.min(gEnd, wh.endMin));
+                  whTopPx = ((cStart - gStart) / 60) * HOUR_HEIGHT_PX;
+                  whHeightPx = ((cEnd - cStart) / 60) * HOUR_HEIGHT_PX;
+                }
 
-                    // Filter programme sessions in this hour
-                    const hourSessions = sessions.filter((s) => {
-                      const st = new Date(s.startsAt);
-                      return isSameDay(st, day) && st.getHours() === hour;
-                    });
-
-                    // Filter iCal busy slots in this hour
-                    const hourIcal = icalBusyBlocks.filter((b) => {
-                      const st = new Date(b.start);
-                      return isSameDay(st, day) && st.getHours() === hour;
-                    });
-
-                    const hasContent =
-                      hourSlots.length > 0 ||
-                      hourSessions.length > 0 ||
-                      hourIcal.length > 0;
-
-                    return (
+                return (
+                  <div
+                    key={day.toISOString()}
+                    className="border-r last:border-r-0 relative min-w-0 bg-muted/25"
+                    style={{ height: `${totalGridHeightPx}px` }}
+                  >
+                    {/* Background Working Hours Highlight */}
+                    {whTopPx !== null && whHeightPx !== null && (
                       <div
-                        key={day.toISOString()}
-                        className={`p-1 border-r last:border-r-0 transition-colors flex flex-col gap-1 min-w-0 ${!isWorking && !hasContent
-                          ? "bg-muted/25"
-                          : isWorking && !hasContent
-                            ? "bg-background/80 hover:bg-muted/10"
-                            : "bg-background"
-                          }`}
+                        className="absolute inset-x-0 bg-background"
+                        style={{
+                          top: `${whTopPx}px`,
+                          height: `${whHeightPx}px`,
+                        }}
+                      />
+                    )}
+
+                    {/* Horizontal 15-Minute Guideline Grid Lines */}
+                    {HOURS.map((_, idx) => (
+                      <div
+                        key={idx}
+                        className="absolute inset-x-0 border-t border-border/40 pointer-events-none"
+                        style={{ top: `${idx * HOUR_HEIGHT_PX}px` }}
                       >
-                        {/* Render Open & Booked Slots */}
-                        {hourSlots.map((s) => (
-                          <div
-                            key={s.slotId}
-                            className={`rounded-lg p-2 text-xs transition-all border break-words whitespace-normal min-w-0 ${s.status === "booked"
-                              ? "bg-blue-100 text-blue-900 dark:text-blue-200 border-blue-200"
-                              : "bg-emerald-200 text-emerald-900 dark:text-emerald-200 border-emerald-200"
-                              }`}
-                          >
-                            <div className="flex flex-wrap items-center justify-between gap-1 font-semibold text-[11px]">
-                              <span>
-                                {format(new Date(s.startsAt), "HH:mm")} – {format(new Date(s.endsAt), "HH:mm")}
+                        {/* 30-min guideline line */}
+                        <div
+                          className="absolute inset-x-0 border-t border-dashed border-border/20 pointer-events-none"
+                          style={{ top: `${HOUR_HEIGHT_PX / 2}px` }}
+                        />
+                      </div>
+                    ))}
+
+                    {/* Positioned Event Blocks */}
+                    {events.map((ev) => {
+                      const leftPercent = (ev.colIndex / ev.totalCols) * 100;
+                      const widthPercent = 100 / ev.totalCols;
+
+                      let bgClass = "";
+                      if (ev.type === "open_slot") {
+                        bgClass =
+                          "bg-emerald-500/15 text-emerald-950 dark:text-emerald-100 border-emerald-500/30 hover:bg-emerald-500/20";
+                      } else if (ev.type === "booked_slot") {
+                        bgClass =
+                          "bg-blue-500/15 text-blue-950 dark:text-blue-100 border-blue-500/30 hover:bg-blue-500/20";
+                      } else if (ev.type === "session") {
+                        bgClass =
+                          "bg-violet-500/15 text-violet-950 dark:text-violet-100 border-violet-500/30 hover:bg-violet-500/20";
+                      } else {
+                        bgClass =
+                          "bg-amber-500/15 text-amber-950 dark:text-amber-100 border-amber-500/30 hover:bg-amber-500/20";
+                      }
+
+                      return (
+                        <div
+                          key={ev.id}
+                          className={`absolute rounded-lg border p-1.5 text-xs transition-all overflow-hidden flex flex-col justify-between shadow-2xs z-10 ${bgClass}`}
+                          style={{
+                            top: `${ev.topPx + 1}px`,
+                            height: `${Math.max(20, ev.heightPx - 2)}px`,
+                            left: `calc(${leftPercent}% + 2px)`,
+                            width: `calc(${widthPercent}% - 4px)`,
+                          }}
+                        >
+                          <div className="min-w-0">
+                            <div className="flex flex-wrap items-center justify-between gap-1 text-[11px] font-semibold leading-tight">
+                              <span className="truncate">
+                                {format(ev.startsAt, "HH:mm")} – {format(ev.endsAt, "HH:mm")}
                               </span>
-                              <Badge
-                                variant="outline"
-                                className={`text-[10px] px-1 py-0 h-4 border-none capitalize ${s.status === "booked"
-                                  ? "bg-blue-200 text-blue-800 dark:text-blue-500"
-                                  : "bg-emerald-100 text-emerald-800 dark:text-emerald-300"
-                                  }`}
-                              >
-                                {s.status === "open" ? "Available" : "Booked"}
-                              </Badge>
+                              {ev.type === "open_slot" && (
+                                <Badge
+                                  variant="outline"
+                                  className="text-[9px] px-1 py-0 h-3.5 border-none bg-emerald-500/20 text-emerald-800 dark:text-emerald-200"
+                                >
+                                  Available
+                                </Badge>
+                              )}
+                              {ev.type === "booked_slot" && (
+                                <Badge
+                                  variant="outline"
+                                  className="text-[9px] px-1 py-0 h-3.5 border-none bg-blue-500/20 text-blue-800 dark:text-blue-200"
+                                >
+                                  Booked
+                                </Badge>
+                              )}
                             </div>
-                            {s.scholarName && (
-                              <div className="mt-1 flex items-start gap-1 text-[11px] font-medium break-words whitespace-normal">
-                                <User className="size-3 text-blue-600 dark:text-blue-400 shrink-0 mt-0.5" />
-                                <span className="break-words">{s.scholarName}</span>
+
+                            {/* Event details */}
+                            {ev.type === "session" && (
+                              <div className="mt-0.5 font-medium text-[11px] break-words line-clamp-2 leading-tight">
+                                {ev.title}
+                              </div>
+                            )}
+
+                            {ev.type === "booked_slot" && ev.scholarName && (
+                              <div className="mt-0.5 flex items-center gap-1 text-[11px] font-medium truncate">
+                                <User className="size-3 text-blue-600 dark:text-blue-400 shrink-0" />
+                                <span className="truncate">{ev.scholarName}</span>
+                              </div>
+                            )}
+
+                            {ev.type === "ical" && (
+                              <div className="mt-0.5 font-medium text-[10px] truncate text-amber-800 dark:text-amber-300">
+                                Busy (External)
                               </div>
                             )}
                           </div>
-                        ))}
 
-                        {/* Render Programme Sessions */}
-                        {hourSessions.map((sess) => (
-                          <div
-                            key={sess.id}
-                            className="rounded-lg p-2 text-xs bg-violet-500/10 text-violet-900 dark:text-violet-200 border border-violet-500/25 break-words whitespace-normal min-w-0"
-                          >
-                            <div className="flex flex-wrap items-center justify-between gap-1 font-semibold text-[11px]">
-                              <span className="break-words">{sess.title}</span>
-                              {sess.meetLink && (
-                                <a
-                                  href={sess.meetLink}
-                                  target="_blank"
-                                  rel="noreferrer"
-                                  className="text-violet-600 dark:text-violet-400 hover:underline inline-flex items-center gap-0.5 shrink-0 text-[10px]"
-                                >
-                                  <Video className="size-3" />
-                                  Meet
-                                </a>
-                              )}
+                          {ev.meetLink && ev.heightPx > 40 && (
+                            <div className="mt-1 self-start">
+                              <a
+                                href={ev.meetLink}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="inline-flex items-center gap-1 text-[10px] font-medium text-primary hover:underline"
+                              >
+                                <Video className="size-3" />
+                                Meet
+                              </a>
                             </div>
-                            <div className="mt-0.5 text-[10px] text-violet-700 dark:text-violet-300">
-                              {format(new Date(sess.startsAt), "HH:mm")} – {format(new Date(sess.endsAt), "HH:mm")}
-                            </div>
-                          </div>
-                        ))}
-
-                        {/* Render iCal Busy Blocks */}
-                        {hourIcal.map((b, idx) => (
-                          <div
-                            key={idx}
-                            className="rounded-lg p-1.5 text-[11px] bg-amber-500/10 text-amber-900 dark:text-amber-200 border border-amber-500/25 break-words whitespace-normal min-w-0"
-                          >
-                            <div className="font-medium break-words">
-                              Busy (External Calendar)
-                            </div>
-                            <div className="text-[10px] text-amber-700 dark:text-amber-400">
-                              {format(new Date(b.start), "HH:mm")} – {format(new Date(b.end), "HH:mm")}
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    );
-                  })}
-                </div>
-              ))}
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                );
+              })}
             </div>
           </div>
         </div>
