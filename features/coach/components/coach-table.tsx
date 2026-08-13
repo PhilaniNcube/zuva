@@ -40,6 +40,7 @@ import {
 } from "@/components/ui/table";
 import { SPECIALTIES, type Specialty } from "../specialties";
 import { CoachEditForm } from "./coach-edit-form";
+import { DeleteCoachDialog } from "./delete-coach-dialog";
 
 export interface CoachItem {
   id: string;
@@ -157,7 +158,7 @@ export function CoachTable({
         cell: ({ row }) => {
           const c = row.original;
           return (
-            <div className="text-right">
+            <div className="flex items-center justify-end gap-1">
               <CoachEditForm
                 coachUserId={c.id}
                 initial={{
@@ -166,6 +167,11 @@ export function CoachTable({
                   whatsappNumber: c.whatsappNumber,
                   bio: c.bio ?? "",
                 }}
+              />
+              <DeleteCoachDialog
+                coachUserId={c.id}
+                coachName={c.name}
+                coachEmail={c.email}
               />
             </div>
           );

@@ -19,6 +19,7 @@ import { LocalTime } from "@/components/local-time";
 import { getCoachDetail } from "../coach-queries";
 import { SPECIALTIES } from "../specialties";
 import { CoachEditForm } from "./coach-edit-form";
+import { DeleteCoachDialog } from "./delete-coach-dialog";
 import { AdminCoachSyncButton } from "./admin-coach-sync-button";
 import { AdminCoachWorkingHoursDialog } from "./admin-coach-working-hours-dialog";
 import { CoachWeeklySchedule } from "./coach-weekly-schedule";
@@ -98,6 +99,12 @@ export async function CoachDetail({ id }: CoachDetailProps) {
                 bio: coach.bio ?? "",
                 icalUrl: coach.icalUrl ?? "",
               }}
+            />
+            <DeleteCoachDialog
+              coachUserId={coach.id}
+              coachName={coach.name}
+              coachEmail={coach.email}
+              redirectOnSuccess
             />
           </div>
         </div>

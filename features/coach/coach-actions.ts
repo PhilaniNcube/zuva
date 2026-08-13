@@ -133,4 +133,50 @@ export async function updateCoach(
   return { ok: true, data: undefined };
 }
 
+const deleteCoachSchema = z.object({
+  coachUserId: z.string().trim().min(1, "Coach User ID is required"),
+});
+
+export async function deleteCoach(input: unknown): Promise<ActionResult> {
+  const session = await requireRole("admin");
+  const currentUser = session.user;
+
+  const parsed = deleteCoachSchema.safeParse(
+    typeof input === "string" ? { coachUserId: input } : input,
+  );
+  if (!parsed.success) {
+    return { ok: false, error: parsed.error.issues[0].message };
+  }
+
+  const { coachUserId } = parsed.data;
+
+  if (currentUser.id === coachUserId) {
+    return { ok: false, error: "You cannot delete your own account" };
+  }
+
+  const [existingUser] = await db
+    .select()
+    .from(user)
+    .where(eq(user.id, coachUserId));
+
+  if (!existingUser) {
+    return { ok: false, error: "Coach not found" };
+  }
+
+  if (existingUser.role !== "coach") {
+    return { ok: false, error: "User is not a coach" };
+  }
+
+  await db.delete(user).where(eq(user.id, coachUserId));
+
+  revalidatePath("/coaches");
+  revalidatePath(`/coaches/${coachUserId}`);
+  revalidatePath("/schedule");
+  revalidatePath("/users");
+  revalidatePath("/", "layout");
+
+  return { ok: true, data: undefined };
+}
+
+
 
