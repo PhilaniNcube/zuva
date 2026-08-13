@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useEffect, useState, startTransition } from "react";
+import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -19,22 +19,12 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import type { ActionResult } from "@/lib/action-result";
 
 const deleteCoachFormSchema = z.object({
   coachUserId: z.string().min(1, "Coach User ID is required"),
 });
 
 type DeleteCoachFormValues = z.infer<typeof deleteCoachFormSchema>;
-
-async function action(
-  _prev: ActionResult | null,
-  formData: FormData,
-): Promise<ActionResult> {
-  return deleteCoach({
-    coachUserId: formData.get("coachUserId"),
-  });
-}
 
 interface DeleteCoachDialogProps {
   coachUserId: string;
@@ -52,7 +42,7 @@ export function DeleteCoachDialog({
   trigger,
 }: DeleteCoachDialogProps) {
   const [open, setOpen] = useState(false);
-  const [state, formAction, isPending] = useActionState(action, null);
+  const [isPending, startTransition] = useTransition();
   const router = useRouter();
 
   const form = useForm<DeleteCoachFormValues>({
@@ -62,24 +52,18 @@ export function DeleteCoachDialog({
     },
   });
 
-  useEffect(() => {
-    if (state?.ok) {
-      toast.success(`Coach "${coachName}" has been deleted`);
-      setOpen(false);
-      if (redirectOnSuccess) {
-        router.push("/coaches");
-      }
-    }
-    if (state && !state.ok) {
-      toast.error(state.error);
-    }
-  }, [state, coachName, redirectOnSuccess, router]);
-
   function onSubmit(data: DeleteCoachFormValues) {
-    const formData = new FormData();
-    formData.set("coachUserId", data.coachUserId);
-    startTransition(() => {
-      formAction(formData);
+    startTransition(async () => {
+      const res = await deleteCoach({ coachUserId: data.coachUserId });
+      if (res.ok) {
+        toast.success(`Coach "${coachName}" has been deleted`);
+        setOpen(false);
+        if (redirectOnSuccess) {
+          router.push("/coaches");
+        }
+      } else {
+        toast.error(res.error);
+      }
     });
   }
 
