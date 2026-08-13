@@ -1,20 +1,13 @@
+import { listCoaches } from "@/features/coach/coach-queries";
 import { listOpenSlots, listSessionTypes } from "../session-queries";
 import { BookingBrowserClient } from "./booking-browser-client";
 
 export async function BookingBrowser() {
-  const [slots, topics] = await Promise.all([
+  const [slots, topics, coaches] = await Promise.all([
     listOpenSlots(),
     listSessionTypes({ kind: "coaching" }),
+    listCoaches(),
   ]);
-
-  if (slots.length === 0) {
-    return (
-      <p className="text-sm text-zinc-500">
-        No open slots right now — coaches publish availability regularly, so
-        check back soon.
-      </p>
-    );
-  }
 
   if (topics.length === 0) {
     return (
@@ -25,7 +18,13 @@ export async function BookingBrowser() {
     );
   }
 
-  return <BookingBrowserClient slots={slots} topics={topics} />;
+  return (
+    <BookingBrowserClient
+      slots={slots}
+      topics={topics}
+      coaches={coaches}
+    />
+  );
 }
 
 export function BookingBrowserSkeleton() {
