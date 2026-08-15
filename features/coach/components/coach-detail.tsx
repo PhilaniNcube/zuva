@@ -23,6 +23,7 @@ import { DeleteCoachDialog } from "./delete-coach-dialog";
 import { AdminCoachSyncButton } from "./admin-coach-sync-button";
 import { AdminCoachWorkingHoursDialog } from "./admin-coach-working-hours-dialog";
 import { CoachWeeklySchedule } from "./coach-weekly-schedule";
+import { IcalFeedGuideDialog } from "./ical-feed-guide-dialog";
 
 interface CoachDetailProps {
   id: Promise<string> | string;
@@ -145,10 +146,13 @@ export async function CoachDetail({ id }: CoachDetailProps) {
                 <p className="text-xs font-medium text-muted-foreground">
                   Calendar Integration
                 </p>
-                <AdminCoachSyncButton
-                  coachUserId={coach.id}
-                  disabled={!coach.icalUrl}
-                />
+                <div className="flex items-center gap-2">
+                  <IcalFeedGuideDialog variant="icon" />
+                  <AdminCoachSyncButton
+                    coachUserId={coach.id}
+                    disabled={!coach.icalUrl}
+                  />
+                </div>
               </div>
               {coach.icalUrl ? (
                 <div>
@@ -161,9 +165,12 @@ export async function CoachDetail({ id }: CoachDetailProps) {
                   </p>
                 </div>
               ) : (
-                <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                  <AlertCircle className="size-3.5 shrink-0" />
-                  <span>No calendar URL linked</span>
+                <div className="space-y-1.5">
+                  <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                    <AlertCircle className="size-3.5 shrink-0" />
+                    <span>No calendar URL linked</span>
+                  </div>
+                  <IcalFeedGuideDialog variant="link" className="text-[11px]" />
                 </div>
               )}
               {coach.lastSyncedAt && (

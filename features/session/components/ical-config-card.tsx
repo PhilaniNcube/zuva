@@ -12,13 +12,7 @@ import { toast } from "sonner";
 
 import { LocalTime } from "@/components/local-time";
 import { Button } from "@/components/ui/button";
-import {
-  Popover,
-  PopoverContent,
-  PopoverHeader,
-  PopoverTitle,
-  PopoverTrigger,
-} from "@/components/ui/popover";
+import { IcalFeedGuideDialog } from "@/features/coach/components/ical-feed-guide-dialog";
 import {
   saveCoachIcalUrl,
   syncCoachAvailability,
@@ -73,7 +67,7 @@ export function IcalConfigCard({
 
   return (
     <div className="rounded-xl border border-zinc-200 bg-white p-5 shadow-xs">
-      <div className="flex flex-col gap-4  p-3">
+      <div className="flex flex-col gap-4 p-3">
         {/* Header & Overview */}
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div className="flex items-center gap-3">
@@ -90,24 +84,28 @@ export function IcalConfigCard({
                 </span>
               </div>
               <p className="text-xs text-zinc-500">
-                Link your Google or Apple Calendar feed. ZUVA checks your external calendar for busy events and automatically blocks those times during your accepted booking windows.
+                Link your Google, Outlook, or Apple Calendar feed. ZUVA checks your external calendar for busy events and automatically blocks those times during your accepted booking windows.
               </p>
             </div>
           </div>
 
-          {initialIcalUrl && (
-            <button
-              type="button"
-              onClick={handleSyncNow}
-              disabled={isSyncing}
-              className="inline-flex items-center gap-1.5 rounded-lg border border-zinc-200 bg-white px-3 py-1.5 text-xs font-medium text-zinc-700 hover:bg-zinc-50"
-            >
-              <RefreshCw
-                className={`h-3.5 w-3.5 ${isSyncing ? "animate-spin" : ""}`}
-              />
-              {isSyncing ? "Syncing..." : "Sync Calendar Now"}
-            </button>
-          )}
+          <div className="flex items-center gap-2">
+            <IcalFeedGuideDialog variant="button" />
+
+            {initialIcalUrl && (
+              <button
+                type="button"
+                onClick={handleSyncNow}
+                disabled={isSyncing}
+                className="inline-flex items-center gap-1.5 rounded-lg border border-zinc-200 bg-white px-3 py-1.5 text-xs font-medium text-zinc-700 hover:bg-zinc-50 transition-colors"
+              >
+                <RefreshCw
+                  className={`h-3.5 w-3.5 ${isSyncing ? "animate-spin" : ""}`}
+                />
+                {isSyncing ? "Syncing..." : "Sync Calendar Now"}
+              </button>
+            )}
+          </div>
         </div>
 
         {/* Feed URL Form */}
@@ -118,71 +116,7 @@ export function IcalConfigCard({
               Calendar iCal Address (.ics Feed URL)
             </label>
 
-            <Popover>
-              <PopoverTrigger
-                render={
-                  <button
-                    type="button"
-                    className="inline-flex items-center gap-1 text-[11px] font-medium text-zinc-500 hover:text-zinc-900"
-                  >
-                    <HelpCircle className="h-3.5 w-3.5 text-zinc-400" />
-                    How to get your feed URL
-                  </button>
-                }
-              />
-              <PopoverContent className="w-96 p-4 text-xs space-y-3">
-                <PopoverHeader>
-                  <PopoverTitle className="text-xs font-semibold text-zinc-900">
-                    How to get your Calendar iCal Feed URL
-                  </PopoverTitle>
-                </PopoverHeader>
-                <div className="space-y-2.5 text-[11px] text-zinc-600">
-                  {/* Google Calendar */}
-                  <div className="rounded-lg bg-zinc-50 p-2.5 border border-zinc-200/80 space-y-1">
-                    <span className="font-semibold text-zinc-900 flex items-center justify-between">
-                      <span>Google Calendar</span>
-                      <span className="text-[10px] text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded font-medium border border-emerald-200">
-                        Popular
-                      </span>
-                    </span>
-                    <ol className="list-decimal list-inside text-zinc-600 text-[11px] space-y-0.5">
-                      <li>Go to <code className="text-zinc-800 font-mono">calendar.google.com</code> on desktop.</li>
-                      <li>On the left sidebar under <strong>"My calendars"</strong>, hover over your calendar and click <strong>⋮ (3 dots)</strong> → <strong>Settings and sharing</strong>.</li>
-                      <li>Scroll down the left panel to <strong>"Integrate calendar"</strong>.</li>
-                      <li>Copy the URL inside <strong>"Secret address in iCal format"</strong> (ends with <code className="text-zinc-800 font-mono">.ics</code>).</li>
-                    </ol>
-                  </div>
-
-                  {/* Outlook */}
-                  <div className="rounded-lg bg-zinc-50 p-2.5 border border-zinc-200/80 space-y-1">
-                    <span className="font-semibold text-zinc-900">Outlook / Office 365</span>
-                    <ol className="list-decimal list-inside text-zinc-600 text-[11px] space-y-0.5">
-                      <li>Open Outlook Web → Click <strong>Settings ⚙️</strong> → <strong>Calendar</strong> → <strong>Shared calendars</strong>.</li>
-                      <li>Under <strong>"Publish a calendar"</strong>, select your calendar, set permissions to <em>"Can view all details"</em>, and click <strong>Publish</strong>.</li>
-                      <li>Copy the <strong>ICS link</strong>.</li>
-                    </ol>
-                  </div>
-
-                  {/* Apple Calendar */}
-                  <div className="rounded-lg bg-zinc-50 p-2.5 border border-zinc-200/80 space-y-1">
-                    <span className="font-semibold text-zinc-900">Apple iCloud Calendar</span>
-                    <ol className="list-decimal list-inside text-zinc-600 text-[11px] space-y-0.5">
-                      <li>Open iCloud Calendar or Mac Calendar app.</li>
-                      <li>Click the <strong>Share icon</strong> next to your calendar name.</li>
-                      <li>Check <strong>"Public Calendar"</strong> and copy the link.</li>
-                    </ol>
-                  </div>
-
-                  {/* Calendly */}
-                  <div className="rounded-lg bg-zinc-50 p-2.5 border border-zinc-200/80 space-y-1">
-                    <span className="font-semibold text-zinc-900">Calendly</span>
-                    <p className="text-zinc-600">
-                      Go to Account Settings → Calendar Connections → Export iCal feed URL.
-                    </p>
-                  </div>
-                </div>
-              </PopoverContent>
-            </Popover>
+            <IcalFeedGuideDialog variant="link" />
           </div>
 
           <div className="flex flex-wrap items-center gap-2 sm:flex-nowrap">

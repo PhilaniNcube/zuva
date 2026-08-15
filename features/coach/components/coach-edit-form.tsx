@@ -27,6 +27,7 @@ import {
 } from "@/components/ui/dialog";
 import type { ActionResult } from "@/lib/action-result";
 
+import { IcalFeedGuideDialog } from "./ical-feed-guide-dialog";
 import { updateCoach } from "../coach-actions";
 import { SPECIALTIES, type Specialty } from "../specialties";
 
@@ -184,7 +185,10 @@ export function CoachEditForm({
             <FieldError errors={[form.formState.errors.bio]} />
           </Field>
           <Field>
-            <FieldLabel>iCal Feed URL (.ics)</FieldLabel>
+            <div className="flex items-center justify-between">
+              <FieldLabel>iCal Feed URL (.ics)</FieldLabel>
+              <IcalFeedGuideDialog variant="link" />
+            </div>
             <Input
               {...form.register("icalUrl")}
               placeholder="https://calendar.google.com/calendar/ical/.../basic.ics"
