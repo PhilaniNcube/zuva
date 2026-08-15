@@ -58,9 +58,8 @@ export function IcalFeedGuideDialog({
     ) : variant === "icon" ? (
       <button
         type="button"
-        className={`rounded-md p-1 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors ${
-          className ?? ""
-        }`}
+        className={`rounded-md p-1 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors ${className ?? ""
+          }`}
         title="How to get your iCal feed URL"
         aria-label="How to get your iCal feed URL"
       >
@@ -69,9 +68,8 @@ export function IcalFeedGuideDialog({
     ) : (
       <button
         type="button"
-        className={`inline-flex items-center gap-1.5 text-xs font-medium text-muted-foreground hover:text-foreground transition-colors ${
-          className ?? ""
-        }`}
+        className={`inline-flex items-center gap-1.5 text-xs font-medium text-muted-foreground hover:text-foreground transition-colors ${className ?? ""
+          }`}
       >
         <HelpCircle className="size-3.5" />
         <span>How to get your calendar feed URL</span>
@@ -169,7 +167,7 @@ export function IcalFeedGuideDialog({
               </ol>
 
               {/* Warning/Tip for Google */}
-              <div className="rounded-lg border border-amber-500/20 bg-amber-50/60 dark:bg-amber-950/30 p-3 text-xs text-amber-900 dark:text-amber-200 space-y-1">
+              <div className="rounded-lg border border-amber-500 bg-amber-50 dark:bg-amber-950 p-3 text-xs text-amber-900 dark:text-amber-200 space-y-1">
                 <div className="flex items-center gap-1.5 font-semibold text-amber-800 dark:text-amber-300">
                   <ShieldAlert className="size-3.5 shrink-0 text-amber-600 dark:text-amber-400" />
                   Important Google Calendar Tip
