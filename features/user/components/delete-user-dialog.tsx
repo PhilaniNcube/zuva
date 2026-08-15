@@ -41,6 +41,8 @@ interface DeleteUserDialogProps {
   userEmail?: string;
   disabled?: boolean;
   trigger?: React.ReactElement;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
 }
 
 export function DeleteUserDialog({
@@ -49,13 +51,19 @@ export function DeleteUserDialog({
   userEmail,
   disabled = false,
   trigger,
+  open: controlledOpen,
+  onOpenChange: controlledOnOpenChange,
 }: DeleteUserDialogProps) {
-  const [open, setOpen] = useState(false);
+  const [uncontrolledOpen, setUncontrolledOpen] = useState(false);
+  const isControlled = controlledOpen !== undefined;
+  const open = isControlled ? controlledOpen : uncontrolledOpen;
+  const setOpen = isControlled ? controlledOnOpenChange ?? (() => {}) : setUncontrolledOpen;
+
   const [state, formAction, isPending] = useActionState(action, null);
 
   const form = useForm<DeleteUserFormValues>({
     resolver: zodResolver(deleteUserSchema),
-    defaultValues: {
+    values: {
       userId,
     },
   });
@@ -105,7 +113,9 @@ export function DeleteUserDialog({
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger render={trigger ?? defaultTrigger} />
+      {!isControlled || trigger ? (
+        <DialogTrigger render={trigger ?? defaultTrigger} />
+      ) : null}
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-destructive">

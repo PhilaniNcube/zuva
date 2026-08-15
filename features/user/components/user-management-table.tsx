@@ -71,6 +71,19 @@ import type { Role } from "@/lib/roles";
 import { waLink } from "@/lib/whatsapp";
 import { EditScholarDialog, type CohortOption } from "./edit-scholar-dialog";
 
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  MoreHorizontal,
+  User,
+  Trash2,
+} from "lucide-react";
+
 export interface UserItem {
   id: string;
   name: string;
@@ -112,7 +125,7 @@ const promoteSchema = z.object({
 
 type PromoteFormValues = z.infer<typeof promoteSchema>;
 
-async function action(
+async function promoteAction(
   _prev: ActionResult | null,
   formData: FormData
 ): Promise<ActionResult> {
@@ -123,30 +136,33 @@ async function action(
 
 function PromoteAdminDialog({
   user,
-  disabled = false,
+  open,
+  onOpenChange,
 }: {
-  user: UserItem;
-  disabled?: boolean;
+  user: UserItem | null;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
 }) {
-  const [open, setOpen] = useState(false);
-  const [state, formAction, isPending] = useActionState(action, null);
+  const [state, formAction, isPending] = useActionState(promoteAction, null);
 
   const form = useForm<PromoteFormValues>({
     resolver: zodResolver(promoteSchema),
-    defaultValues: {
-      userId: user.id,
+    values: {
+      userId: user?.id ?? "",
     },
   });
 
   useEffect(() => {
-    if (state?.ok) {
+    if (state?.ok && user) {
       toast.success(`${user.name} has been promoted to Admin`);
-      setOpen(false);
+      onOpenChange(false);
     }
     if (state && !state.ok) {
       toast.error(state.error);
     }
-  }, [state, user.name]);
+  }, [state, user, onOpenChange]);
+
+  if (!user) return null;
 
   function onSubmit(data: PromoteFormValues) {
     const formData = new FormData();
@@ -156,31 +172,8 @@ function PromoteAdminDialog({
     });
   }
 
-  if (disabled) {
-    return (
-      <Button
-        variant="outline"
-        size="sm"
-        className="gap-1 text-xs"
-        disabled
-        title="Scholars cannot be promoted to Admin"
-      >
-        <UserCheck className="size-3.5" />
-        Promote to Admin
-      </Button>
-    );
-  }
-
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger
-        render={
-          <Button variant="outline" size="sm" className="gap-1 text-xs">
-            <UserCheck className="size-3.5" />
-            Promote to Admin
-          </Button>
-        }
-      />
+    <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
@@ -200,7 +193,7 @@ function PromoteAdminDialog({
             <Button
               type="button"
               variant="outline"
-              onClick={() => setOpen(false)}
+              onClick={() => onOpenChange(false)}
             >
               Cancel
             </Button>
@@ -257,6 +250,8 @@ export function UserManagementTable({
 }: UserManagementTableProps) {
   const [isPending, startTransition] = useTransition();
   const [editingScholar, setEditingScholar] = useState<UserItem | null>(null);
+  const [promotingUser, setPromotingUser] = useState<UserItem | null>(null);
+  const [deletingUser, setDeletingUser] = useState<UserItem | null>(null);
 
   const [page, setPage] = useQueryState(
     "page",
@@ -298,80 +293,73 @@ export function UserManagementTable({
     () => [
       {
         accessorKey: "name",
-        header: "User",
+        header: "User & Role",
         cell: ({ row }) => {
           const u = row.original;
           const isSelf = u.id === currentUserId;
+          const isAdmin = u.role === "admin";
           return (
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-3 min-w-[200px]">
               <Avatar className="size-9 shrink-0">
                 {u.image ? <AvatarImage src={u.image} alt={u.name} /> : null}
                 <AvatarFallback className="text-xs font-semibold">
                   {getInitials(u.name)}
                 </AvatarFallback>
               </Avatar>
-              <div>
-                {u.role === "scholar" ? (
-                  <Link
-                    href={`/admin/scholars/${u.id}`}
-                    className="font-medium text-foreground text-sm hover:text-primary hover:underline underline-offset-4 transition-colors"
+              <div className="min-w-0 space-y-1">
+                <div className="flex items-center gap-2 flex-wrap">
+                  {u.role === "scholar" ? (
+                    <Link
+                      href={`/admin/scholars/${u.id}`}
+                      className="font-medium text-foreground text-sm hover:text-primary hover:underline underline-offset-4 transition-colors truncate"
+                    >
+                      {u.name} {isSelf && "(You)"}
+                    </Link>
+                  ) : (
+                    <span className="font-medium text-foreground text-sm truncate">
+                      {u.name} {isSelf && "(You)"}
+                    </span>
+                  )}
+                  <Badge
+                    variant={getRoleBadgeVariant(u.role)}
+                    className="capitalize text-[11px] px-2 py-0 h-4.5 rounded-full font-medium"
                   >
-                    {u.name} {isSelf && "(You)"}
-                  </Link>
-                ) : (
-                  <div className="font-medium text-foreground text-sm">
-                    {u.name} {isSelf && "(You)"}
-                  </div>
-                )}
-                <div className="text-xs text-muted-foreground">{u.email}</div>
+                    {isAdmin && <ShieldCheck className="mr-1 size-2.5" />}
+                    {u.role}
+                  </Badge>
+                </div>
+                <div className="text-xs text-muted-foreground truncate">{u.email}</div>
               </div>
             </div>
           );
         },
       },
       {
-        accessorKey: "role",
-        header: "Role",
+        id: "academicLocation",
+        header: "Academic & Location",
         cell: ({ row }) => {
           const u = row.original;
-          const isAdmin = u.role === "admin";
-          return (
-            <Badge
-              variant={getRoleBadgeVariant(u.role)}
-              className="capitalize text-xs px-2.5 py-0.5 rounded-full font-medium"
-            >
-              {isAdmin && <ShieldCheck className="mr-1 size-3" />}
-              {u.role}
-            </Badge>
-          );
-        },
-      },
-      {
-        accessorKey: "country",
-        header: "Country",
-        cell: ({ row }) => (
-          <span className="text-xs text-muted-foreground">
-            {row.original.country ?? "—"}
-          </span>
-        ),
-      },
-      {
-        accessorKey: "degree",
-        header: "Degree / Institute",
-        cell: ({ row }) => {
-          const u = row.original;
-          if (!u.degree && !u.institution) {
+          if (!u.country && !u.institution && !u.degree) {
             return <span className="text-xs text-muted-foreground">—</span>;
           }
           return (
-            <div className="space-y-0.5 text-xs">
+            <div className="space-y-0.5 text-xs max-w-[220px]">
+              {u.country && (
+                <div className="font-medium text-foreground">{u.country}</div>
+              )}
               {u.institution && (
-                <div className="font-medium text-foreground truncate max-w-[160px]" title={u.institution}>
+                <div
+                  className="text-muted-foreground font-medium truncate"
+                  title={u.institution}
+                >
                   {u.institution}
                 </div>
               )}
               {u.degree && (
-                <div className="text-muted-foreground truncate max-w-[160px]" title={u.degree}>
+                <div
+                  className="text-muted-foreground/80 truncate"
+                  title={u.degree}
+                >
                   {u.degree}
                 </div>
               )}
@@ -380,113 +368,100 @@ export function UserManagementTable({
         },
       },
       {
-        accessorKey: "whatsappNumber",
-        header: "WhatsApp",
-        cell: ({ row }) => {
-          const phone = row.original.whatsappNumber;
-          if (!phone) return <span className="text-xs text-muted-foreground">—</span>;
-          const link = waLink(
-            phone,
-            `Hi ${row.original.name}, reaching out regarding ZUVA programme.`
-          );
-          return (
-            <a
-              href={link}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-1.5 text-xs font-medium text-emerald-600 hover:text-emerald-700 dark:text-emerald-400 hover:underline"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <MessageCircle className="size-3.5 text-emerald-600 dark:text-emerald-400 shrink-0" />
-              <span>{phone}</span>
-            </a>
-          );
-        },
-      },
-      {
-        accessorKey: "linkedinUrl",
-        header: "LinkedIn",
-        cell: ({ row }) => {
-          const url = row.original.linkedinUrl;
-          if (!url) return <span className="text-xs text-muted-foreground">—</span>;
-          const href = url.startsWith("http") ? url : `https://${url}`;
-          return (
-            <a
-              href={href}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-1.5 text-xs font-medium text-sky-600 hover:text-sky-700 dark:text-sky-400 hover:underline"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <ExternalLink className="size-3.5 shrink-0" />
-              <span>Profile</span>
-            </a>
-          );
-        },
-      },
-      {
-        accessorKey: "onboardedAt",
-        header: "Onboarding",
+        id: "contact",
+        header: "Contact & Links",
         cell: ({ row }) => {
           const u = row.original;
-          if (u.role !== "scholar") {
-            return <span className="text-xs text-muted-foreground">N/A</span>;
+          const phone = u.whatsappNumber;
+          const linkedin = u.linkedinUrl;
+
+          if (!phone && !linkedin) {
+            return <span className="text-xs text-muted-foreground">—</span>;
           }
-          return u.onboardedAt ? (
-            <span className="inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20">
-              <UserCheck className="size-3" /> Onboarded
-            </span>
-          ) : (
-            <span className="inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium bg-muted text-muted-foreground border border-border/60">
-              <Clock className="size-3" /> Pending
-            </span>
+
+          const waHref = phone
+            ? waLink(
+                phone,
+                `Hi ${u.name}, reaching out regarding ZUVA programme.`
+              )
+            : null;
+          const linkedinHref = linkedin
+            ? linkedin.startsWith("http")
+              ? linkedin
+              : `https://${linkedin}`
+            : null;
+
+          return (
+            <div className="flex flex-col gap-1 text-xs">
+              {phone && waHref && (
+                <a
+                  href={waHref}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1.5 font-medium text-emerald-600 hover:text-emerald-700 dark:text-emerald-400 hover:underline truncate"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <MessageCircle className="size-3.5 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                  <span className="truncate">{phone}</span>
+                </a>
+              )}
+              {linkedin && linkedinHref && (
+                <a
+                  href={linkedinHref}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1.5 font-medium text-sky-600 hover:text-sky-700 dark:text-sky-400 hover:underline"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <ExternalLink className="size-3.5 shrink-0" />
+                  <span>LinkedIn Profile</span>
+                </a>
+              )}
+            </div>
           );
         },
       },
       {
-        id: "bioStatus",
-        header: "Bio Status",
+        id: "statusAndJoined",
+        header: "Status & Joined",
         cell: ({ row }) => {
           const u = row.original;
-          if (u.role !== "scholar") {
-            return <span className="text-xs text-muted-foreground">N/A</span>;
-          }
-          if (u.bioRewriteCompletedAt) {
-            return (
-              <span className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium bg-sky-500/10 text-sky-700 dark:text-sky-400 border border-sky-500/20">
-                <CheckCircle2 className="size-3" /> Rewritten
-              </span>
-            );
-          }
-          if (u.bioReviewedAt) {
-            return (
-              <span className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20">
-                <CheckCircle2 className="size-3" /> Reviewed
-              </span>
-            );
-          }
-          if (u.bioRewriteNeeded) {
-            return (
-              <span className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium bg-rose-500/10 text-rose-700 dark:text-rose-400 border border-rose-500/20">
-                <FileText className="size-3" /> Rewrite Needed
-              </span>
-            );
-          }
+          const isScholar = u.role === "scholar";
+
           return (
-            <span className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium bg-muted text-muted-foreground border border-border/60">
-              <Clock className="size-3" /> Unreviewed
-            </span>
+            <div className="space-y-1 text-xs">
+              {isScholar ? (
+                <div className="flex flex-wrap items-center gap-1.5">
+                  {u.onboardedAt ? (
+                    <span className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20">
+                      <UserCheck className="size-3" /> Onboarded
+                    </span>
+                  ) : (
+                    <span className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium bg-muted text-muted-foreground border border-border/60">
+                      <Clock className="size-3" /> Pending
+                    </span>
+                  )}
+                  {u.bioRewriteCompletedAt ? (
+                    <span className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium bg-sky-500/10 text-sky-700 dark:text-sky-400 border border-sky-500/20">
+                      <CheckCircle2 className="size-3" /> Rewritten
+                    </span>
+                  ) : u.bioReviewedAt ? (
+                    <span className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20">
+                      <CheckCircle2 className="size-3" /> Reviewed
+                    </span>
+                  ) : u.bioRewriteNeeded ? (
+                    <span className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium bg-rose-500/10 text-rose-700 dark:text-rose-400 border border-rose-500/20">
+                      <FileText className="size-3" /> Rewrite Needed
+                    </span>
+                  ) : null}
+                </div>
+              ) : null}
+              <div className="text-muted-foreground">
+                Joined {formatDate(u.createdAt)}
+              </div>
+            </div>
           );
         },
-      },
-      {
-        accessorKey: "createdAt",
-        header: "Joined",
-        cell: ({ row }) => (
-          <span className="text-xs text-muted-foreground">
-            {formatDate(row.original.createdAt)}
-          </span>
-        ),
       },
       {
         id: "actions",
@@ -498,26 +473,63 @@ export function UserManagementTable({
           const isScholar = u.role === "scholar";
 
           return (
-            <div className="flex items-center justify-end gap-2">
-              {isScholar && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="gap-1 text-xs"
-                  onClick={() => setEditingScholar(u)}
-                >
-                  <UserPen className="size-3.5" />
-                  Edit
-                </Button>
-              )}
-              {!isAdmin && <PromoteAdminDialog user={u} disabled={isScholar} />}
-              {!isSelf && (
-                <DeleteUserDialog
-                  userId={u.id}
-                  userName={u.name}
-                  userEmail={u.email}
+            <div className="text-right">
+              <DropdownMenu>
+                <DropdownMenuTrigger
+                  render={
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="size-8 text-muted-foreground hover:text-foreground"
+                    >
+                      <MoreHorizontal className="size-4" />
+                      <span className="sr-only">Open menu</span>
+                    </Button>
+                  }
                 />
-              )}
+                <DropdownMenuContent align="end" className="w-48">
+                  {isScholar && (
+                    <DropdownMenuItem render={<Link href={`/admin/scholars/${u.id}`} />}>
+                      <User className="size-3.5 mr-2 text-muted-foreground" />
+                      View Profile
+                    </DropdownMenuItem>
+                  )}
+
+                  {isScholar && (
+                    <DropdownMenuItem
+                      className="cursor-pointer"
+                      onClick={() => setEditingScholar(u)}
+                    >
+                      <UserPen className="size-3.5 mr-2 text-muted-foreground" />
+                      Edit Details
+                    </DropdownMenuItem>
+                  )}
+
+                  {!isAdmin && !isScholar && (
+                    <DropdownMenuItem
+                      className="cursor-pointer"
+                      onClick={() => setPromotingUser(u)}
+                    >
+                      <UserCheck className="size-3.5 mr-2 text-muted-foreground" />
+                      Promote to Admin
+                    </DropdownMenuItem>
+                  )}
+
+                  {!isSelf && (
+                    <>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem
+                        variant="destructive"
+                        className="cursor-pointer"
+                        onClick={() => setDeletingUser(u)}
+                      >
+                        <Trash2 className="size-3.5 mr-2" />
+                        Delete Account
+                      </DropdownMenuItem>
+                    </>
+                  )}
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
           );
         },
@@ -806,6 +818,30 @@ export function UserManagementTable({
           open={Boolean(editingScholar)}
           onOpenChange={(open) => {
             if (!open) setEditingScholar(null);
+          }}
+        />
+      )}
+
+      {/* Promote to Admin Dialog */}
+      {promotingUser && (
+        <PromoteAdminDialog
+          user={promotingUser}
+          open={Boolean(promotingUser)}
+          onOpenChange={(open) => {
+            if (!open) setPromotingUser(null);
+          }}
+        />
+      )}
+
+      {/* Delete User Dialog */}
+      {deletingUser && (
+        <DeleteUserDialog
+          userId={deletingUser.id}
+          userName={deletingUser.name}
+          userEmail={deletingUser.email}
+          open={Boolean(deletingUser)}
+          onOpenChange={(open) => {
+            if (!open) setDeletingUser(null);
           }}
         />
       )}
