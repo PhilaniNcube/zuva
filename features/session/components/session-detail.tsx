@@ -17,8 +17,8 @@ import { sessionContactMessage, waLink } from "@/lib/whatsapp";
 import { getConfirmedBooking, getSessionDetail } from "../session-queries";
 import { JoinCallButton } from "./join-call-button";
 
-export async function SessionDetail({ id }: { id: Promise<string> }) {
-  const sessionId = await id;
+export async function SessionDetail({ id }: { id: string | Promise<string> }) {
+  const sessionId = typeof id === "string" ? id : await id;
   const [session, { user: currentUser }] = await Promise.all([
     getSessionDetail(sessionId),
     requireUser(),
@@ -61,14 +61,28 @@ export async function SessionDetail({ id }: { id: Promise<string> }) {
     canManage ? getSessionResourceEngagementStats(session.id) : Promise.resolve(null),
   ]);
 
+  const backHref =
+    role === "admin"
+      ? "/schedule"
+      : role === "coach"
+        ? `/coach/${currentUser.id}/schedule`
+        : "/sessions";
+
+  const backLabel =
+    role === "admin"
+      ? "← Back to Schedule"
+      : role === "coach"
+        ? "← Back to Schedule"
+        : "← All sessions";
+
   return (
     <div className="flex max-w-3xl flex-col gap-6">
       <div>
         <Link
-          href="/sessions"
+          href={backHref}
           className="text-sm text-muted-foreground underline underline-offset-2 hover:text-foreground transition-colors"
         >
-          ← All sessions
+          {backLabel}
         </Link>
       </div>
 

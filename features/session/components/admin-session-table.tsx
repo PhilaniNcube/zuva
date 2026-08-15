@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useState } from "react";
 import { ColumnDef } from "@tanstack/react-table";
 import {
@@ -38,9 +39,12 @@ const columns: ColumnDef<AdminSessionItem>[] = [
             <CalendarDays className="size-5" />
           </div>
           <div className="flex flex-col leading-tight">
-            <span className="font-medium text-foreground text-sm">
+            <Link
+              href={`/schedule/${s.id}`}
+              className="font-medium text-foreground hover:text-primary transition-colors text-sm"
+            >
               {s.title}
-            </span>
+            </Link>
             <span className="text-xs text-muted-foreground capitalize mt-0.5">
               {s.typeName}
               {s.scholarName ? ` · ${s.scholarName}` : ""}
