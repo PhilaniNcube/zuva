@@ -15,7 +15,7 @@ export default function LoginPage() {
           fill
           priority
           placeholder="blur"
-          className="object-cover object-center"
+          className="object-cover object-top"
         />
       </div>
 
