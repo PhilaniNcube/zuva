@@ -2,6 +2,7 @@
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
 @theme inline {
+  --color-brand-red: #e81c37;
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --font-sans: var(--font-inter);
@@ -104,4 +105,8 @@
 
 .glass-card {
   @apply bg-card/85 backdrop-blur-md border border-border/70 shadow-xs hover:shadow-md transition-all duration-200;
+}
+
+.clip-chamfer-btn {
+  clip-path: polygon(14px 0, 100% 0, 100% 100%, 0 100%, 0 14px);
 }
