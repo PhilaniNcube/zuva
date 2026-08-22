@@ -195,7 +195,7 @@ export function BookingBrowserClient({
               }}
               items={coachSelectItems}
             >
-              <SelectTrigger className="h-10 w-full bg-zinc-50 border-zinc-200 text-xs sm:text-sm font-medium">
+              <SelectTrigger className="h-10 w-full bg-white border-zinc-200 text-xs sm:text-sm font-medium">
                 <SelectValue placeholder="All Coaches">
                   {selectedCoachId === "all"
                     ? `All Coaches (${slots.length} available slots)`

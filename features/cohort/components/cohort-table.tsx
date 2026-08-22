@@ -272,7 +272,7 @@ export function CohortTable({
                   setStartDate(e.target.value || null);
                   setPage(1);
                 }}
-                className="h-8 rounded-md border border-input bg-background px-2.5 py-1 text-xs shadow-xs transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                className="h-8 rounded-md border border-input bg-white px-2.5 py-1 text-xs shadow-xs transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
               />
             </div>
 
@@ -285,7 +285,7 @@ export function CohortTable({
                   setEndDate(e.target.value || null);
                   setPage(1);
                 }}
-                className="h-8 rounded-md border border-input bg-background px-2.5 py-1 text-xs shadow-xs transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                className="h-8 rounded-md border border-input bg-white px-2.5 py-1 text-xs shadow-xs transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
               />
             </div>
 

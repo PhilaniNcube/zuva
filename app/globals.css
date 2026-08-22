@@ -101,6 +101,11 @@
   h1, h2, h3, h4, h5, h6 {
     @apply font-heading tracking-tight;
   }
+  input:not([type="checkbox"]):not([type="radio"]):not([type="submit"]):not([type="button"]):not([type="reset"]):not([type="file"]),
+  textarea,
+  select {
+    @apply bg-white;
+  }
 }
 
 .glass-card {

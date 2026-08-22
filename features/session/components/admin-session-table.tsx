@@ -186,7 +186,7 @@ export function AdminSessionTable({
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search title, coach, cohort..."
-            className="w-full h-9 rounded-lg border border-border bg-background pl-9 pr-3 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary shadow-2xs transition-colors"
+            className="w-full h-9 rounded-lg border border-border bg-white pl-9 pr-3 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary shadow-2xs transition-colors"
           />
         </div>
       </div>

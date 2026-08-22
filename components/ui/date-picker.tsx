@@ -89,7 +89,7 @@ export function DatePicker({
             variant="outline"
             disabled={disabled}
             className={cn(
-              "w-full justify-start text-left font-normal border-input bg-transparent dark:bg-input/30",
+              "w-full justify-start text-left font-normal border-input bg-white dark:bg-input/30",
               !isValidDate && "text-muted-foreground",
               className
             )}
