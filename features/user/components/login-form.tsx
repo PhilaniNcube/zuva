@@ -94,7 +94,7 @@ export function LoginForm() {
         <div className="flex justify-end px-0.5 pt-0.5">
           <Link
             href="/forgot-password"
-            className="text-xs font-medium text-zinc-700 hover:text-zinc-950 hover:underline"
+            className="text-xs font-medium text-white hover:text-zinc-50 hover:underline"
           >
             Forgot password?
           </Link>
