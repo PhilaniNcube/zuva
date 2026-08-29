@@ -415,7 +415,7 @@ export function CoachWeeklySchedule({
         {icalUrl && (
           <div className="flex items-center gap-1.5">
             <span className="size-3 rounded-full bg-red-500 border border-red-600" />
-            <span>Busy (External Calendar)</span>
+            {/* <span>Busy (External Calendar)</span> */}
           </div>
         )}
         <div className="flex items-center gap-1.5">
