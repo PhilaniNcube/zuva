@@ -414,7 +414,7 @@ export function CoachWeeklySchedule({
         </div>
         {icalUrl && (
           <div className="flex items-center gap-1.5">
-            <span className="size-3 rounded-full bg-amber-500 border border-amber-600" />
+            <span className="size-3 rounded-full bg-red-500 border border-red-600" />
             <span>Busy (External Calendar)</span>
           </div>
         )}
@@ -547,7 +547,7 @@ export function CoachWeeklySchedule({
                           "bg-purple-100 dark:bg-purple-950/90 text-purple-950 dark:text-purple-100 border-purple-300 dark:border-purple-700/80 hover:bg-purple-200/80 dark:hover:bg-purple-900/90";
                       } else {
                         bgClass =
-                          "bg-amber-100 dark:bg-amber-950/90 text-amber-950 dark:text-amber-100 border-amber-300 dark:border-amber-700/80 hover:bg-amber-200/80 dark:hover:bg-amber-900/90";
+                          "bg-red-500 text-white border-red-600";
                       }
 
                       return (
@@ -596,11 +596,7 @@ export function CoachWeeklySchedule({
                               </div>
                             )}
 
-                            {ev.type === "ical" && (
-                              <div className="mt-0.5 font-bold text-[10px] truncate text-amber-950 dark:text-amber-100">
-                                Busy (External)
-                              </div>
-                            )}
+
                           </div>
 
                           {ev.meetLink && ev.heightPx > 40 && (
