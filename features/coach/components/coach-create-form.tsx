@@ -5,7 +5,7 @@ import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { toast } from "sonner";
-import { PlusIcon, CheckCircle2, AlertTriangle, Mail } from "lucide-react";
+import { PlusIcon, CheckCircle2, AlertTriangle } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Field, FieldLabel, FieldError } from "@/components/ui/field";
@@ -149,37 +149,37 @@ export function CoachCreateForm() {
         {created ? (
           <div className="flex flex-col gap-4 py-2">
             {created.emailSent ? (
-              <div className="rounded-lg border border-emerald-500/2 p-4 text-sm text-emerald-900 space-y-2">
-                <div className="flex items-center gap-2 font-semibold text-emerald-900 ">
-                  <CheckCircle2 className="size-4 " />
+              <div className="rounded-lg border p-4 text-sm space-y-2">
+                <div className="flex items-center gap-2 font-semibold">
+                  <CheckCircle2 className="size-4" />
                   Account Created & Email Sent
                 </div>
-                <p className="text-xs ">
+                <p className="text-xs text-muted-foreground">
                   An email containing login instructions and temporary credentials has been sent to{" "}
-                  <strong className="font-semibold">{created.email}</strong>.
+                  <strong className="font-semibold text-foreground">{created.email}</strong>.
                 </p>
-                <div className="pt-2 border-t border-emerald-500/20 text-xs flex items-center justify-between">
-                  <span>Temporary password:</span>
-                  <code className="font-mono font-semibold  px-2 py-0.5 rounded text-emerald-950">
+                <div className="pt-2 border-t text-xs flex items-center justify-between">
+                  <span className="text-muted-foreground">Temporary password:</span>
+                  <code className="font-mono font-semibold bg-muted px-2 py-0.5 rounded">
                     {created.tempPassword}
                   </code>
                 </div>
               </div>
             ) : (
-              <div className="rounded-lg border border-amber-500/20 bg-amber-50/50 p-4 text-sm text-amber-900 dark:bg-amber-950/30 dark:text-amber-200 space-y-2">
-                <div className="flex items-center gap-2 font-semibold text-amber-800 dark:text-amber-300">
-                  <AlertTriangle className="size-4 text-amber-600 dark:text-amber-400" />
+              <div className="rounded-lg border p-4 text-sm space-y-2">
+                <div className="flex items-center gap-2 font-semibold">
+                  <AlertTriangle className="size-4" />
                   Account Created — Email Delivery {created.emailReason === "resend_not_configured" ? "Skipped (Dev Mode)" : "Failed"}
                 </div>
-                <p className="text-xs text-amber-700 dark:text-amber-300">
+                <p className="text-xs text-muted-foreground">
                   {created.emailReason === "resend_not_configured"
                     ? `Resend API key is not configured in this environment, so no email was sent to ${created.email}.`
                     : `Email delivery to ${created.email} failed.`}{" "}
                   Please copy and share the temporary password with the coach manually:
                 </p>
-                <div className="pt-2 border-t border-amber-500/20 text-xs flex items-center justify-between">
-                  <span>Temporary password:</span>
-                  <code className="font-mono font-semibold bg-amber-100/70 dark:bg-amber-900/60 px-2 py-0.5 rounded text-amber-950 dark:text-amber-100">
+                <div className="pt-2 border-t text-xs flex items-center justify-between">
+                  <span className="text-muted-foreground">Temporary password:</span>
+                  <code className="font-mono font-semibold bg-muted px-2 py-0.5 rounded">
                     {created.tempPassword}
                   </code>
                 </div>
