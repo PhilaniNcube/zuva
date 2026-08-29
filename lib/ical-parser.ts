@@ -1,5 +1,7 @@
 import ical from "node-ical";
 
+import { AVAILABILITY_HORIZON_DAYS } from "@/features/coach/working-hours";
+
 export interface CalendarSlot {
   start: Date;
   end: Date;
@@ -57,7 +59,7 @@ export function parseIcalText(icalData: string): CalendarSlot[] {
 
   const now = new Date();
   const horizonEnd = new Date();
-  horizonEnd.setDate(now.getDate() + 60); // 60 days lookahead
+  horizonEnd.setDate(now.getDate() + AVAILABILITY_HORIZON_DAYS);
 
   for (const k of Object.keys(parsed)) {
     const ev = parsed[k];

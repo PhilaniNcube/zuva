@@ -4,6 +4,7 @@ import type { Metadata } from "next";
 export const metadata: Metadata = { title: "Availability" };
 
 import { getCoachProfile } from "@/features/coach/coach-queries";
+import { ensureCoachAvailabilityFresh } from "@/features/coach/ensure-fresh";
 import { CoachSessions, CoachSessionsSkeleton } from "@/features/session/components/coach-sessions";
 import { CoachSlots, CoachSlotsSkeleton } from "@/features/session/components/coach-slots";
 import { CoachWorkingHoursForm } from "@/features/session/components/coach-working-hours-form";
@@ -12,6 +13,7 @@ import { requireRole } from "@/lib/rbac";
 
 export default async function AvailabilityPage() {
   const { user } = await requireRole("coach");
+  await ensureCoachAvailabilityFresh(user.id);
   const profile = await getCoachProfile(user.id);
 
   return (

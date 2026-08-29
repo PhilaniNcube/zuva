@@ -149,18 +149,18 @@ export function CoachCreateForm() {
         {created ? (
           <div className="flex flex-col gap-4 py-2">
             {created.emailSent ? (
-              <div className="rounded-lg border border-emerald-500/20 bg-emerald-50/50 p-4 text-sm text-emerald-900 dark:bg-emerald-950/30 dark:text-emerald-200 space-y-2">
-                <div className="flex items-center gap-2 font-semibold text-emerald-800 dark:text-emerald-300">
-                  <CheckCircle2 className="size-4 text-emerald-600 dark:text-emerald-400" />
+              <div className="rounded-lg border border-emerald-500/2 p-4 text-sm text-emerald-900 space-y-2">
+                <div className="flex items-center gap-2 font-semibold text-emerald-900 ">
+                  <CheckCircle2 className="size-4 " />
                   Account Created & Email Sent
                 </div>
-                <p className="text-xs text-emerald-700 dark:text-emerald-300">
+                <p className="text-xs ">
                   An email containing login instructions and temporary credentials has been sent to{" "}
                   <strong className="font-semibold">{created.email}</strong>.
                 </p>
                 <div className="pt-2 border-t border-emerald-500/20 text-xs flex items-center justify-between">
                   <span>Temporary password:</span>
-                  <code className="font-mono font-semibold bg-emerald-100/70 dark:bg-emerald-900/60 px-2 py-0.5 rounded text-emerald-950 dark:text-emerald-100">
+                  <code className="font-mono font-semibold  px-2 py-0.5 rounded text-emerald-950">
                     {created.tempPassword}
                   </code>
                 </div>

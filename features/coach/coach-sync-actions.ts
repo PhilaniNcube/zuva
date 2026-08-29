@@ -14,6 +14,7 @@ import { fetchIcalCalendarSlots, type CalendarSlot } from "@/lib/ical-parser";
 import { requireRole } from "@/lib/rbac";
 import { getCoachProfile } from "./coach-queries";
 import {
+  AVAILABILITY_HORIZON_DAYS,
   DEFAULT_WORKING_HOURS,
   icalSettingsSchema,
   workingHoursSchema,
@@ -51,9 +52,8 @@ export async function syncCoachAvailabilityForUser(
   }
 
   const now = new Date();
-  const horizonDays = 60;
   const horizonEnd = new Date();
-  horizonEnd.setDate(now.getDate() + horizonDays);
+  horizonEnd.setDate(now.getDate() + AVAILABILITY_HORIZON_DAYS);
 
   // 2. Fetch existing ZUVA programme sessions for this coach in horizon
   const coachSessions = await db

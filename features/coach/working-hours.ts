@@ -1,5 +1,8 @@
 import { z } from "zod";
 
+export const AVAILABILITY_HORIZON_DAYS = 60;
+export const AVAILABILITY_STALE_MS = 20 * 60 * 60 * 1000;
+
 export const icalSettingsSchema = z.object({
   icalUrl: z
     .string()
