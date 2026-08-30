@@ -58,9 +58,9 @@ export default async function SessionsPage() {
 
       <section className="flex flex-col gap-3">
         <h2 className="text-lg font-semibold">Book a 1:1</h2>
-        <Suspense fallback={<BookingBrowserSkeleton />}>
-          <BookingBrowser />
-        </Suspense>
+          <Suspense fallback={<BookingBrowserSkeleton />}>
+            <BookingBrowser scholarId={user.id} />
+          </Suspense>
       </section>
     </main>
   );

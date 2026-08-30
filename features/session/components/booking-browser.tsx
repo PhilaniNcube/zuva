@@ -1,13 +1,23 @@
-import { listCoaches } from "@/features/coach/coach-queries";
-import { listOpenSlots, listSessionTypes } from "../session-queries";
-import { BookingBrowserClient } from "./booking-browser-client";
+import { listCoaches, listCoachWorkingHours } from "@/features/coach/coach-queries";
+import type { WorkingHoursInput } from "@/features/coach/working-hours";
+import {
+  listOpenSlots,
+  listScholarBookings,
+  listScholarCohortSessions,
+  listSessionTypes,
+} from "../session-queries";
+import { BookingCalendarClient } from "./booking-calendar-client";
 
-export async function BookingBrowser() {
-  const [slots, topics, coaches] = await Promise.all([
-    listOpenSlots(),
-    listSessionTypes({ kind: "coaching" }),
-    listCoaches(),
-  ]);
+export async function BookingBrowser({ scholarId }: { scholarId: string }) {
+  const [slots, topics, coaches, coachWorkingHours, myBookings, cohortSessions] =
+    await Promise.all([
+      listOpenSlots(),
+      listSessionTypes({ kind: "coaching" }),
+      listCoaches(),
+      listCoachWorkingHours(),
+      listScholarBookings(scholarId),
+      listScholarCohortSessions(scholarId),
+    ]);
 
   if (topics.length === 0) {
     return (
@@ -18,11 +28,19 @@ export async function BookingBrowser() {
     );
   }
 
+  const workingHoursByCoach: Record<string, WorkingHoursInput | null> = {};
+  for (const row of coachWorkingHours) {
+    workingHoursByCoach[row.coachId] = (row.workingHours as WorkingHoursInput) ?? null;
+  }
+
   return (
-    <BookingBrowserClient
+    <BookingCalendarClient
       slots={slots}
       topics={topics}
       coaches={coaches}
+      myBookings={myBookings}
+      cohortSessions={cohortSessions}
+      workingHoursByCoach={workingHoursByCoach}
     />
   );
 }

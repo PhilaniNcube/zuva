@@ -89,6 +89,16 @@ export const listCoachesPaginated = cache(
   }
 );
 
+/** Working-hours config for every coach, keyed by userId — for calendar grids. */
+export const listCoachWorkingHours = cache(async () => {
+  return db
+    .select({
+      coachId: coachProfile.userId,
+      workingHours: coachProfile.workingHours,
+    })
+    .from(coachProfile);
+});
+
 export const getCoachProfile = cache(async (userId: string) => {
   const [profile] = await db
     .select({
