@@ -427,7 +427,7 @@ export function CoachWeeklySchedule({
       {/* Google Calendar Style Grid View */}
       <div className="rounded-xl border bg-card overflow-hidden shadow-xs">
         <div className="overflow-x-auto">
-          <div className="min-w-[750px]">
+          <div className="min-w-187.5">
             {/* Column Headers (Days) */}
             <div
               className="grid grid-cols-[60px_repeat(var(--days-count),minmax(0,1fr))] border-b bg-muted/30"
