@@ -2,8 +2,8 @@ import { Suspense } from "react";
 import Image from "next/image";
 
 import { LoginForm } from "@/features/user/components/login-form";
-import desktopBg from "@/public/images/desktop_background.jpg";
-import mobileBg from "@/public/images/mobile_background.jpg";
+import desktopBg from "@/public/images/landing-desktop.jpg";
+import mobileBg from "@/public/images/landing-mobile.jpg";
 
 export default function LoginPage() {
   return (
