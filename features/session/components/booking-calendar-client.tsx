@@ -23,7 +23,10 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { SPECIALTIES, type Specialty } from "@/features/coach/specialties";
-import type { WorkingHoursInput } from "@/features/coach/working-hours";
+import {
+  resolveWorkingWindow,
+  type WorkingHoursInput,
+} from "@/features/coach/working-hours";
 import { bookSlot } from "../session-actions";
 
 export interface OpenSlotItem {
@@ -116,32 +119,11 @@ const HOURS = Array.from(
 );
 
 function getWorkingHoursForDate(date: Date, wh: WorkingHoursInput | null) {
-  if (!wh || !Array.isArray(wh.days) || wh.days.length === 0) return null;
-  const dayOfWeek = date.getDay();
-  const dateYmd = format(date, "yyyy-MM-dd");
+  const window = resolveWorkingWindow(wh, date);
+  if (!window) return null;
 
-  const isRangeBlocked = (wh.blockedRanges || []).some(
-    (r) => dateYmd >= r.startDate && dateYmd <= r.endDate,
-  );
-  if (isRangeBlocked) return null;
-
-  const override = (wh.overrides || []).find((o) => o.date === dateYmd);
-  if (override?.isBlocked) return null;
-
-  let startStr = wh.start;
-  let endStr = wh.end;
-  let isWorkingDay = wh.days.includes(dayOfWeek);
-
-  if (override?.start && override?.end) {
-    startStr = override.start;
-    endStr = override.end;
-    isWorkingDay = true;
-  }
-
-  if (!isWorkingDay) return null;
-
-  const [sHour, sMin] = startStr.split(":").map(Number);
-  const [eHour, eMin] = endStr.split(":").map(Number);
+  const [sHour, sMin] = window.start.split(":").map(Number);
+  const [eHour, eMin] = window.end.split(":").map(Number);
   return { startMin: sHour * 60 + sMin, endMin: eHour * 60 + eMin };
 }
 

@@ -31,6 +31,10 @@ const DAYS_OF_WEEK = [
   { id: 0, label: "Sun" },
 ];
 
+const DAY_LABELS: Record<number, string> = Object.fromEntries(
+  DAYS_OF_WEEK.map((day) => [day.id, day.label]),
+);
+
 interface CoachWorkingHoursFormProps {
   initialWorkingHours?: WorkingHoursInput | null;
   coachUserId?: string;
@@ -46,10 +50,19 @@ export function CoachWorkingHoursForm({
 
   const [workingHours, setWorkingHours] = useState<WorkingHoursInput>(() => {
     if (!initialWorkingHours) return DEFAULT_WORKING_HOURS;
+    const days = initialWorkingHours.days ?? DEFAULT_WORKING_HOURS.days;
+    const start = initialWorkingHours.start ?? DEFAULT_WORKING_HOURS.start;
+    const end = initialWorkingHours.end ?? DEFAULT_WORKING_HOURS.end;
+    const existingDayHours = initialWorkingHours.dayHours ?? [];
     return {
-      days: initialWorkingHours.days ?? DEFAULT_WORKING_HOURS.days,
-      start: initialWorkingHours.start ?? DEFAULT_WORKING_HOURS.start,
-      end: initialWorkingHours.end ?? DEFAULT_WORKING_HOURS.end,
+      days,
+      start,
+      end,
+      // Backfill per-day hours from the shared window for legacy rows.
+      dayHours:
+        existingDayHours.length > 0
+          ? existingDayHours
+          : days.map((day) => ({ day, start, end })),
       slotDurationMinutes:
         initialWorkingHours.slotDurationMinutes ??
         DEFAULT_WORKING_HOURS.slotDurationMinutes,
@@ -59,6 +72,11 @@ export function CoachWorkingHoursForm({
       blockedRanges: initialWorkingHours.blockedRanges ?? [],
     };
   });
+
+  const [bulkHours, setBulkHours] = useState(() => ({
+    start: initialWorkingHours?.start ?? DEFAULT_WORKING_HOURS.start,
+    end: initialWorkingHours?.end ?? DEFAULT_WORKING_HOURS.end,
+  }));
 
   // State for adding a new date override
   const [overrideDate, setOverrideDate] = useState("");
@@ -74,11 +92,60 @@ export function CoachWorkingHoursForm({
   const toggleDay = (dayId: number) => {
     setWorkingHours((prev) => {
       const exists = prev.days.includes(dayId);
-      const updatedDays = exists
-        ? prev.days.filter((d) => d !== dayId)
-        : [...prev.days, dayId];
-      return { ...prev, days: updatedDays };
+      if (exists) {
+        return {
+          ...prev,
+          days: prev.days.filter((d) => d !== dayId),
+          dayHours: (prev.dayHours ?? []).filter((d) => d.day !== dayId),
+        };
+      }
+
+      const fallback =
+        (prev.dayHours ?? []).find((d) => d.day === prev.days[0]) ?? {
+          start: prev.start,
+          end: prev.end,
+        };
+
+      return {
+        ...prev,
+        days: [...prev.days, dayId],
+        dayHours: [
+          ...(prev.dayHours ?? []).filter((d) => d.day !== dayId),
+          { day: dayId, start: fallback.start, end: fallback.end },
+        ],
+      };
     });
+  };
+
+  const updateDayHours = (
+    dayId: number,
+    field: "start" | "end",
+    value: string,
+  ) => {
+    setWorkingHours((prev) => ({
+      ...prev,
+      dayHours: (prev.dayHours ?? []).map((d) =>
+        d.day === dayId ? { ...d, [field]: value } : d,
+      ),
+    }));
+  };
+
+  const applyBulkHours = () => {
+    if (bulkHours.end <= bulkHours.start) {
+      toast.error("End time must be after start time.");
+      return;
+    }
+    setWorkingHours((prev) => ({
+      ...prev,
+      start: bulkHours.start,
+      end: bulkHours.end,
+      dayHours: prev.days.map((day) => ({
+        day,
+        start: bulkHours.start,
+        end: bulkHours.end,
+      })),
+    }));
+    toast.success("Applied to all active days");
   };
 
   const handleAddOverride = (e: React.FormEvent) => {
@@ -155,15 +222,42 @@ export function CoachWorkingHoursForm({
       toast.error("Please select at least one day for your weekly schedule.");
       return;
     }
-    if (workingHours.end <= workingHours.start) {
-      toast.error("Weekly end time must be after start time.");
-      return;
+
+    const orderedDays = DAYS_OF_WEEK.map((d) => d.id).filter((id) =>
+      workingHours.days.includes(id),
+    );
+    const dayHoursByDay = new Map(
+      (workingHours.dayHours ?? []).map((d) => [d.day, d]),
+    );
+
+    for (const dayId of orderedDays) {
+      const entry = dayHoursByDay.get(dayId);
+      if (!entry) {
+        toast.error(`Please set working hours for ${DAY_LABELS[dayId]}.`);
+        return;
+      }
+      if (entry.end <= entry.start) {
+        toast.error(`${DAY_LABELS[dayId]}: end time must be after start time.`);
+        return;
+      }
     }
+
+    const firstDay = dayHoursByDay.get(orderedDays[0])!;
+    const payload: WorkingHoursInput = {
+      ...workingHours,
+      days: orderedDays,
+      start: firstDay.start,
+      end: firstDay.end,
+      dayHours: orderedDays.map((day) => dayHoursByDay.get(day)!),
+    };
 
     startTransition(async () => {
       const res = coachUserId
-        ? await adminSaveCoachWorkingHours({ coachUserId, workingHours })
-        : await saveCoachWorkingHours(workingHours);
+        ? await adminSaveCoachWorkingHours({
+            coachUserId,
+            workingHours: payload,
+          })
+        : await saveCoachWorkingHours(payload);
 
       if (!res.ok) {
         toast.error(res.error);
@@ -236,58 +330,127 @@ export function CoachWorkingHoursForm({
           </div>
         </div>
 
-        {/* Time Windows & Duration */}
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-          <div className="flex flex-col gap-1.5">
-            <label className="text-xs font-medium text-zinc-700">
-              Daily Start Time
-            </label>
-            <input
-              type="time"
-              required
-              value={workingHours.start}
-              onChange={(e) =>
-                setWorkingHours((prev) => ({ ...prev, start: e.target.value }))
-              }
-              className="rounded-lg border border-zinc-200 bg-white px-3 py-2 text-xs text-zinc-900 focus:border-zinc-400 focus:outline-hidden"
-            />
-          </div>
-
-          <div className="flex flex-col gap-1.5">
-            <label className="text-xs font-medium text-zinc-700">
-              Daily End Time
-            </label>
-            <input
-              type="time"
-              required
-              value={workingHours.end}
-              onChange={(e) =>
-                setWorkingHours((prev) => ({ ...prev, end: e.target.value }))
-              }
-              className="rounded-lg border border-zinc-200 bg-white px-3 py-2 text-xs text-zinc-900 focus:border-zinc-400 focus:outline-hidden"
-            />
-          </div>
-
-          <div className="flex flex-col gap-1.5">
-            <label className="text-xs font-medium text-zinc-700">
-              Session Duration
-            </label>
-            <select
-              value={workingHours.slotDurationMinutes}
-              onChange={(e) =>
-                setWorkingHours((prev) => ({
-                  ...prev,
-                  slotDurationMinutes: Number(e.target.value),
-                }))
-              }
-              className="rounded-lg border border-zinc-200 bg-white px-3 py-2 text-xs text-zinc-900 focus:border-zinc-400 focus:outline-hidden"
+        {/* Apply same hours to all active days */}
+        <div className="flex flex-col gap-2 rounded-lg border border-zinc-200 bg-zinc-50/60 p-3">
+          <span className="text-xs font-medium text-zinc-700">
+            Apply same hours to all active days
+          </span>
+          <div className="flex flex-wrap items-end gap-2">
+            <div className="flex flex-col gap-1">
+              <label className="text-[11px] text-zinc-500">Start</label>
+              <input
+                type="time"
+                value={bulkHours.start}
+                onChange={(e) =>
+                  setBulkHours((prev) => ({ ...prev, start: e.target.value }))
+                }
+                className="rounded-lg border border-zinc-200 bg-white px-3 py-1.5 text-xs text-zinc-900 focus:border-zinc-400 focus:outline-hidden"
+              />
+            </div>
+            <div className="flex flex-col gap-1">
+              <label className="text-[11px] text-zinc-500">End</label>
+              <input
+                type="time"
+                value={bulkHours.end}
+                onChange={(e) =>
+                  setBulkHours((prev) => ({ ...prev, end: e.target.value }))
+                }
+                className="rounded-lg border border-zinc-200 bg-white px-3 py-1.5 text-xs text-zinc-900 focus:border-zinc-400 focus:outline-hidden"
+              />
+            </div>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={applyBulkHours}
+              disabled={workingHours.days.length === 0}
+              className="text-xs"
             >
-              <option value={30}>30 minutes</option>
-              <option value={45}>45 minutes</option>
-              <option value={60}>60 minutes (1 hour)</option>
-              <option value={90}>90 minutes (1.5 hours)</option>
-            </select>
+              Apply to all days
+            </Button>
           </div>
+        </div>
+
+        {/* Per-day hours */}
+        <div className="flex flex-col gap-2">
+          <label className="text-xs font-medium text-zinc-700">
+            Working Hours by Day
+          </label>
+          {workingHours.days.length === 0 ? (
+            <p className="text-xs text-zinc-500">
+              Select at least one active day above.
+            </p>
+          ) : (
+            <div className="flex flex-col gap-2">
+              {DAYS_OF_WEEK.filter((day) =>
+                workingHours.days.includes(day.id),
+              ).map((day) => {
+                const entry = (workingHours.dayHours ?? []).find(
+                  (d) => d.day === day.id,
+                );
+                if (!entry) return null;
+                return (
+                  <div
+                    key={day.id}
+                    className="flex flex-wrap items-center gap-3 rounded-lg border border-zinc-200 bg-white px-3 py-2"
+                  >
+                    <span className="w-9 text-xs font-semibold text-zinc-800">
+                      {day.label}
+                    </span>
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="time"
+                        value={entry.start}
+                        onChange={(e) =>
+                          updateDayHours(day.id, "start", e.target.value)
+                        }
+                        className="rounded-lg border border-zinc-200 bg-white px-3 py-1.5 text-xs text-zinc-900 focus:border-zinc-400 focus:outline-hidden"
+                      />
+                      <span className="text-xs text-zinc-400">to</span>
+                      <input
+                        type="time"
+                        value={entry.end}
+                        onChange={(e) =>
+                          updateDayHours(day.id, "end", e.target.value)
+                        }
+                        className="rounded-lg border border-zinc-200 bg-white px-3 py-1.5 text-xs text-zinc-900 focus:border-zinc-400 focus:outline-hidden"
+                      />
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => toggleDay(day.id)}
+                      title={`Remove ${day.label}`}
+                      className="ml-auto text-zinc-400 hover:text-red-600 transition-colors"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+
+        {/* Session Duration */}
+        <div className="flex flex-col gap-1.5 sm:max-w-xs">
+          <label className="text-xs font-medium text-zinc-700">
+            Session Duration
+          </label>
+          <select
+            value={workingHours.slotDurationMinutes}
+            onChange={(e) =>
+              setWorkingHours((prev) => ({
+                ...prev,
+                slotDurationMinutes: Number(e.target.value),
+              }))
+            }
+            className="rounded-lg border border-zinc-200 bg-white px-3 py-2 text-xs text-zinc-900 focus:border-zinc-400 focus:outline-hidden"
+          >
+            <option value={30}>30 minutes</option>
+            <option value={45}>45 minutes</option>
+            <option value={60}>60 minutes (1 hour)</option>
+            <option value={90}>90 minutes (1.5 hours)</option>
+          </select>
         </div>
       </div>
 

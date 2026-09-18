@@ -22,7 +22,10 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { AdminCoachSyncButton } from "./admin-coach-sync-button";
 import { AdminCoachWorkingHoursDialog } from "./admin-coach-working-hours-dialog";
-import type { WorkingHoursInput } from "../working-hours";
+import {
+  resolveWorkingWindow,
+  type WorkingHoursInput,
+} from "../working-hours";
 
 export interface ScheduleSlot {
   slotId: string;
@@ -123,38 +126,18 @@ export function CoachWeeklySchedule({
   };
 
   const hasConfiguredWorkingHours =
-    workingHours &&
-    Array.isArray(workingHours.days) &&
-    workingHours.days.length > 0;
+    !!workingHours &&
+    ((Array.isArray(workingHours.days) && workingHours.days.length > 0) ||
+      (Array.isArray(workingHours.dayHours) &&
+        workingHours.dayHours.length > 0));
 
   // Working hours range for a date
   const getWorkingHoursForDate = (date: Date) => {
-    if (!hasConfiguredWorkingHours || !workingHours) return null;
-    const dayOfWeek = date.getDay();
-    const dateYmd = format(date, "yyyy-MM-dd");
+    const window = resolveWorkingWindow(workingHours, date);
+    if (!window) return null;
 
-    const isRangeBlocked = (workingHours.blockedRanges || []).some(
-      (r) => dateYmd >= r.startDate && dateYmd <= r.endDate,
-    );
-    if (isRangeBlocked) return null;
-
-    const override = (workingHours.overrides || []).find((o) => o.date === dateYmd);
-    if (override?.isBlocked) return null;
-
-    let startStr = workingHours.start;
-    let endStr = workingHours.end;
-    let isWorkingDay = workingHours.days.includes(dayOfWeek);
-
-    if (override?.start && override?.end) {
-      startStr = override.start;
-      endStr = override.end;
-      isWorkingDay = true;
-    }
-
-    if (!isWorkingDay) return null;
-
-    const [sHour, sMin] = startStr.split(":").map(Number);
-    const [eHour, eMin] = endStr.split(":").map(Number);
+    const [sHour, sMin] = window.start.split(":").map(Number);
+    const [eHour, eMin] = window.end.split(":").map(Number);
     return { startMin: sHour * 60 + sMin, endMin: eHour * 60 + eMin };
   };
 

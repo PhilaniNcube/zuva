@@ -24,9 +24,10 @@ Responsive web app consolidating the ZUVA postgraduate scholar coaching journey 
 
 ## Commands
 
-- `npm run dev` / `build` / `lint` / `typecheck`
-- `npm run db:push` — push schema to DB (local dev uses `file:local.db`)
-- `npm run db:seed` — idempotent dev seed (users for all roles, password `password123`)
+- **Always use pnpm** (`pnpm add`, `pnpm dev`, …) — never npm or yarn. The lockfile is `pnpm-lock.yaml`.
+- `pnpm dev` / `build` / `lint` / `typecheck`
+- `pnpm db:push` — push schema to DB (local dev uses `file:local.db`)
+- `pnpm db:seed` — idempotent dev seed (users for all roles, password `password123`)
 
 ## Architecture conventions
 

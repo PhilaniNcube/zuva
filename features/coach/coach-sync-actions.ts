@@ -17,6 +17,7 @@ import {
   AVAILABILITY_HORIZON_DAYS,
   DEFAULT_WORKING_HOURS,
   icalSettingsSchema,
+  resolveWorkingWindow,
   workingHoursSchema,
   type WorkingHoursInput,
 } from "./working-hours";
@@ -95,13 +96,6 @@ export async function syncCoachAvailabilityForUser(
   // 4. Generate candidate free slots
   const candidateFreeSlots: { startsAt: Date; endsAt: Date }[] = [];
 
-  const formatYmd = (date: Date) => {
-    const y = date.getFullYear();
-    const m = String(date.getMonth() + 1).padStart(2, "0");
-    const d = String(date.getDate()).padStart(2, "0");
-    return `${y}-${m}-${d}`;
-  };
-
   const curr = new Date(now);
   curr.setHours(0, 0, 0, 0);
 
@@ -109,95 +103,68 @@ export async function syncCoachAvailabilityForUser(
   horizonEndMidnight.setHours(23, 59, 59, 999);
 
   while (curr <= horizonEndMidnight) {
-    const dateStr = formatYmd(curr);
+    const activeWindow = resolveWorkingWindow(workingHours, curr);
 
-    // Check if date falls in a blocked vacation range
-    const isRangeBlocked = (workingHours.blockedRanges || []).some(
-      (range) => dateStr >= range.startDate && dateStr <= range.endDate,
-    );
+    if (activeWindow) {
+      const [sHour, sMin] = activeWindow.start.split(":").map(Number);
+      const [eHour, eMin] = activeWindow.end.split(":").map(Number);
 
-    if (!isRangeBlocked) {
-      const dateOverride = (workingHours.overrides || []).find(
-        (o) => o.date === dateStr,
-      );
+      const dayStartTime = new Date(curr);
+      dayStartTime.setHours(sHour, sMin, 0, 0);
 
-      const isBlockedDay = dateOverride?.isBlocked === true;
+      const dayEndTime = new Date(curr);
+      dayEndTime.setHours(eHour, eMin, 0, 0);
 
-      if (!isBlockedDay) {
-        let activeStart = workingHours.start;
-        let activeEnd = workingHours.end;
-        let isWorkingDay = workingHours.days.includes(curr.getDay());
+      const slotDurationMs =
+        (workingHours.slotDurationMinutes || 60) * 60 * 1000;
+      const bufferMs = (workingHours.bufferMinutes || 0) * 60 * 1000;
+      const stepMs = slotDurationMs + bufferMs;
 
-        if (dateOverride) {
-          if (dateOverride.start && dateOverride.end) {
-            activeStart = dateOverride.start;
-            activeEnd = dateOverride.end;
-            isWorkingDay = true;
-          }
-        }
+      let slotStart = new Date(dayStartTime);
 
-        if (isWorkingDay) {
-          const [sHour, sMin] = activeStart.split(":").map(Number);
-          const [eHour, eMin] = activeEnd.split(":").map(Number);
+      while (
+        slotStart.getTime() + slotDurationMs <=
+        dayEndTime.getTime()
+      ) {
+        const slotEnd = new Date(slotStart.getTime() + slotDurationMs);
 
-          const dayStartTime = new Date(curr);
-          dayStartTime.setHours(sHour, sMin, 0, 0);
+        // Skip past slots
+        if (slotStart.getTime() > now.getTime()) {
+          const startMs = slotStart.getTime();
+          const endMs = slotEnd.getTime();
 
-          const dayEndTime = new Date(curr);
-          dayEndTime.setHours(eHour, eMin, 0, 0);
+          // Check iCal busy overlap
+          const overlapsIcal = icalBusyBlocks.some(
+            (busy) =>
+              busy.start.getTime() < endMs && busy.end.getTime() > startMs,
+          );
 
-          const slotDurationMs =
-            (workingHours.slotDurationMinutes || 60) * 60 * 1000;
-          const bufferMs = (workingHours.bufferMinutes || 0) * 60 * 1000;
-          const stepMs = slotDurationMs + bufferMs;
+          // Check ZUVA session overlap
+          const overlapsSession = coachSessions.some(
+            (sess) =>
+              sess.startsAt.getTime() < endMs &&
+              sess.endsAt.getTime() > startMs,
+          );
 
-          let slotStart = new Date(dayStartTime);
+          // Check booked or cancelled slot overlap
+          const overlapsBookedOrCancelled = bookedOrCancelledSlots.some(
+            (b) =>
+              b.startsAt.getTime() < endMs && b.endsAt.getTime() > startMs,
+          );
 
-          while (
-            slotStart.getTime() + slotDurationMs <=
-            dayEndTime.getTime()
+          if (
+            !overlapsIcal &&
+            !overlapsSession &&
+            !overlapsBookedOrCancelled
           ) {
-            const slotEnd = new Date(slotStart.getTime() + slotDurationMs);
-
-            // Skip past slots
-            if (slotStart.getTime() > now.getTime()) {
-              const startMs = slotStart.getTime();
-              const endMs = slotEnd.getTime();
-
-              // Check iCal busy overlap
-              const overlapsIcal = icalBusyBlocks.some(
-                (busy) =>
-                  busy.start.getTime() < endMs && busy.end.getTime() > startMs,
-              );
-
-              // Check ZUVA session overlap
-              const overlapsSession = coachSessions.some(
-                (sess) =>
-                  sess.startsAt.getTime() < endMs &&
-                  sess.endsAt.getTime() > startMs,
-              );
-
-              // Check booked or cancelled slot overlap
-              const overlapsBookedOrCancelled = bookedOrCancelledSlots.some(
-                (b) =>
-                  b.startsAt.getTime() < endMs && b.endsAt.getTime() > startMs,
-              );
-
-              if (
-                !overlapsIcal &&
-                !overlapsSession &&
-                !overlapsBookedOrCancelled
-              ) {
-                candidateFreeSlots.push({
-                  startsAt: slotStart,
-                  endsAt: slotEnd,
-                });
-              }
-            }
-
-            slotStart = new Date(slotStart.getTime() + stepMs);
+            candidateFreeSlots.push({
+              startsAt: slotStart,
+              endsAt: slotEnd,
+            });
           }
         }
+
+        slotStart = new Date(slotStart.getTime() + stepMs);
       }
     }
 

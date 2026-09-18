@@ -189,6 +189,8 @@ export const coachProfile = sqliteTable(
       days: number[];
       start: string;
       end: string;
+      // Per-weekday working hours; falls back to `days` + `start`/`end`.
+      dayHours?: { day: number; start: string; end: string }[];
       slotDurationMinutes: number;
       bufferMinutes: number;
       overrides?: {
