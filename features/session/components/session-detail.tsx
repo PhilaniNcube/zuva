@@ -10,7 +10,10 @@ import {
   getSessionResourceEngagementStats,
   listResourcesForSession,
 } from "@/features/resource/resource-queries";
-import { getScholarProfile } from "@/features/user/user-queries";
+import {
+  getScholarProfile,
+  isScholarEnrolledInCohort,
+} from "@/features/user/user-queries";
 import { requireUser } from "@/lib/rbac";
 import { sessionContactMessage, waLink } from "@/lib/whatsapp";
 
@@ -39,7 +42,10 @@ export async function SessionDetail({ id }: { id: string | Promise<string> }) {
           ? !!(await getConfirmedBooking(sessionId, currentUser.id))
           : session.scholarId === currentUser.id;
     } else {
-      allowed = scholarProfile?.cohortId === session.cohortId;
+      allowed = await isScholarEnrolledInCohort(
+        currentUser.id,
+        session.cohortId,
+      );
     }
     if (!allowed) notFound();
   } else if (role === "coach") {

@@ -36,6 +36,21 @@ export const getScholarCohorts = cache(async (scholarId: string) => {
     .orderBy(desc(cohort.startsAt));
 });
 
+export const isScholarEnrolledInCohort = cache(
+  async (scholarId: string, cohortId: string) => {
+    const [row] = await db
+      .select({ id: scholarEnrollment.id })
+      .from(scholarEnrollment)
+      .where(
+        and(
+          eq(scholarEnrollment.scholarId, scholarId),
+          eq(scholarEnrollment.cohortId, cohortId),
+        ),
+      );
+    return !!row;
+  },
+);
+
 export const getScholarProfile = cache(async (userId: string) => {
   const [row] = await db
     .select()
