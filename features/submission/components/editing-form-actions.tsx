@@ -52,11 +52,9 @@ async function reviewAction(
 export function StartReviewForm({
   submissionId,
   coaches,
-  onDone,
 }: {
   submissionId: string;
   coaches: CoachOption[];
-  onDone: () => void;
 }) {
   const [open, setOpen] = useState(false);
   const [state, formAction, isPending] = useActionState(
@@ -73,10 +71,9 @@ export function StartReviewForm({
     if (state?.ok) {
       toast.success("Review started");
       setOpen(false);
-      onDone();
     }
     if (state && !state.ok) toast.error(state.error);
-  }, [state, onDone]);
+  }, [state]);
 
   function onSubmit(data: ReviewValues) {
     const formData = new FormData();
@@ -169,11 +166,9 @@ async function editingAction(
 export function StartEditingForm({
   submissionId,
   coaches,
-  onDone,
 }: {
   submissionId: string;
   coaches: CoachOption[];
-  onDone: () => void;
 }) {
   const [open, setOpen] = useState(false);
   const [state, formAction, isPending] = useActionState(
@@ -190,10 +185,9 @@ export function StartEditingForm({
     if (state?.ok) {
       toast.success("Editing started");
       setOpen(false);
-      onDone();
     }
     if (state && !state.ok) toast.error(state.error);
-  }, [state, onDone]);
+  }, [state]);
 
   function onSubmit(data: EditingValues) {
     const formData = new FormData();
@@ -283,10 +277,8 @@ async function returnAction(
 
 export function ReturnFileForm({
   submissionId,
-  onDone,
 }: {
   submissionId: string;
-  onDone: () => void;
 }) {
   const [open, setOpen] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -304,10 +296,9 @@ export function ReturnFileForm({
     if (state?.ok) {
       toast.success("File returned to scholar");
       setOpen(false);
-      onDone();
     }
     if (state && !state.ok) toast.error(state.error);
-  }, [state, onDone]);
+  }, [state]);
 
   async function onSubmit(data: ReturnValues) {
     const file = (data.file as FileList)?.[0];

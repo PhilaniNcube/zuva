@@ -101,19 +101,14 @@ export async function EditingQueue({
                 <StartReviewForm
                   submissionId={s.id}
                   coaches={coachOptions}
-                  onDone={() => {}}
                 />
               ) : s.status === "critical_review" ? (
                 <StartEditingForm
                   submissionId={s.id}
                   coaches={coachOptions}
-                  onDone={() => {}}
                 />
               ) : s.status === "language_editing" ? (
-                <ReturnFileForm
-                  submissionId={s.id}
-                  onDone={() => {}}
-                />
+                <ReturnFileForm submissionId={s.id} />
               ) : null}
             </TableCell>
           </TableRow>
