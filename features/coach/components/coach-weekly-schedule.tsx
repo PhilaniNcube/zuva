@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 import {
   addDays,
   format,
@@ -62,6 +62,21 @@ interface CoachWeeklyScheduleProps {
   icalBusyBlocks?: IcalBusySlot[];
   icalUrl?: string | null;
   lastSyncedAt?: Date | null;
+  /**
+   * Replaces the default (admin) header controls — working-hours config and
+   * calendar sync. Coaches pass their own self-service controls here.
+   */
+  headerActions?: ReactNode;
+  /**
+   * Replaces the default (admin) CTA shown in the "working hours not
+   * configured" banner.
+   */
+  bannerAction?: ReactNode;
+  /**
+   * Replaces the default banner copy. Coaches viewing their own schedule pass
+   * second-person copy instead of the admin's third-person `coachName` line.
+   */
+  bannerDescription?: ReactNode;
 }
 
 interface CalendarEventItem {
@@ -100,6 +115,9 @@ export function CoachWeeklySchedule({
   icalBusyBlocks = [],
   icalUrl,
   lastSyncedAt,
+  headerActions,
+  bannerAction,
+  bannerDescription,
 }: CoachWeeklyScheduleProps) {
   // Navigation state: current week start (Monday)
   const [currentWeekStart, setCurrentWeekStart] = useState<Date>(() =>
@@ -343,11 +361,18 @@ export function CoachWeeklySchedule({
             </button>
           </div>
 
-          <AdminCoachWorkingHoursDialog
-            coachUserId={coachUserId}
-            workingHours={workingHours}
-          />
-          <AdminCoachSyncButton coachUserId={coachUserId} disabled={!icalUrl} />
+          {headerActions ?? (
+            <>
+              <AdminCoachWorkingHoursDialog
+                coachUserId={coachUserId}
+                workingHours={workingHours}
+              />
+              <AdminCoachSyncButton
+                coachUserId={coachUserId}
+                disabled={!icalUrl}
+              />
+            </>
+          )}
         </div>
       </div>
 
@@ -362,20 +387,23 @@ export function CoachWeeklySchedule({
                   Accepted Booking Hours Not Configured
                 </h4>
                 <p className="text-xs text-amber-800 dark:text-amber-300">
-                  {coachName} has not yet specified weekly working hours for 1:1 coaching bookings. Configure working hours to generate bookable slots.
+                  {bannerDescription ??
+                    `${coachName} has not yet specified weekly working hours for 1:1 coaching bookings. Configure working hours to generate bookable slots.`}
                 </p>
               </div>
             </div>
             <div className="shrink-0">
-              <AdminCoachWorkingHoursDialog
-                coachUserId={coachUserId}
-                workingHours={workingHours}
-                trigger={
-                  <Button size="sm" className="bg-amber-700 text-white hover:bg-amber-800 font-medium text-xs">
-                    Set Working Hours Now
-                  </Button>
-                }
-              />
+              {bannerAction ?? (
+                <AdminCoachWorkingHoursDialog
+                  coachUserId={coachUserId}
+                  workingHours={workingHours}
+                  trigger={
+                    <Button size="sm" className="bg-amber-700 text-white hover:bg-amber-800 font-medium text-xs">
+                      Set Working Hours Now
+                    </Button>
+                  }
+                />
+              )}
             </div>
           </div>
         </div>
