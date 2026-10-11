@@ -7,21 +7,27 @@ import { DeleteResourceButton } from "./delete-resource-button";
 export async function ResourceList({
   cohortId,
   scholarId,
+  search,
   adminControls = false,
 }: {
   cohortId?: string | null;
   scholarId?: string;
+  search?: string;
   adminControls?: boolean;
 }) {
   const resources = scholarId
-    ? await listScholarResources(scholarId)
+    ? await listScholarResources(scholarId, search)
     : cohortId
       ? await listResourcesForCohort(cohortId)
       : await listAllResources();
 
   if (resources.length === 0) {
     return (
-      <p className="text-sm text-muted-foreground">No resources published yet.</p>
+      <p className="text-sm text-muted-foreground">
+        {search?.trim()
+          ? `No resources match “${search.trim()}”.`
+          : "No resources published yet."}
+      </p>
     );
   }
 

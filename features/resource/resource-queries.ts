@@ -1,7 +1,7 @@
 import "server-only";
 
 import { cache } from "react";
-import { and, desc, eq, inArray, isNull, or } from "drizzle-orm";
+import { and, desc, eq, inArray, isNull, like, or, sql } from "drizzle-orm";
 
 import { db } from "@/lib/db";
 import {
@@ -87,37 +87,56 @@ export const listResourcesForSession = cache(
   },
 );
 
-/** Resources for a given scholar across all enrolled cohorts (plus global ones where cohortId is null). */
-export const listScholarResources = cache(async (scholarId: string) => {
-  const enrollments = await db
-    .select({ cohortId: scholarEnrollment.cohortId })
-    .from(scholarEnrollment)
-    .where(eq(scholarEnrollment.scholarId, scholarId));
+/**
+ * Resources for a given scholar across all enrolled cohorts (plus global ones
+ * where cohortId is null). Optionally filters by a case-insensitive search term
+ * matched against the title and description.
+ */
+export const listScholarResources = cache(
+  async (scholarId: string, search?: string) => {
+    const enrollments = await db
+      .select({ cohortId: scholarEnrollment.cohortId })
+      .from(scholarEnrollment)
+      .where(eq(scholarEnrollment.scholarId, scholarId));
 
-  const cohortIds = enrollments.map((e) => e.cohortId);
+    const cohortIds = enrollments.map((e) => e.cohortId);
 
-  const cohortConditions = cohortIds.length > 0
-    ? or(inArray(resource.cohortId, cohortIds), isNull(resource.cohortId))
-    : isNull(resource.cohortId);
+    const cohortCondition =
+      cohortIds.length > 0
+        ? or(inArray(resource.cohortId, cohortIds), isNull(resource.cohortId))
+        : isNull(resource.cohortId);
 
-  return db
-    .select({
-      id: resource.id,
-      title: resource.title,
-      description: resource.description,
-      type: resource.type,
-      fileKey: resource.fileKey,
-      url: resource.url,
-      cohortId: resource.cohortId,
-      sessionId: resource.sessionId,
-      createdAt: resource.createdAt,
-      uploadedByName: user.name,
-    })
-    .from(resource)
-    .leftJoin(user, eq(user.id, resource.uploadedBy))
-    .where(cohortConditions)
-    .orderBy(desc(resource.createdAt));
-});
+    const term = search?.trim();
+    const searchCondition = term
+      ? or(
+          like(sql`lower(${resource.title})`, `%${term.toLowerCase()}%`),
+          like(sql`lower(${resource.description})`, `%${term.toLowerCase()}%`),
+        )
+      : undefined;
+
+    const whereCondition = searchCondition
+      ? and(cohortCondition, searchCondition)
+      : cohortCondition;
+
+    return db
+      .select({
+        id: resource.id,
+        title: resource.title,
+        description: resource.description,
+        type: resource.type,
+        fileKey: resource.fileKey,
+        url: resource.url,
+        cohortId: resource.cohortId,
+        sessionId: resource.sessionId,
+        createdAt: resource.createdAt,
+        uploadedByName: user.name,
+      })
+      .from(resource)
+      .leftJoin(user, eq(user.id, resource.uploadedBy))
+      .where(whereCondition)
+      .orderBy(desc(resource.createdAt));
+  },
+);
 
 /** Resources for a given cohort (including global ones where cohortId is null). */
 export const listResourcesForCohort = cache(async (cohortId: string) => {
