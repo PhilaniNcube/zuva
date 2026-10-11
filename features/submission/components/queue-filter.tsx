@@ -29,6 +29,7 @@ export function QueueFilter() {
     <div className="flex items-center gap-2">
       <span className="text-sm font-medium text-zinc-700">Status:</span>
       <Select
+        items={STATUS_OPTIONS}
         value={selectedValue}
         onValueChange={(val) => {
           if (!val || val === "all") {

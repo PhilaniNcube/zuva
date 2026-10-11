@@ -230,6 +230,7 @@ export function CoachTable({
           <div className="flex items-center gap-2">
             <Filter className="size-3.5 text-muted-foreground" />
             <Select
+              items={specialtyFilterOptions}
               value={currentSpecialty || "all"}
               onValueChange={(value) => {
                 setSpecialty(value === "all" ? null : value);

@@ -233,6 +233,13 @@ export function EditScholarDialog({
                 name="cohortId"
                 render={({ field }) => (
                   <Select
+                    items={[
+                      { value: "none", label: "Unassigned (No Cohort)" },
+                      ...cohorts.map((c) => ({
+                        value: c.id,
+                        label: c.status ? `${c.name} (${c.status})` : c.name,
+                      })),
+                    ]}
                     value={field.value || "none"}
                     onValueChange={(val) => field.onChange(val === "none" ? "" : val)}
                     disabled={isPending}

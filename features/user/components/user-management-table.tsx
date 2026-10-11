@@ -84,6 +84,20 @@ import {
   Trash2,
 } from "lucide-react";
 
+const ROLE_FILTER_ITEMS = [
+  { value: "all", label: "All Roles" },
+  { value: "scholar", label: "Scholar" },
+  { value: "coach", label: "Coach" },
+  { value: "admin", label: "Admin" },
+  { value: "minds", label: "MINDS" },
+];
+
+const ONBOARDING_FILTER_ITEMS = [
+  { value: "all", label: "All Statuses" },
+  { value: "onboarded", label: "Onboarded" },
+  { value: "pending", label: "Pending" },
+];
+
 export interface UserItem {
   id: string;
   name: string;
@@ -605,6 +619,7 @@ export function UserManagementTable({
 
           {/* Role Filter */}
           <Select
+            items={ROLE_FILTER_ITEMS}
             value={currentRole || "all"}
             onValueChange={(val) => {
               setRoleFilter(val === "all" ? null : val);
@@ -627,6 +642,7 @@ export function UserManagementTable({
           <div className="flex items-center gap-1.5">
             <Filter className="size-3.5 text-muted-foreground" />
             <Select
+              items={ONBOARDING_FILTER_ITEMS}
               value={currentOnboardingStatus || "all"}
               onValueChange={(val) => {
                 setOnboardingStatus(val === "all" ? null : val);

@@ -60,6 +60,12 @@ import {
   Trash2,
 } from "lucide-react";
 
+const ONBOARDING_FILTER_ITEMS = [
+  { value: "all", label: "All Statuses" },
+  { value: "onboarded", label: "Onboarded" },
+  { value: "pending", label: "Pending" },
+];
+
 export interface CohortScholarItem {
   id: string;
   name: string;
@@ -365,6 +371,7 @@ export function CohortScholarsTable({
           </div>
 
           <Select
+            items={ONBOARDING_FILTER_ITEMS}
             value={currentOnboardingStatus || "all"}
             onValueChange={(val) => {
               setOnboardingStatus(val === "all" ? null : val);
