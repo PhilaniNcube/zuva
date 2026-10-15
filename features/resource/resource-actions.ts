@@ -6,9 +6,17 @@ import { z } from "zod";
 
 import type { ActionResult } from "@/lib/action-result";
 import { db } from "@/lib/db";
-import { programmeSession, resource, resourceEngagement } from "@/lib/db/schema";
+import {
+  programmeSession,
+  resource,
+  resourceEngagement,
+  scholarEnrollment,
+  user,
+} from "@/lib/db/schema";
+import { sendSessionRecordingEmail } from "@/lib/email";
 import { deleteObject } from "@/lib/r2";
 import { requireUser } from "@/lib/rbac";
+import { getSessionDetail } from "@/features/session/session-queries";
 
 const createSchema = z
   .object({
@@ -172,6 +180,81 @@ export async function trackResourceEngagement(input: unknown): Promise<ActionRes
         })
         .where(eq(resourceEngagement.id, existing.id));
     }
+  }
+
+  revalidatePath("/", "layout");
+  return { ok: true, data: undefined };
+}
+
+const publishRecordingSchema = z.object({
+  sessionId: z.string().min(1, "Session is required"),
+  fileKey: z.string().min(1, "Upload a recording file first"),
+  title: z.string().trim().max(150).optional().or(z.literal("")),
+  description: z.string().trim().max(2000).optional().or(z.literal("")),
+});
+
+/**
+ * Publish a session recording as a video resource and notify the cohort.
+ * The recording is held (hidden from scholars) until the session has ended.
+ */
+export async function publishSessionRecording(
+  input: unknown,
+): Promise<ActionResult> {
+  const { user: currentUser } = await requireUser();
+  if (currentUser.role !== "admin" && currentUser.role !== "coach") {
+    return { ok: false, error: "Only admins and coaches can publish recordings." };
+  }
+
+  const parsed = publishRecordingSchema.safeParse(input);
+  if (!parsed.success) {
+    return { ok: false, error: parsed.error.issues[0].message };
+  }
+  const { sessionId, fileKey, title, description } = parsed.data;
+
+  const session = await getSessionDetail(sessionId);
+  if (!session) return { ok: false, error: "Session not found" };
+  if (currentUser.role === "coach" && session.coachId !== currentUser.id) {
+    return {
+      ok: false,
+      error: "You can only publish recordings for your own sessions.",
+    };
+  }
+
+  const releaseAt =
+    session.endsAt.getTime() > Date.now() ? session.endsAt : new Date();
+
+  await db.insert(resource).values({
+    sessionId,
+    cohortId: session.cohortId,
+    type: "video",
+    title: title && title.length > 0 ? title : `${session.title} — recording`,
+    description: description && description.length > 0 ? description : null,
+    fileKey,
+    availableFrom: releaseAt,
+    uploadedBy: currentUser.id,
+  });
+
+  // Notify the cohort (best-effort, bounded concurrency for rate safety).
+  const scholars = await db
+    .select({ id: user.id, name: user.name, email: user.email })
+    .from(user)
+    .innerJoin(scholarEnrollment, eq(scholarEnrollment.scholarId, user.id))
+    .where(eq(scholarEnrollment.cohortId, session.cohortId));
+
+  const baseUrl = process.env.BETTER_AUTH_URL ?? "http://localhost:3000";
+  const sessionUrl = `${baseUrl}/sessions/${session.id}`;
+  for (let i = 0; i < scholars.length; i += 3) {
+    await Promise.allSettled(
+      scholars.slice(i, i + 3).map((scholar) =>
+        sendSessionRecordingEmail({
+          to: scholar.email,
+          recipientName: scholar.name,
+          sessionTitle: session.title,
+          sessionUrl,
+          userId: scholar.id,
+        }),
+      ),
+    );
   }
 
   revalidatePath("/", "layout");

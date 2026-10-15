@@ -3,6 +3,10 @@
     {
       "path": "/api/cron/sync-availability",
       "schedule": "0 2 * * *"
+    },
+    {
+      "path": "/api/cron/session-reminders",
+      "schedule": "0 * * * *"
     }
   ]
 }

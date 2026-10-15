@@ -4,21 +4,25 @@ import { notFound } from "next/navigation";
 import { LocalTime } from "@/components/local-time";
 import { SPECIALTIES } from "@/features/coach/specialties";
 import { AddSessionResourceForm } from "@/features/resource/components/add-session-resource-form";
+import { UploadRecordingForm } from "@/features/resource/components/upload-recording-form";
 import { ResourceEngagementSummary } from "@/features/resource/components/resource-engagement-summary";
 import { SessionResourceList } from "@/features/resource/components/session-resource-list";
 import {
   getSessionResourceEngagementStats,
   listResourcesForSession,
 } from "@/features/resource/resource-queries";
-import {
-  getScholarProfile,
-  isScholarEnrolledInCohort,
-} from "@/features/user/user-queries";
+import { getScholarProfile } from "@/features/user/user-queries";
 import { requireUser } from "@/lib/rbac";
+import type { Role } from "@/lib/roles";
 import { sessionContactMessage, waLink } from "@/lib/whatsapp";
 
-import { getConfirmedBooking, getSessionDetail } from "../session-queries";
+import { canViewSession } from "../session-access";
+import {
+  getSessionAttendanceRoster,
+  getSessionDetail,
+} from "../session-queries";
 import { JoinCallButton } from "./join-call-button";
+import { SessionAttendanceRegister } from "./session-attendance-register";
 
 export async function SessionDetail({ id }: { id: string | Promise<string> }) {
   const sessionId = typeof id === "string" ? id : await id;
@@ -28,43 +32,31 @@ export async function SessionDetail({ id }: { id: string | Promise<string> }) {
   ]);
   if (!session) notFound();
 
-  // Access control: scholars need a confirmed booking (coaching 1:1), to be
-  // the targeted scholar (onboarding 1:1), or cohort membership (group
-  // sessions); coaches see their own; admins see all.
+  // Access control lives in one place (also used by the join + .ics routes):
+  // scholars need a confirmed booking (coaching 1:1), to be the targeted
+  // scholar (onboarding 1:1), or cohort membership (group sessions); coaches
+  // and MINDS see their own; admins see all.
   const role = currentUser.role;
-  let scholarProfile = null;
-  if (role === "scholar") {
-    scholarProfile = await getScholarProfile(currentUser.id);
-    let allowed = false;
-    if (session.format === "one_on_one") {
-      allowed =
-        session.kind === "coaching"
-          ? !!(await getConfirmedBooking(sessionId, currentUser.id))
-          : session.scholarId === currentUser.id;
-    } else {
-      allowed = await isScholarEnrolledInCohort(
-        currentUser.id,
-        session.cohortId,
-      );
-    }
-    if (!allowed) notFound();
-  } else if (role === "coach") {
-    if (session.coachId !== currentUser.id) notFound();
-  } else if (role !== "admin" && session.coachId !== currentUser.id) {
-    // MINDS users only see sessions they host (onboarding).
-    notFound();
-  }
+  const allowed = await canViewSession(
+    { id: currentUser.id, role: role as Role },
+    session,
+  );
+  if (!allowed) notFound();
+
+  const scholarProfile =
+    role === "scholar" ? await getScholarProfile(currentUser.id) : null;
 
   const canManage = role === "admin" || (role === "coach" && session.coachId === currentUser.id);
   const isScholar = role === "scholar";
 
-  // Fetch session resources and engagement statistics
-  const [resources, engagementStats] = await Promise.all([
+  // Fetch session resources, engagement statistics, and the attendance roster.
+  const [resources, engagementStats, roster] = await Promise.all([
     listResourcesForSession(
       session.id,
       isScholar ? currentUser.id : undefined,
     ),
     canManage ? getSessionResourceEngagementStats(session.id) : Promise.resolve(null),
+    canManage ? getSessionAttendanceRoster(session.id) : Promise.resolve(null),
   ]);
 
   const backHref =
@@ -131,6 +123,14 @@ export async function SessionDetail({ id }: { id: string | Promise<string> }) {
               meetLinkAvailable={!!session.meetLink}
             />
           ) : null}
+          {session.status !== "cancelled" ? (
+            <a
+              href={`/api/sessions/${session.id}/ics`}
+              className="rounded-lg border border-border px-3 py-1.5 text-xs font-medium hover:bg-muted transition-colors"
+            >
+              Add to calendar
+            </a>
+          ) : null}
           {role === "scholar" && session.coachWhatsapp && scholarProfile ? (
             <a
               href={waLink(
@@ -186,6 +186,27 @@ export async function SessionDetail({ id }: { id: string | Promise<string> }) {
           isScholar={isScholar}
         />
       </div>
+
+      {/* Post-session recording upload (admin / owning coach) */}
+      {canManage ? (
+        <div className="space-y-3 pt-2">
+          <div>
+            <h2 className="text-lg font-bold text-foreground">
+              Session recording
+            </h2>
+            <p className="text-xs text-muted-foreground">
+              Upload the recorded session. Enrolled scholars are emailed
+              automatically and can watch it here once the session ends.
+            </p>
+          </div>
+          <UploadRecordingForm sessionId={session.id} />
+        </div>
+      ) : null}
+
+      {/* Digital attendance register (admin / owning coach) */}
+      {canManage && roster ? (
+        <SessionAttendanceRegister sessionId={session.id} roster={roster} />
+      ) : null}
     </div>
   );
 }

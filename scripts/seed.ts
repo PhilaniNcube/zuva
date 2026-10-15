@@ -29,6 +29,7 @@ async function main() {
     availabilitySlot,
     programmeSession,
     sessionType,
+    masterclassPage,
   } = await import("../lib/db/schema");
 
   // --- Session types (programme content — safe to re-run) -------------------
@@ -183,6 +184,75 @@ async function main() {
     }
   }
   console.log("Coach profiles ready");
+
+  // --- Public masterclass landing content ----------------------------------
+  const MASTERCLASS_PAGES = [
+    {
+      slug: "academic-writing",
+      typeName: "Academic Writing",
+      headline:
+        "Turn your research into writing that examiners and journals take seriously.",
+      summary:
+        "A practical masterclass on structuring a thesis, crafting a persuasive argument, and meeting academic writing conventions without losing your voice.",
+      outcomes: [
+        "A clear structure for your thesis or dissertation",
+        "Techniques for writing a compelling abstract and introduction",
+        "How to revise for clarity, flow, and academic tone",
+      ],
+      facilitatorId: kofi.id,
+      sortOrder: 1,
+    },
+    {
+      slug: "data-and-decisions",
+      typeName: "Data and Decisions",
+      headline:
+        "Make confident, evidence-based decisions from messy real-world data.",
+      summary:
+        "From framing the question to communicating results, this masterclass helps you use data to support decisions in research and practice.",
+      outcomes: [
+        "Framing research questions that data can actually answer",
+        "Choosing the right analysis for your data",
+        "Presenting findings so decision-makers act on them",
+      ],
+      facilitatorId: null,
+      sortOrder: 2,
+    },
+    {
+      slug: "leadership-beyond-your-degree",
+      typeName: "Leadership beyond your degree",
+      headline:
+        "Lead the change your research implies — well beyond the classroom.",
+      summary:
+        "An interactive session on influence, collaboration, and leading without formal authority, tailored to postgraduate researchers.",
+      outcomes: [
+        "Leading teams and projects without positional authority",
+        "Communicating your vision to diverse stakeholders",
+        "Building resilience and momentum for the long haul",
+      ],
+      facilitatorId: naledi.id,
+      sortOrder: 0,
+    },
+  ] as const;
+
+  for (const page of MASTERCLASS_PAGES) {
+    const [existing] = await db
+      .select()
+      .from(masterclassPage)
+      .where(eq(masterclassPage.slug, page.slug));
+    if (existing) continue;
+    const typeId = typeIds.get(page.typeName);
+    if (!typeId) continue;
+    await db.insert(masterclassPage).values({
+      sessionTypeId: typeId,
+      slug: page.slug,
+      headline: page.headline,
+      summary: page.summary,
+      outcomes: [...page.outcomes],
+      facilitatorId: page.facilitatorId,
+      sortOrder: page.sortOrder,
+    });
+    console.log("Created masterclass page:", page.slug);
+  }
 
   const scholars = [
     {

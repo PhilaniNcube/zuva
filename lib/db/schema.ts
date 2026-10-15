@@ -235,6 +235,37 @@ export const sessionType = sqliteTable("session_type", {
   ...timestamps,
 });
 
+/**
+ * Public marketing content for a masterclass session type. One row per type;
+ * rendered on the unauthenticated `/masterclasses/[slug]` pages.
+ */
+export const masterclassPage = sqliteTable(
+  "masterclass_page",
+  {
+    id: id(),
+    sessionTypeId: text("session_type_id")
+      .notNull()
+      .references(() => sessionType.id, { onDelete: "cascade" }),
+    slug: text("slug").notNull(),
+    headline: text("headline").notNull(),
+    summary: text("summary"),
+    outcomes: text("outcomes", { mode: "json" }).$type<string[]>(),
+    heroImageUrl: text("hero_image_url"),
+    facilitatorId: text("facilitator_id").references(() => user.id, {
+      onDelete: "set null",
+    }),
+    isPublished: integer("is_published", { mode: "boolean" })
+      .notNull()
+      .default(true),
+    sortOrder: integer("sort_order").notNull().default(0),
+    ...timestamps,
+  },
+  (t) => [
+    uniqueIndex("masterclass_page_slug_idx").on(t.slug),
+    uniqueIndex("masterclass_page_type_idx").on(t.sessionTypeId),
+  ],
+);
+
 // Named programme_session to avoid collision with Better Auth's session table.
 export const programmeSession = sqliteTable(
   "programme_session",
@@ -340,6 +371,35 @@ export const attendance = sqliteTable(
   (t) => [
     uniqueIndex("attendance_session_scholar_idx").on(t.sessionId, t.scholarId),
     index("attendance_scholar_idx").on(t.scholarId),
+  ],
+);
+
+/**
+ * Idempotency ledger for pre-session reminder emails. The hourly cron inserts a
+ * row per (session, user, window) before sending, so re-runs never double-send.
+ */
+export const sessionReminderSend = sqliteTable(
+  "session_reminder_send",
+  {
+    id: id(),
+    sessionId: text("session_id")
+      .notNull()
+      .references(() => programmeSession.id, { onDelete: "cascade" }),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    window: text("window", { enum: ["24h", "1h"] }).notNull(),
+    sentAt: integer("sent_at", { mode: "timestamp" })
+      .notNull()
+      .$defaultFn(() => new Date()),
+  },
+  (t) => [
+    uniqueIndex("session_reminder_send_idx").on(
+      t.sessionId,
+      t.userId,
+      t.window,
+    ),
+    index("session_reminder_send_session_idx").on(t.sessionId),
   ],
 );
 
@@ -465,6 +525,9 @@ export const resource = sqliteTable(
       .default("document"),
     fileKey: text("file_key"),
     url: text("url"),
+    // When set, the resource is hidden from scholars until this time (used to
+    // hold a session recording until the session has actually ended).
+    availableFrom: integer("available_from", { mode: "timestamp" }),
     uploadedBy: text("uploaded_by").references(() => user.id, {
       onDelete: "set null",
     }),
@@ -590,6 +653,9 @@ export const emailLog = sqliteTable(
         "password_reset",
         "scholar_enrolled",
         "coach_welcome",
+        "session_invite",
+        "session_reminder",
+        "session_recording",
       ],
     }).notNull(),
     status: text("status", { enum: ["sent", "failed"] }).notNull(),

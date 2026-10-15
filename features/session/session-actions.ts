@@ -12,13 +12,83 @@ import {
   availabilitySlot,
   booking,
   programmeSession,
+  scholarEnrollment,
   sessionType,
   user,
 } from "@/lib/db/schema";
+import { sendSessionInviteEmail } from "@/lib/email";
 import { cancelMeetEvent, createMeetEvent } from "@/lib/google-calendar";
+import { buildSessionIcs } from "@/lib/ics";
 import { requireRole, requireUser } from "@/lib/rbac";
+import type { Role } from "@/lib/roles";
 import { getScholarProfile } from "@/features/user/user-queries";
-import { getConfirmedBooking, getSessionDetail } from "./session-queries";
+import { canViewSession } from "./session-access";
+import { getSessionDetail } from "./session-queries";
+
+/** Run an async mapper with bounded concurrency (keeps email sends rate-safe). */
+async function mapLimit<T>(
+  items: T[],
+  limit: number,
+  fn: (item: T) => Promise<unknown>,
+): Promise<void> {
+  for (let i = 0; i < items.length; i += limit) {
+    await Promise.allSettled(items.slice(i, i + limit).map(fn));
+  }
+}
+
+/**
+ * Email cohort scholars a calendar invite (`.ics` + join link) for a group
+ * session. Scholars are intentionally not added as Google Calendar attendees.
+ */
+async function sendCohortInvites(session: {
+  id: string;
+  cohortId: string;
+  title: string;
+  description: string | null;
+  startsAt: Date;
+  endsAt: Date;
+  meetLink: string | null;
+}): Promise<void> {
+  const scholars = await db
+    .select({ id: user.id, name: user.name, email: user.email })
+    .from(user)
+    .innerJoin(scholarEnrollment, eq(scholarEnrollment.scholarId, user.id))
+    .where(eq(scholarEnrollment.cohortId, session.cohortId));
+
+  if (scholars.length === 0) return;
+
+  const baseUrl = process.env.BETTER_AUTH_URL ?? "http://localhost:3000";
+  const sessionUrl = `${baseUrl}/sessions/${session.id}`;
+  const description = [
+    session.description,
+    session.meetLink ? `Join video call: ${session.meetLink}` : null,
+  ]
+    .filter((part): part is string => Boolean(part))
+    .join("\n\n");
+
+  const icsContent = buildSessionIcs({
+    uid: session.id,
+    title: session.title,
+    description,
+    location: session.meetLink,
+    url: sessionUrl,
+    startsAt: session.startsAt,
+    endsAt: session.endsAt,
+  });
+
+  await mapLimit(scholars, 3, (scholar) =>
+    sendSessionInviteEmail({
+      to: scholar.email,
+      recipientName: scholar.name,
+      sessionTitle: session.title,
+      startsAt: session.startsAt,
+      meetLink: session.meetLink,
+      sessionUrl,
+      icsContent,
+      userId: scholar.id,
+    }),
+  );
+}
 
 // ---------------------------------------------------------------------------
 // Coach: availability slots
@@ -264,17 +334,23 @@ export async function createCohortSession(
     attendees: attendees.length > 0 ? attendees : undefined,
   });
 
-  await db.insert(programmeSession).values({
-    cohortId: v.cohortId,
-    sessionTypeId: type.id,
-    coachId: v.coachId || null,
-    title: v.title,
-    description: v.description || null,
-    startsAt: v.startsAt,
-    endsAt: v.endsAt,
-    googleEventId: meet?.eventId ?? null,
-    meetLink: meet?.meetLink ?? null,
-  });
+  const [created] = await db
+    .insert(programmeSession)
+    .values({
+      cohortId: v.cohortId,
+      sessionTypeId: type.id,
+      coachId: v.coachId || null,
+      title: v.title,
+      description: v.description || null,
+      startsAt: v.startsAt,
+      endsAt: v.endsAt,
+      googleEventId: meet?.eventId ?? null,
+      meetLink: meet?.meetLink ?? null,
+    })
+    .returning();
+
+  // Distribute calendar invites to enrolled scholars (best-effort).
+  await sendCohortInvites(created);
 
   revalidatePath("/", "layout");
   return { ok: true, data: undefined };
@@ -384,6 +460,57 @@ export async function cancelCohortSession(
 }
 
 // ---------------------------------------------------------------------------
+// Attendance register — manual admin/coach override
+// ---------------------------------------------------------------------------
+
+const attendanceMarkSchema = z.object({
+  sessionId: z.string().min(1, "Session is required"),
+  scholarId: z.string().min(1, "Scholar is required"),
+  present: z.boolean(),
+});
+
+export async function markAttendance(input: unknown): Promise<ActionResult> {
+  const { user: currentUser } = await requireUser();
+  if (currentUser.role !== "admin" && currentUser.role !== "coach") {
+    return { ok: false, error: "Only admins and coaches can edit attendance." };
+  }
+
+  const parsed = attendanceMarkSchema.safeParse(input);
+  if (!parsed.success) {
+    return { ok: false, error: parsed.error.issues[0].message };
+  }
+  const { sessionId, scholarId, present } = parsed.data;
+
+  const session = await getSessionDetail(sessionId);
+  if (!session) return { ok: false, error: "Session not found" };
+  if (currentUser.role === "coach" && session.coachId !== currentUser.id) {
+    return {
+      ok: false,
+      error: "You can only manage attendance for your own sessions.",
+    };
+  }
+
+  if (present) {
+    await db
+      .insert(attendance)
+      .values({ sessionId, scholarId, source: "manual_admin" })
+      .onConflictDoNothing();
+  } else {
+    await db
+      .delete(attendance)
+      .where(
+        and(
+          eq(attendance.sessionId, sessionId),
+          eq(attendance.scholarId, scholarId),
+        ),
+      );
+  }
+
+  revalidatePath("/", "layout");
+  return { ok: true, data: undefined };
+}
+
+// ---------------------------------------------------------------------------
 // Join call — logs scholar attendance, then redirects to the Meet link
 // ---------------------------------------------------------------------------
 
@@ -402,35 +529,30 @@ export async function joinCall(sessionId: string): Promise<ActionResult> {
     };
   }
 
-  const role = currentUser.role;
-
-  if (role === "scholar") {
-    let allowed = false;
-    if (session.format === "one_on_one") {
-      // Coaching 1:1s are slot-booked; onboarding 1:1s are admin-targeted.
-      allowed =
-        session.kind === "coaching"
-          ? !!(await getConfirmedBooking(sessionId, currentUser.id))
-          : session.scholarId === currentUser.id;
-    } else {
-      const profile = await getScholarProfile(currentUser.id);
-      allowed = profile?.cohortId === session.cohortId;
-    }
-    if (!allowed) {
-      return { ok: false, error: "You don't have access to this session." };
-    }
-    // Automated attendance: logged the moment the scholar clicks Join Call.
-    await db
-      .insert(attendance)
-      .values({ sessionId, scholarId: currentUser.id })
-      .onConflictDoNothing();
-    redirect(session.meetLink);
+  const allowed = await canViewSession(
+    { id: currentUser.id, role: currentUser.role as Role },
+    session,
+  );
+  if (!allowed) {
+    return { ok: false, error: "You don't have access to this session." };
   }
 
-  // The assigned coach (or onboarding host) and admins may join directly.
-  if (session.coachId === currentUser.id || role === "admin") {
-    redirect(session.meetLink);
+  if (currentUser.role === "scholar") {
+    // Automated attendance: logged when the scholar clicks Join Call, but only
+    // around the live window so premature/preview clicks aren't recorded.
+    const now = Date.now();
+    const earlyMs = 15 * 60 * 1000;
+    const lateMs = 30 * 60 * 1000;
+    const withinWindow =
+      now >= session.startsAt.getTime() - earlyMs &&
+      now <= session.endsAt.getTime() + lateMs;
+    if (withinWindow) {
+      await db
+        .insert(attendance)
+        .values({ sessionId, scholarId: currentUser.id })
+        .onConflictDoNothing();
+    }
   }
 
-  return { ok: false, error: "You don't have access to this session." };
+  redirect(session.meetLink);
 }

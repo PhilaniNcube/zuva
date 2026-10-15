@@ -1,7 +1,7 @@
 import "server-only";
 
 import { cache } from "react";
-import { and, desc, eq, inArray, isNull, like, or, sql } from "drizzle-orm";
+import { and, desc, eq, inArray, isNull, like, lte, or, sql } from "drizzle-orm";
 
 import { db } from "@/lib/db";
 import {
@@ -64,7 +64,18 @@ export const listResourcesForSession = cache(
           scholarId ? eq(resourceEngagement.scholarId, scholarId) : eq(resourceEngagement.scholarId, ""),
         ),
       )
-      .where(eq(resource.sessionId, sessionId))
+      .where(
+        and(
+          eq(resource.sessionId, sessionId),
+          // Scholars only see resources once released; managers see everything.
+          scholarId
+            ? or(
+                isNull(resource.availableFrom),
+                lte(resource.availableFrom, new Date()),
+              )
+            : undefined,
+        ),
+      )
       .orderBy(desc(resource.createdAt));
 
     return rows.map((r) => ({

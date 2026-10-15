@@ -265,5 +265,250 @@ export async function sendCoachWelcomeEmail({
   }
 }
 
+/**
+ * Send a session calendar invite (with an `.ics` attachment) to a participant.
+ * Used to distribute cohort masterclass/orientation invites to scholars, who
+ * aren't added as Google Calendar attendees. Degrades gracefully without Resend.
+ */
+export async function sendSessionInviteEmail({
+  to,
+  recipientName,
+  sessionTitle,
+  startsAt,
+  meetLink,
+  sessionUrl,
+  icsContent,
+  userId,
+}: {
+  to: string;
+  recipientName: string;
+  sessionTitle: string;
+  startsAt: Date;
+  meetLink: string | null;
+  sessionUrl: string;
+  icsContent: string;
+  userId?: string;
+}): Promise<{ sent: boolean; reason?: "resend_not_configured" | "send_failed" }> {
+  const resend = getResend();
+  if (!resend) {
+    console.warn("Resend not configured — skipping session invite to", to);
+    return { sent: false, reason: "resend_not_configured" };
+  }
+
+  const whenText = startsAt.toUTCString();
+
+  try {
+    await resend.emails.send({
+      from: FROM,
+      to,
+      subject: `Invitation: ${sessionTitle}`,
+      attachments: [
+        {
+          filename: "zuva-session.ics",
+          content: Buffer.from(icsContent),
+          contentType: "text/calendar",
+        },
+      ],
+      html: `
+        <div style="font-family: sans-serif; max-width: 480px; margin: 0 auto;">
+          <h2 style="color: #18181b;">You're invited, ${recipientName}</h2>
+          <p style="color: #3f3f46;">
+            <strong>${sessionTitle}</strong><br />
+            ${whenText} (UTC)
+          </p>
+          <p style="margin: 24px 0;">
+            <a href="${sessionUrl}"
+               style="background: #18181b; color: #fafafa; padding: 12px 24px;
+                      border-radius: 8px; text-decoration: none; font-weight: 500; display: inline-block;">
+              View session &amp; join
+            </a>
+          </p>
+          ${
+            meetLink
+              ? `<p style="color: #71717a; font-size: 14px;">
+                   Or open the video call directly: <a href="${meetLink}">${meetLink}</a>
+                 </p>`
+              : ""
+          }
+          <p style="color: #71717a; font-size: 14px;">
+            A calendar file is attached — open it to add this session to your own calendar.
+          </p>
+        </div>
+      `,
+    });
+
+    await db.insert(emailLog).values({
+      userId: userId ?? null,
+      type: "session_invite",
+      status: "sent",
+    });
+
+    return { sent: true };
+  } catch (err) {
+    console.error("Failed to send session invite email:", err);
+    await db.insert(emailLog).values({
+      userId: userId ?? null,
+      type: "session_invite",
+      status: "failed",
+    });
+    return { sent: false, reason: "send_failed" };
+  }
+}
+
+/**
+ * Send a pre-session reminder (with an `.ics` attachment) to a participant.
+ * `window` controls the wording only; dedupe is handled by the caller.
+ * Degrades gracefully when RESEND_API_KEY is not set.
+ */
+export async function sendSessionReminderEmail({
+  to,
+  recipientName,
+  sessionTitle,
+  startsAt,
+  meetLink,
+  sessionUrl,
+  window,
+  icsContent,
+  userId,
+}: {
+  to: string;
+  recipientName: string;
+  sessionTitle: string;
+  startsAt: Date;
+  meetLink: string | null;
+  sessionUrl: string;
+  window: "24h" | "1h";
+  icsContent: string;
+  userId?: string;
+}): Promise<{ sent: boolean; reason?: "resend_not_configured" | "send_failed" }> {
+  const resend = getResend();
+  if (!resend) {
+    console.warn("Resend not configured — skipping session reminder to", to);
+    return { sent: false, reason: "resend_not_configured" };
+  }
+
+  const lead = window === "1h" ? "in 1 hour" : "tomorrow";
+  const whenText = startsAt.toUTCString();
+
+  try {
+    await resend.emails.send({
+      from: FROM,
+      to,
+      subject: `Reminder: ${sessionTitle} starts ${lead}`,
+      attachments: [
+        {
+          filename: "zuva-session.ics",
+          content: Buffer.from(icsContent),
+          contentType: "text/calendar",
+        },
+      ],
+      html: `
+        <div style="font-family: sans-serif; max-width: 480px; margin: 0 auto;">
+          <h2 style="color: #18181b;">See you soon, ${recipientName}</h2>
+          <p style="color: #3f3f46;">
+            <strong>${sessionTitle}</strong> starts ${lead}.<br />
+            ${whenText} (UTC)
+          </p>
+          <p style="margin: 24px 0;">
+            <a href="${sessionUrl}"
+               style="background: #18181b; color: #fafafa; padding: 12px 24px;
+                      border-radius: 8px; text-decoration: none; font-weight: 500; display: inline-block;">
+              Join the session
+            </a>
+          </p>
+          ${
+            meetLink
+              ? `<p style="color: #71717a; font-size: 14px;">
+                   Video call: <a href="${meetLink}">${meetLink}</a>
+                 </p>`
+              : ""
+          }
+        </div>
+      `,
+    });
+
+    await db.insert(emailLog).values({
+      userId: userId ?? null,
+      type: "session_reminder",
+      status: "sent",
+    });
+
+    return { sent: true };
+  } catch (err) {
+    console.error("Failed to send session reminder email:", err);
+    await db.insert(emailLog).values({
+      userId: userId ?? null,
+      type: "session_reminder",
+      status: "failed",
+    });
+    return { sent: false, reason: "send_failed" };
+  }
+}
+
+/**
+ * Tell a participant a session recording is now available on the platform.
+ * Links to the session page (not a raw, expiring storage URL). Degrades
+ * gracefully when RESEND_API_KEY is not set.
+ */
+export async function sendSessionRecordingEmail({
+  to,
+  recipientName,
+  sessionTitle,
+  sessionUrl,
+  userId,
+}: {
+  to: string;
+  recipientName: string;
+  sessionTitle: string;
+  sessionUrl: string;
+  userId?: string;
+}): Promise<{ sent: boolean; reason?: "resend_not_configured" | "send_failed" }> {
+  const resend = getResend();
+  if (!resend) {
+    console.warn("Resend not configured — skipping recording email to", to);
+    return { sent: false, reason: "resend_not_configured" };
+  }
+
+  try {
+    await resend.emails.send({
+      from: FROM,
+      to,
+      subject: `Recording available: ${sessionTitle}`,
+      html: `
+        <div style="font-family: sans-serif; max-width: 480px; margin: 0 auto;">
+          <h2 style="color: #18181b;">Recording ready, ${recipientName}</h2>
+          <p style="color: #3f3f46;">
+            The recording for <strong>${sessionTitle}</strong> is now available
+            on the ZUVA Scholar Hub.
+          </p>
+          <p style="margin: 24px 0;">
+            <a href="${sessionUrl}"
+               style="background: #18181b; color: #fafafa; padding: 12px 24px;
+                      border-radius: 8px; text-decoration: none; font-weight: 500; display: inline-block;">
+              Watch the recording
+            </a>
+          </p>
+        </div>
+      `,
+    });
+
+    await db.insert(emailLog).values({
+      userId: userId ?? null,
+      type: "session_recording",
+      status: "sent",
+    });
+
+    return { sent: true };
+  } catch (err) {
+    console.error("Failed to send session recording email:", err);
+    await db.insert(emailLog).values({
+      userId: userId ?? null,
+      type: "session_recording",
+      status: "failed",
+    });
+    return { sent: false, reason: "send_failed" };
+  }
+}
+
 
 

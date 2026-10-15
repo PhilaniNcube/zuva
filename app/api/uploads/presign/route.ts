@@ -7,7 +7,7 @@ import { objectKey, presignPut } from "@/lib/r2";
 const schema = z.object({
   filename: z.string().min(1, "filename is required"),
   contentType: z.string().min(1),
-  purpose: z.enum(["submission", "resource", "returned", "avatar"]),
+  purpose: z.enum(["submission", "resource", "returned", "avatar", "recording"]),
 });
 
 export async function POST(request: Request) {
@@ -34,6 +34,9 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
   if (purpose === "resource" && role !== "admin") {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+  if (purpose === "recording" && role !== "admin" && role !== "coach") {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
   if (purpose === "avatar") {

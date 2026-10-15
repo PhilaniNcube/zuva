@@ -1,8 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
-import { or, eq } from "drizzle-orm";
+import { and, or, eq } from "drizzle-orm";
 
 import { db } from "@/lib/db";
-import { certificate, resource, scholarProfile, submission } from "@/lib/db/schema";
+import {
+  certificate,
+  resource,
+  scholarEnrollment,
+  submission,
+} from "@/lib/db/schema";
 import { presignGet } from "@/lib/r2";
 import { getSession } from "@/lib/rbac";
 
@@ -52,15 +57,19 @@ export async function GET(request: NextRequest) {
     .from(resource)
     .where(eq(resource.fileKey, key));
   if (res) {
-    if (session.user.role === "scholar") {
-      const [profile] = await db
-        .select()
-        .from(scholarProfile)
-        .where(eq(scholarProfile.userId, session.user.id));
-      const allowed =
-        !res.cohortId || // global resource
-        profile?.cohortId === res.cohortId;
-      if (!allowed) {
+    if (session.user.role === "scholar" && res.cohortId) {
+      // Multi-cohort aware: a scholar may access a resource for any cohort
+      // they are enrolled in. Global resources (no cohort) are open.
+      const [enrollment] = await db
+        .select({ id: scholarEnrollment.id })
+        .from(scholarEnrollment)
+        .where(
+          and(
+            eq(scholarEnrollment.scholarId, session.user.id),
+            eq(scholarEnrollment.cohortId, res.cohortId),
+          ),
+        );
+      if (!enrollment) {
         return NextResponse.json({ error: "Forbidden" }, { status: 403 });
       }
     }

@@ -28,6 +28,9 @@ import {
   sessionType,
   user,
 } from "@/lib/db/schema";
+import type { AttendanceRosterEntry } from "./attendance-types";
+
+export type { AttendanceRosterEntry };
 
 /** Active session types, e.g. for dropdowns and the booking topic picker. */
 export const listSessionTypes = cache(
@@ -459,5 +462,74 @@ export const getScholarAttendanceStats = cache(
           ? Math.round((attendedCount / eligibleCompletedCount) * 100)
           : null,
     };
+  },
+);
+
+// ---------------------------------------------------------------------------
+// Attendance register (admin / coach)
+// ---------------------------------------------------------------------------
+
+/**
+ * The digital attendance register for a session: everyone expected to attend,
+ * joined with their (optional) attendance record. Expected audience mirrors
+ * session visibility — enrolled cohort for group sessions, the booked scholar
+ * for coaching 1:1s, the targeted scholar for onboarding.
+ */
+export const getSessionAttendanceRoster = cache(
+  async (sessionId: string): Promise<AttendanceRosterEntry[]> => {
+    const session = await getSessionDetail(sessionId);
+    if (!session) return [];
+
+    let expected: { id: string; name: string; email: string }[] = [];
+
+    if (session.format === "one_on_one") {
+      if (session.kind === "coaching") {
+        expected = await db
+          .select({ id: user.id, name: user.name, email: user.email })
+          .from(booking)
+          .innerJoin(user, eq(user.id, booking.scholarId))
+          .where(
+            and(
+              eq(booking.sessionId, sessionId),
+              eq(booking.status, "confirmed"),
+            ),
+          );
+      } else if (session.scholarId) {
+        expected = await db
+          .select({ id: user.id, name: user.name, email: user.email })
+          .from(user)
+          .where(eq(user.id, session.scholarId));
+      }
+    } else {
+      expected = await db
+        .select({ id: user.id, name: user.name, email: user.email })
+        .from(user)
+        .innerJoin(scholarEnrollment, eq(scholarEnrollment.scholarId, user.id))
+        .where(eq(scholarEnrollment.cohortId, session.cohortId));
+    }
+
+    const records = await db
+      .select({
+        scholarId: attendance.scholarId,
+        joinedAt: attendance.joinedAt,
+        source: attendance.source,
+      })
+      .from(attendance)
+      .where(eq(attendance.sessionId, sessionId));
+
+    const byScholar = new Map(records.map((r) => [r.scholarId, r]));
+
+    return expected
+      .map((s) => {
+        const record = byScholar.get(s.id);
+        return {
+          scholarId: s.id,
+          name: s.name,
+          email: s.email,
+          joinedAt: record?.joinedAt ?? null,
+          source: record?.source ?? null,
+        };
+      })
+      .sort((a, b) => a.name.localeCompare(b.name));
   },
 );

@@ -69,7 +69,7 @@ export async function putObject(
 }
 
 export function objectKey(
-  purpose: "submission" | "resource" | "returned" | "avatar",
+  purpose: "submission" | "resource" | "returned" | "avatar" | "recording",
   userId: string,
   filename: string,
 ): string {
